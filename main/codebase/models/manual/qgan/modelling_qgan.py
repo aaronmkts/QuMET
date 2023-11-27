@@ -38,14 +38,14 @@ class Discriminator(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-class QGCD(nn.Module, QmlMixin):
+class Generator(nn.Module, QmlMixin):
     def __init__(self, 
                  config: QganConfig = QganConfig,
                  n_qubits: int = 4,
                  depth: int = 4,
                  device: Optional[Union[str, qml.Device]] = 'default.qubit') -> None:
 
-        super(QGCD, self).__init__()
+        super(Generator, self).__init__()
         self.config = config
         self.n_qubits = n_qubits
         self.depth = depth
@@ -54,10 +54,6 @@ class QGCD(nn.Module, QmlMixin):
 
         q_weight_shapes = {"q_weights": (self.depth * self.n_qubits)}
         q_generator = qml.QNode(self._circuit,
-                            self.device,
-                            interface = 'torch'
-                            )
-        self.circ = qml.QNode(self._circuit,
                             self.device,
                             interface = 'torch'
                             )
@@ -83,7 +79,6 @@ class QGCD(nn.Module, QmlMixin):
         wires = range(self.n_qubits)
         AngleEmbedding(features, wires = wires, rotation = 'X')
 
-    def forward(self, l_vector: Tensor):
+    def forward(self, noise: Tensor):
 
-        return self.q_generator(l_vector)
-
+        return self.q_generator(noise)
