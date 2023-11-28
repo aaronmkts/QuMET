@@ -80,8 +80,6 @@ class QuMETDataModule(pl.LightningDataModule):
         name: str,
         batch_size: int,
         num_workers: int,
-        max_token_len: int = None,
-        tokenizer=None,
         load_from_cache_file: bool = True,
         model_name: str = None,
     ) -> None:
@@ -89,8 +87,6 @@ class QuMETDataModule(pl.LightningDataModule):
 
         self.name = name
         self.batch_size = batch_size
-        self.tokenizer = tokenizer
-        self.max_token_len = max_token_len
         self.num_workers = num_workers
         self.load_from_cache_file = load_from_cache_file
         self.model_name = model_name
