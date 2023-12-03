@@ -7,6 +7,7 @@ from pathlib import Path
 from .mnist import get_mnist_dataset, MNISTQuMET
 from .transforms import get_vision_dataset_transform
 
+
 def get_vision_dataset(name: str, path: os.PathLike, split: str, model_name: str):
     """
     Args:
