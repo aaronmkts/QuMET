@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 
 from ..tools.registry import MAIN_CACHE_DIR
 from .vision import VISION_DATASET_MAPPING, get_vision_dataset, get_vision_dataset_cls
-
+from .manual import MANUAL_DATASET_MAPPING, get_manual_dataset, get_manual_dataset_cls
 
 DATASET_CACHE_DIR = MAIN_CACHE_DIR / "dataset"
 
@@ -21,6 +21,8 @@ def get_dataset_info(name: str):
     name = name.lower()
     if name in VISION_DATASET_MAPPING:
         return get_vision_dataset_cls(name).info
+    elif name in MANUAL_DATASET_MAPPING:
+        return get_manual_dataset_cls(name).info
     else:
         raise ValueError(f"Dataset {name} is not supported")
 
@@ -28,11 +30,11 @@ def get_dataset_info(name: str):
 def get_dataset(
     name: str,
     split: bool,
-    tokenizer=None,
-    max_token_len: int = None,
-    num_workers: int = os.cpu_count(),
-    load_from_cache_file: bool = True,
-    auto_setup: bool = True,
+    mean = None,
+    probabilities = None,
+    std_devs = None,
+    num_gaussians: int = None,
+    num_samples: int = None,
     model_name: str = None,
 ):
     """
@@ -54,7 +56,15 @@ def get_dataset(
     ], f"Unknown split {split}, should be one of train, validation, test, pred"
 
     name = name.lower()
-    if name in VISION_DATASET_MAPPING:
+    if name in MANUAL_DATASET_MAPPING:
+        dataset = get_manual_dataset(name, 
+                                    split,
+                                    mean,probabilities, 
+                                    std_devs,
+                                    num_gaussians,
+                                    num_samples)
+        
+    elif name in VISION_DATASET_MAPPING:
         path = DATASET_CACHE_DIR / name
         dataset = get_vision_dataset(name, path, split, model_name)
     else:
@@ -62,9 +72,8 @@ def get_dataset(
     return dataset
 
 
-AVAILABLE_DATASETS = (
-    list(VISION_DATASET_MAPPING.keys())
-)
+AVAILABLE_DATASETS = (list(VISION_DATASET_MAPPING.keys()) 
+                      + list(MANUAL_DATASET_MAPPING.keys()))
 
 
 class QuMETDataModule(pl.LightningDataModule):
@@ -79,17 +88,25 @@ class QuMETDataModule(pl.LightningDataModule):
         self,
         name: str,
         batch_size: int,
-        num_workers: int,
-        load_from_cache_file: bool = True,
+        mean = None,
+        probabilities = None,
+        std_devs = None,
+        num_gaussians: int = None,
+        num_samples: int = None,
         model_name: str = None,
     ) -> None:
         super().__init__()
 
         self.name = name
         self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.load_from_cache_file = load_from_cache_file
         self.model_name = model_name
+
+        self.mean = mean
+        self.probabilities = probabilities
+        self.std_devs = std_devs
+        self.num_gaussians = num_gaussians
+        self.num_samples = num_samples
+
 
         self.train_dataset = None
         self.val_dataset = None
@@ -101,41 +118,41 @@ class QuMETDataModule(pl.LightningDataModule):
         train_dataset = get_dataset(
             self.name,
             split="train",
-            tokenizer=self.tokenizer,
-            max_token_len=self.max_token_len,
-            num_workers=self.num_workers,
-            load_from_cache_file=self.load_from_cache_file,
-            auto_setup=False,
+            mean = self.mean,
+            probabilities = self.probabilities,
+            std_devs = self.std_devs,
+            num_gaussians = self.num_gaussians,
+            num_samples = self.num_samples,
             model_name=self.model_name,
         )
         val_dataset = get_dataset(
             self.name,
             split="validation",
-            tokenizer=self.tokenizer,
-            max_token_len=self.max_token_len,
-            num_workers=self.num_workers,
-            load_from_cache_file=self.load_from_cache_file,
-            auto_setup=False,
+            mean = self.mean,
+            probabilities = self.probabilities,
+            std_devs = self.std_devs,
+            num_gaussians = self.num_gaussians,
+            num_samples = self.num_samples,
             model_name=self.model_name,
         )
         test_dataset = get_dataset(
             self.name,
             split="test",
-            tokenizer=self.tokenizer,
-            max_token_len=self.max_token_len,
-            num_workers=self.num_workers,
-            load_from_cache_file=self.load_from_cache_file,
-            auto_setup=False,
+            mean = self.mean,
+            probabilities = self.probabilities,
+            std_devs = self.std_devs,
+            num_gaussians = self.num_gaussians,
+            num_samples = self.num_samples,
             model_name=self.model_name,
         )
         pred_dataset = get_dataset(
             self.name,
             split="pred",
-            tokenizer=self.tokenizer,
-            max_token_len=self.max_token_len,
-            num_workers=self.num_workers,
-            load_from_cache_file=self.load_from_cache_file,
-            auto_setup=False,
+            mean = self.mean,
+            probabilities = self.probabilities,
+            std_devs = self.std_devs,
+            num_gaussians = self.num_gaussians,
+            num_samples = self.num_samples,
             model_name=self.model_name,
         )
 
@@ -153,35 +170,37 @@ class QuMETDataModule(pl.LightningDataModule):
             self.train_dataset = get_dataset(
                 self.name,
                 split="train",
-                tokenizer=self.tokenizer,
-                max_token_len=self.max_token_len,
-                num_workers=self.num_workers,
-                load_from_cache_file=self.load_from_cache_file,
-                auto_setup=True,
+                mean = self.mean,
+                probabilities = self.probabilities,
+                std_devs = self.std_devs,
+                num_gaussians = self.num_gaussians,
+                num_samples = self.num_samples,
                 model_name=self.model_name,
             )
-            self.train_dataset.setup()
+            if self.train_dataset is not None:
+                self.train_dataset.setup()
         if stage in ["fit", "validate", None]:
             self.val_dataset = get_dataset(
                 self.name,
                 split="validation",
-                tokenizer=self.tokenizer,
-                max_token_len=self.max_token_len,
-                num_workers=self.num_workers,
-                load_from_cache_file=True,
-                auto_setup=True,
+                mean = self.mean,
+                probabilities = self.probabilities,
+                std_devs = self.std_devs,
+                num_gaussians = self.num_gaussians,
+                num_samples = self.num_samples,
                 model_name=self.model_name,
             )
-            self.val_dataset.setup()
+            if self.val_dataset is not None:
+                self.val_dataset.setup()
         if stage in ["test", None]:
             self.test_dataset = get_dataset(
                 self.name,
                 split="test",
-                tokenizer=self.tokenizer,
-                max_token_len=self.max_token_len,
-                num_workers=self.num_workers,
-                load_from_cache_file=True,
-                auto_setup=True,
+                mean = self.mean,
+                probabilities = self.probabilities,
+                std_devs = self.std_devs,
+                num_gaussians = self.num_gaussians,
+                num_samples = self.num_samples,
                 model_name=self.model_name,
             )
             if self.test_dataset is not None:
@@ -190,11 +209,11 @@ class QuMETDataModule(pl.LightningDataModule):
             self.pred_dataset = get_dataset(
                 self.name,
                 split="pred",
-                tokenizer=self.tokenizer,
-                max_token_len=self.max_token_len,
-                num_workers=self.num_workers,
-                load_from_cache_file=True,
-                auto_setup=True,
+                mean = self.mean,
+                probabilities = self.probabilities,
+                std_devs = self.std_devs,
+                num_gaussians = self.num_gaussians,
+                num_samples = self.num_samples,
                 model_name=self.model_name,
             )
             if self.pred_dataset is not None:
@@ -205,7 +224,6 @@ class QuMETDataModule(pl.LightningDataModule):
             self.train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
-            num_workers=self.num_workers,
         )
 
     def val_dataloader(self) -> DataLoader:
@@ -213,7 +231,6 @@ class QuMETDataModule(pl.LightningDataModule):
             self.val_dataset,
             batch_size=self.batch_size,
             shuffle=False,
-            num_workers=self.num_workers,
         )
 
     def test_dataloader(self) -> DataLoader:
@@ -227,7 +244,6 @@ class QuMETDataModule(pl.LightningDataModule):
             self.test_dataset,
             batch_size=self.batch_size,
             shuffle=False,
-            num_workers=self.num_workers,
         )
 
     def pred_dataloader(self) -> DataLoader:
@@ -237,5 +253,4 @@ class QuMETDataModule(pl.LightningDataModule):
             self.pred_dataset,
             batch_size=self.batch_size,
             shuffle=False,
-            num_workers=self.num_workers,
         )

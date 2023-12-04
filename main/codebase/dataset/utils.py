@@ -16,6 +16,7 @@ class DatasetSource(Enum):
     TORCHVISION = "torchvision"
     OTHERS = "others"
 
+
 class DatasetSplit(Enum):
     """
     The split of the dataset, must be one of the following:
@@ -30,7 +31,8 @@ class DatasetSplit(Enum):
     TEST = "test"
     PRED = "pred"
 
-dataclass
+
+@dataclass
 class QuMETDatasetInfo:
     """
     The dataset info for QuMet.
