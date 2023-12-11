@@ -1,8 +1,7 @@
-
 "Hybrid classical-quantum generative adversial network configuration"
 
 from typing import Union
-import pennylane as qml 
+import pennylane as qml
 
 
 class QmlMixin:
@@ -11,8 +10,7 @@ class QmlMixin:
     _device: Union[str, qml.Device]
     _n_qubits: int
 
-    def _set_qml_device(self,
-                        device: Union[str, qml.Device]):
+    def _set_qml_device(self, device: Union[str, qml.Device]):
         """
         Internal method to set a pennylane device according to its type
 
@@ -31,7 +29,7 @@ class QmlMixin:
             self._device = device
         else:
             # shots left as default (1000)
-            self._device = qml.device(device, wires=self._n_qubits)
+            self._device = qml.device(device, wires=self._n_qubits, shots = 1000)
 
     @property
     def device(self) -> qml.Device:
@@ -50,29 +48,26 @@ class QmlMixin:
         self._n_qubits = n_qubits
 
 
-
-
-class QganConfig():
+class QganConfig:
     def __init__(
-        self, 
-        input_size = 0,
-        n_qubits = 2,
-        n_a_qubits = 0,
-        depth = 1,
-        q_delta = 1,
-        device = "default.qubit",
-        diff_method = "parameter-shift",
-        batch_ops = False, #GPU options
-        mpi = False, #Distribution across nodes
+        self,
+        input_size=0,
+        n_qubits=2,
+        n_a_qubits=0,
+        depth=1,
+        q_delta=1,
+        device="default.qubit",
+        diff_method="parameter-shift",
+        batch_ops=False,  # GPU options
+        mpi=False,  # Distribution across nodes
         **kwargs,
     ):
-        
         self.input_size = input_size
         self.n_qubits = n_qubits
         self.n_a_qubits = n_a_qubits
         self.depth = depth
         self.q_delta = q_delta
         self.device = device
-        self.diff_method = (diff_method if (batch_ops and mpi) == False else "adjoint")
+        self.diff_method = diff_method if (batch_ops and mpi) == False else "adjoint"
         self.batch_ops = batch_ops
         self.mpi = mpi

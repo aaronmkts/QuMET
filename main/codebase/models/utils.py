@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 
+
 class ModelSource(Enum):
     """
     The source of the model, must be one of the following:
@@ -11,6 +12,7 @@ class ModelSource(Enum):
 
     MANUAL = "manual"
 
+
 class ModelTaskType(Enum):
     """
     The task type of the model, must be one of the following:
@@ -20,6 +22,7 @@ class ModelTaskType(Enum):
 
     VISION = "vision"
     PHYSICAL = "physical"
+
 
 @dataclass
 class QumetModelInfo:
@@ -60,5 +63,3 @@ class QumetModelInfo:
             assert (
                 self.physical_data_point_classification
             ), "Must be an physical data point classification model"
-
-

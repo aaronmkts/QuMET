@@ -1,6 +1,6 @@
 # Model Zoo for QuMET
 from os import PathLike
-
+'''
 from .manual import (
     is_manual_model,
     get_manual_model,
@@ -8,8 +8,10 @@ from .manual import (
     get_manual_model_info,
 )
 
-from .utils import QumetModelInfo, ModelSource, ModelTaskType
 '''
+from .utils import QumetModelInfo, ModelSource, ModelTaskType
+
+"""
 
 def get_model_info(name: str) -> QumetModelInfo:
     if is_manual_model(name):
@@ -40,4 +42,4 @@ def get_model(
             model = get_manual_model(**model_kwargs)
         case _:
             raise ValueError(f"Model source {model_info.model_source} not supported")
-    return model'''
+    return model"""
