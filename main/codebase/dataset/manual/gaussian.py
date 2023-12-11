@@ -4,6 +4,9 @@ import torch
 from torch.utils.data import Dataset
 from ..utils import add_dataset_info
 
+# Set the random seed for reproducibility
+seed = 42
+np.random.seed(seed)
 
 @add_dataset_info(
     name="gaussian",
@@ -23,7 +26,7 @@ class GaussianDataset(Dataset):
         # Check if probabilities add up to 1
         if np.sum(probabilities) != 1.0:
             raise ValueError("Probabilities should add up to 1.")
-
+    
         self.num_gaussians = num_gaussians
         self.mean = mean
         self.std_devs = std_devs
@@ -42,14 +45,9 @@ class GaussianDataset(Dataset):
                 f"split must be `train` or `test`, but got {split}"
             )
         
-    def prepare_data(self) -> None:
-        pass
-
-    def setup(self) -> None:
-        pass
-
     def _generate_samples(self):
 
+        
         samples = []
 
         for _ in range(self.num_samples):
@@ -61,6 +59,12 @@ class GaussianDataset(Dataset):
             samples.append(sample)
 
         return samples
+        
+    def prepare_data(self) -> None:
+        pass
+
+    def setup(self) -> None:
+        pass
 
 
     def __len__(self):
