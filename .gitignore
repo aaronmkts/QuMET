@@ -1,3 +1,5 @@
 Pipfile
 get-pip.py
 Pipfile.lock
+**/__pycache__/
+**/ckpts/
