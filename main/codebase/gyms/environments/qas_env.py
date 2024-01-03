@@ -3,7 +3,6 @@ from contextlib import closing
 from io import StringIO
 from typing import Dict, List, Optional, Union
 
-#import cirq
 import pennylane as qml
 import gym
 import numpy as np
