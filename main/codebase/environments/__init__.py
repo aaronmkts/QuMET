@@ -1,5 +1,11 @@
 from gym.envs.registration import register
 
+from QuMET.main.codebase.environments.basic_envs import (BasicNQubitEnv, BasicThreeQubitEnv,
+                                     BasicTwoQubitEnv)
+from QuMET.main.codebase.environments.noisy_envs import (NoisyNQubitEnv, NoisyThreeQubitEnv,
+                                     NoisyTwoQubitEnv)
+from QuMET.main.codebase.environments.qas_env import QuantumArchSearchEnv
+
 register(id='QuantumArchSearch-v0',
          entry_point='qas_gym.envs:QuantumArchSearch',
          nondeterministic=True)

@@ -1,6 +1,5 @@
 from typing import Dict, List, Optional, Union
 
-#import cirq
 import pennylane as qml
 import numpy as np
 

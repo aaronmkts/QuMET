@@ -1,8 +1,7 @@
-#import cirq
 import pennylane as qml
 import numpy as np
-from qas_gym.envs.qas_env import QuantumArchSearchEnv
-from qas_gym.utils import *
+from QuMET.main.codebase.environments.qas_env import QuantumArchSearchEnv
+from environments.utils import *
 
 
 class BasicNQubitEnv(QuantumArchSearchEnv):
