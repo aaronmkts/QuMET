@@ -17,8 +17,8 @@ class QuantumArchSearchEnv(gym.Env):
         self,
         target: np.ndarray,
         qubits: List[qml.wires.Wires], #List[cirq.LineQubit]
-        state_observables: List[qml.Operation], #List[cirq.GateOperation]
-        action_gates: List[qml.Operation], #List[cirq.GateOperation]
+        state_observables: List[qml.operation], #List[cirq.GateOperation]
+        action_gates: List[qml.operation], #List[cirq.GateOperation]
         fidelity_threshold: float,
         reward_penalty: float,
         max_timesteps: int,

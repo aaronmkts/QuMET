@@ -5,7 +5,7 @@ register(id='QuantumArchSearch-v0',
          nondeterministic=True)
 
 register(id='BasicTwoQubit-v0',
-         entry_point='gyms.environments:BasicTwoQubitEnv',
+         entry_point='gyms.environments.basic_envs:BasicTwoQubitEnv',
          nondeterministic=True)
 
 register(id='BasicThreeQubit-v0',
