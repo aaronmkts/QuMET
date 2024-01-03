@@ -15,31 +15,31 @@ np.random.seed(seed)
     generation = True,
 )
 class GaussianDataset(Dataset):
-    def __init__(self,  mean, probabilities, std_devs, split = "train", num_gaussians: int = 5, num_samples:int = 1000) -> None:
+    def __init__(self,  split = "train") -> None:
         
-        # Check if the input parameters are valid
-        if num_gaussians != len(mean) or num_gaussians != len(probabilities):
+
+        self.mean = [-0.2, 0.2]
+        self.probabilities = [1/2,1/2]
+        self.std_devs = [0.075,0.075]
+        self.num_gaussians = 2
+        self.num_samples = 1000
+       
+       # Check if the input parameters are valid
+        if self.num_gaussians != len(self.mean) or self.num_gaussians != len(self.probabilities):
             raise ValueError(
                 "Number of standard deviations and probabilities should match the number of distributions."
             )
 
         # Check if probabilities add up to 1
-        if np.sum(probabilities) != 1.0:
+        if np.sum(self.probabilities) != 1.0:
             raise ValueError("Probabilities should add up to 1.")
-    
-        self.num_gaussians = num_gaussians
-        self.mean = mean
-        self.std_devs = std_devs
-        self.probabilities = probabilities
-        self.num_samples = num_samples
 
         self.samples = self._generate_samples()
-        self.train, self.test = train_test_split(self.samples, train_size = 0.7, shuffle = True)
 
         if split == "train":
-            self.data = np.array(self.train).reshape((-1,1))
+            self.data = np.array(self.samples).reshape((-1,1))
         elif split == "test":
-            self.data = np.array(self.test).reshape((-1,1))
+            self.data = np.array(self.samples).reshape((-1,1))
         else:
             raise RuntimeError(
                 f"split must be `train` or `test`, but got {split}"
@@ -49,13 +49,12 @@ class GaussianDataset(Dataset):
 
         
         samples = []
-
         for _ in range(self.num_samples):
         
             chosen_distribution = np.random.choice(np.arange(self.num_gaussians), p=self.probabilities)
 
             # Generate a random sample from the chosen distribution
-            sample = np.random.normal(self.mean[chosen_distribution], self.std_devs)
+            sample = np.random.normal(loc = self.mean[chosen_distribution], scale = self.std_devs[chosen_distribution])
             samples.append(sample)
 
         return samples
@@ -75,3 +74,4 @@ class GaussianDataset(Dataset):
         data_i = torch.tensor(self.data[index, ...], dtype=torch.float32)
 
         return data_i
+    
