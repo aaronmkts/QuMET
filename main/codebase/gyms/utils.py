@@ -3,7 +3,6 @@ from typing import Dict, List, Optional, Union
 import pennylane as qml
 import numpy as np
 
-
 """def get_default_gates(
         qubits: List[cirq.LineQubit]) -> List[cirq.GateOperation]:
     gates = []
