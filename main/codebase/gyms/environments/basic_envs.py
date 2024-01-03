@@ -1,7 +1,7 @@
 import pennylane as qml
 import numpy as np
-from QuMET.main.codebase.gyms.environments.qas_env import QuantumArchSearchEnv
-from QuMET.main.codebase.gyms.utils import *
+from codebase.gyms.environments.qas_env import QuantumArchSearchEnv
+from codebase.gyms.utils import *
 
 
 class BasicNQubitEnv(QuantumArchSearchEnv):

@@ -3,21 +3,6 @@ from typing import Dict, List, Optional, Union
 import pennylane as qml
 import numpy as np
 
-"""def get_default_gates(
-        qubits: List[cirq.LineQubit]) -> List[cirq.GateOperation]:
-    gates = []
-    for idx, qubit in enumerate(qubits):
-        next_qubit = qubits[(idx + 1) % len(qubits)]
-        gates += [
-            cirq.rz(np.pi / 4.)(qubit),
-            cirq.X(qubit),
-            cirq.Y(qubit),
-            cirq.Z(qubit),
-            cirq.H(qubit),
-            cirq.CNOT(qubit, next_qubit)
-        ]
-    return gates"""
-
 def get_default_gates(qubits: List[qml.wires.Wires]) -> List[qml.Operation]:
     gates = []
     n_qubits = len(qubits)
@@ -32,18 +17,6 @@ def get_default_gates(qubits: List[qml.wires.Wires]) -> List[qml.Operation]:
             qml.CNOT(wires=[qubit, next_qubit])
         ]
     return gates
-
-
-"""def get_default_observables(
-        qubits: List[cirq.LineQubit]) -> List[cirq.GateOperation]:
-    observables = []
-    for qubit in qubits:
-        observables += [
-            cirq.X(qubit),
-            cirq.Y(qubit),
-            cirq.Z(qubit),
-        ]
-    return observables"""
 
 def get_default_observables(qubits: List[qml.wires.Wires]) -> List[qml.Operation]:
     observables = []
