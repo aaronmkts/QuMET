@@ -3,9 +3,9 @@ from pathlib import Path
 
 
 from .gaussian import GaussianDataset
+from .two_d_gaussian import TwoDGaussianDataset
 
-
-def get_manual_dataset(name: str, split: str, mean, probabilities, std_devs, num_gaussians, num_samples):
+def get_manual_dataset(name: str, split: str):
     """
     Args:
         name (str): name of the dataset
@@ -27,6 +27,8 @@ def get_manual_dataset(name: str, split: str, mean, probabilities, std_devs, num
     match name:
         case "gaussian":
             dataset_cls = GaussianDataset
+        case "two_d_gaussian":
+            dataset_cls = TwoDGaussianDataset
         case _:
             raise ValueError(f"Unknown dataset {name}")
         
@@ -46,17 +48,13 @@ def get_manual_dataset(name: str, split: str, mean, probabilities, std_devs, num
     if ori_split == "pred" and dataset_cls.info.pred_split_available:
         split = "test"
 
-    dataset = dataset_cls(mean, 
-                          probabilities, 
-                          std_devs, 
-                          split, 
-                          num_gaussians,
-                          num_samples)
+    dataset = dataset_cls(split,)
     return dataset
 
 
 MANUAL_DATASET_MAPPING = {
     "gaussian": GaussianDataset,
+    "two_d_gaussian": TwoDGaussianDataset,
 }
 
 
