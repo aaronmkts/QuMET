@@ -22,24 +22,19 @@ def main():
     discriminator = Discriminator()
     task = "generation"
     dataset_name = "gaussian"
-    mean = [-0.5, 0 , 0.5]
-    probabilities = [1/3,1/3,1/3]
-    std_devs = [0.2,0.2,0.2]
-    num_gaussians = 3
-    num_samples = 1000
     
     
     # Reduced for unit test
-    batch_size = 4
+    batch_size = 50
     optimizer = "adam"
-    max_epochs: int = 10
-    max_steps: int = 0
+    max_epochs: int = 100
+    max_steps: int = -1
     gradient_accumulation_steps: int = 1
     learning_rate: float = 5e-3
     weight_decay: float = 0.0
     lr_scheduler_type: str = "linear"
     num_warmup_steps: int = 0
-    save_path: str = "./ckpts/gaussian/qgcd"
+    save_path: str = "./ckpts/test"
     load_name: str = None
     load_type: str = ""
     evaluate_before_training: bool = True
@@ -48,11 +43,6 @@ def main():
         model_name= None,
         name=dataset_name,
         batch_size=batch_size,
-        mean = mean,
-        probabilities=probabilities,
-        std_devs=std_devs,
-        num_gaussians = num_gaussians,
-        num_samples = num_samples
     )
 
     train(

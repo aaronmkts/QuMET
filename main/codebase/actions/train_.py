@@ -55,13 +55,13 @@ def train(
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     generator = generator.to(device)
     discriminator = discriminator.to(device)
+
     # dataset
-    
     data_module.prepare_data()
     data_module.setup()
     train_dataloader = data_module.train_dataloader()
-    test_dataloader = data_module.test_dataloader()
-  
+    test_dataloader = data_module.test_dataloader() # The entire dataset
+    
 
     # optimizers
     optG = get_optimizer(
@@ -121,19 +121,25 @@ def train(
     progress_bar.set_description(f"Training steps")
 
     train_iterator = iter(train_dataloader)
+    
+    test_data = next(iter(test_dataloader))
+
+
+
     criterion =  nn.BCELoss()
 
     real_labels = torch.full((data_module.batch_size,), 1.0, dtype=torch.float, device=device)
     fake_labels = torch.full((data_module.batch_size,), 0.0, dtype=torch.float, device=device)
 
     # Fixed noise allows us to visually track the generated images throughout training
-    fixed_noise = torch.rand((250, 4), device=device) * math.pi / 2
+    fixed_noise = torch.rand((1000, 4), device=device) * math.pi / 2
    
     writer = SummaryWriter(save_path)
 
     if evaluate_before_training == True:
         fixed_fake_data = generator(fixed_noise).reshape(-1,1)
         writer.add_histogram('Distribution', fixed_fake_data.squeeze(), 0)
+        writer.add_histogram('True Distribution', test_data.squeeze(), 0)
 
     for step in range(max_steps):
         epoch = step // num_update_steps_per_epoch
@@ -149,7 +155,6 @@ def train(
         # Generate fake-data using noise input
         noise = torch.rand(data_module.batch_size, 4, device=device) * math.pi / 2
         fake_data = generator(noise).reshape(-1,1)
-
 
         # Training the discriminator
         discriminator.zero_grad()
@@ -171,10 +176,11 @@ def train(
         errG.backward()
         optG.step()
 
-        #relative_entropy = entropy(gen_dist.detach().squeeze().numpy(), prob_data)
+        
         writer.add_scalars('train_loss', {'d_loss': errD.item(),
                                           'g_loss': errG.item()},
                                           step)
+
         
         # complete an epoch
         if (step + 1) % num_update_steps_per_epoch == 0 or step == max_steps - 1:

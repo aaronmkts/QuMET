@@ -8,7 +8,7 @@ QuMET is a quantum machine learning (QML) library designed to empower researcher
 
 The main QuMET module contains tools for quantum circuit construction and standalone/hybrid quantum machine learning algorithms. This includes:
 
-- Quantum circuits: QuMET allows users to design and simulate quantum circuits, providing a foundation for implementing quantum algoritVhms, as well as utilizing quantum data encoding techniques to represent classical data in a quantum format suitable for quantum computations.
+- Quantum circuits: QuMET allows users to design and simulate quantum circuits, providing a foundation for implementing quantum algorithms, as well as utilizing quantum data encoding techniques to represent classical data in a quantum format suitable for quantum computations.
 - Quantum Algorithm Implementation: QuMET includes implementations of key quantum machine learning algorithms, such as quantum generative adversarial networks, quantum variational autoencoders and more.
 - Hybrid Classical-Quantum Models: Combine classical and quantum components to build hybrid models for machine learning tasks.
 
