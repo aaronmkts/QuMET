@@ -1,17 +1,18 @@
 import pennylane as qml
 import numpy as np
-from gyms.environments.qas_env import QuantumArchSearchEnv
-from gyms.utils import *
+from qas_env import QuantumArchSearchEnv
+from .. import utils
+import gymnasium
 
 
-class BasicNQubitEnv(QuantumArchSearchEnv):
+class BasicNQubitEnv(QuantumArchSearchEnv): #gymnasium.Env,
     def __init__(self,
                  target: np.ndarray,
                  fidelity_threshold: float = 0.95,
                  reward_penalty: float = 0.01,
                  max_timesteps: int = 20):
         n_qubits = int(np.log2(len(target)))
-        qubits = qml.wires.Wires(range(n_qubits)) #cirq.LineQubit.range(n_qubits)
+        qubits = qml.wires.Wires(range(n_qubits))
         state_observables = get_default_observables(qubits)
         action_gates = get_default_gates(qubits)
         super(BasicNQubitEnv,
@@ -28,7 +29,8 @@ class BasicTwoQubitEnv(BasicNQubitEnv):
         assert len(target) == 4, 'Target must be of size 4'
         super(BasicTwoQubitEnv, self).__init__(target, fidelity_threshold,
                                                reward_penalty, max_timesteps)
-
+        #self.num = 1
+        #self.ob_space = self.observation_space
 
 class BasicThreeQubitEnv(BasicNQubitEnv):
     def __init__(self,

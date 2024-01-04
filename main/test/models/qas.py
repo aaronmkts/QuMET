@@ -8,11 +8,19 @@ sys.path.append(
      )
     )
 
+#print(sys.path)
+
+import gym3
 import gym
+import gymnasium
 import torch.optim as optim
 from stable_baselines3 import A2C, PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 from gyms.environments import *
+
+from actions.rl_train import train_agent
+
+from stable_baselines3.common.env_checker import check_env
 
 # Parameters 
 env_name = 'BasicTwoQubit-v0'
@@ -26,21 +34,29 @@ env = gym.make(env_name,
                reward_penalty=reward_penalty,
                max_timesteps=max_timesteps)
 
-for idx, gate in enumerate(env.action_gates):
-    print('Action({:02d}) --> {}'.format(idx, gate))
+#env = gym3.ToGymEnv(env)
 
-for idx, observable in enumerate(env.state_observables):
-    print('State({:02d}) --> {}'.format(idx, observable))
+check_env(env)
+
+#for idx, gate in enumerate(env.action_gates):
+#    print('Action({:02d}) --> {}'.format(idx, gate))
+
+#for idx, observable in enumerate(env.state_observables):
+#    print('State({:02d}) --> {}'.format(idx, observable))
+
 
 # Parameters
 gamma = 0.99
 learning_rate = 0.0001
 policy_kwargs = dict(optimizer_class=optim.Adam)
+agent_type = "a2c"
+policy = "MlpPolicy"
 
-# Agent
-a2c_model = A2C("MlpPolicy",
-                env,
-                gamma=gamma,
-                learning_rate=learning_rate,
-                policy_kwargs=policy_kwargs,
-                tensorboard_log='logs/')
+#train_agent(agent_type, policy, env, gamma, learning_rate, policy_kwargs)
+
+a2c_model = A2C(policy,
+                        env,
+                        gamma=gamma,
+                        learning_rate=learning_rate,
+                        policy_kwargs=policy_kwargs,
+                        tensorboard_log='logs/')

@@ -16,9 +16,9 @@ class QuantumArchSearchEnv(gym.Env):
     def __init__(
         self,
         target: np.ndarray,
-        qubits: List[qml.wires.Wires], #List[cirq.LineQubit]
-        state_observables: List[qml.operation], #List[cirq.GateOperation]
-        action_gates: List[qml.operation], #List[cirq.GateOperation]
+        qubits: List[qml.wires.Wires],
+        state_observables: List[qml.operation],
+        action_gates: List[qml.operation],
         fidelity_threshold: float,
         reward_penalty: float,
         max_timesteps: int,
@@ -40,7 +40,7 @@ class QuantumArchSearchEnv(gym.Env):
 
         # set environment
         self.target_density = target * np.conj(target).T
-        self.simulator = qml.device('default.qubit', wires=len(self.qubits)) #cirq.Simulator()
+        self.simulator = qml.device('default.qubit', wires=len(self.qubits))
 
         # set spaces
         self.observation_space = spaces.Box(low=-1.,
@@ -69,16 +69,14 @@ class QuantumArchSearchEnv(gym.Env):
         return self._get_obs()
 
     def _get_cirq(self, maybe_add_noise=False):
-        circuit = self.simulator #cirq.Circuit(cirq.I(qubit) for qubit in self.qubits)
+        circuit = self.simulator 
         for gate in self.circuit_gates:
             circuit.append(gate)
             if maybe_add_noise and (self.error_gates is not None):
-                noise_gate = qml.DepolarizingChannel(self.error_gates, wires=gate.qubits) #cirq.depolarize(
-                    #self.error_gates).on_each(*gate._qubits)
+                noise_gate = qml.DepolarizingChannel(self.error_gates, wires=gate.qubits) 
                 circuit.append(noise_gate)
         if maybe_add_noise and (self.error_observables is not None):
-            noise_observable = qml.BitFlip(self.error_observables, wires=self.qubits) #cirq.bit_flip(
-                #self.error_observables).on_each(*self.qubits)
+            noise_observable = qml.BitFlip(self.error_observables, wires=self.qubits) 
             circuit.append(noise_observable)
         return circuit
 

@@ -1,5 +1,5 @@
-from gyms.environments.basic_envs import (BasicNQubitEnv, BasicThreeQubitEnv,
+from environments.basic_envs import (BasicNQubitEnv, BasicThreeQubitEnv,
                                      BasicTwoQubitEnv)
-from gyms.environments.noisy_envs import (NoisyNQubitEnv, NoisyThreeQubitEnv,
+from environments.noisy_envs import (NoisyNQubitEnv, NoisyThreeQubitEnv,
                                      NoisyTwoQubitEnv)
-from gyms.environments.qas_env import QuantumArchSearchEnv
+from environments.qas_env import QuantumArchSearchEnv
