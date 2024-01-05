@@ -4,11 +4,9 @@ import sys
 os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
 sys.path.append(
      os.path.join(
-         os.path.dirname(os.path.realpath(__file__)), "..", "..", ".." ,"main","codebase"
+         os.path.dirname(os.path.realpath(__file__)), "..", "..", ".." ,"main"
      )
     )
-
-#print(sys.path)
 
 import gym3
 import gym
@@ -16,10 +14,9 @@ import gymnasium
 import torch.optim as optim
 from stable_baselines3 import A2C, PPO
 from stable_baselines3.common.evaluation import evaluate_policy
-from gyms.environments import *
+from codebase.gyms.environments import *
 
-from actions.rl_train import train_agent
-
+from codebase.actions.rl_train import get_agent
 from stable_baselines3.common.env_checker import check_env
 
 # Parameters 
@@ -49,10 +46,10 @@ check_env(env)
 gamma = 0.99
 learning_rate = 0.0001
 policy_kwargs = dict(optimizer_class=optim.Adam)
-agent_type = "a2c"
+agent = "a2c"
 policy = "MlpPolicy"
 
-#train_agent(agent_type, policy, env, gamma, learning_rate, policy_kwargs)
+#get_agent(agent_type, policy, env, gamma, learning_rate, policy_kwargs)
 
 a2c_model = A2C(policy,
                         env,
