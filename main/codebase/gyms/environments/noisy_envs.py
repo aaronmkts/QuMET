@@ -1,7 +1,7 @@
 import pennylane as qml
 import numpy as np
-from gyms.environments.qas_env import QuantumArchSearchEnv
-from gyms.utils import *
+from .qas_env import QuantumArchSearchEnv
+from ..utils import *
 
 
 class NoisyNQubitEnv(QuantumArchSearchEnv):

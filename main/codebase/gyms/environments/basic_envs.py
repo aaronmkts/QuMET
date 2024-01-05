@@ -1,7 +1,7 @@
 import pennylane as qml
 import numpy as np
 from qas_env import QuantumArchSearchEnv
-from .. import utils
+from ..utils import *
 import gymnasium
 
 
