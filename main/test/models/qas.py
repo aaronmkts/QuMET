@@ -14,26 +14,23 @@ import gymnasium
 import torch.optim as optim
 from stable_baselines3 import A2C, PPO
 from stable_baselines3.common.evaluation import evaluate_policy
-from codebase.gyms.environments import *
+from codebase.gyms import QuMETGymnasium
 
-from codebase.actions.rl_train import get_agent
+#from codebase.actions.rl_train import get_agent
 from stable_baselines3.common.env_checker import check_env
 
 # Parameters 
-env_name = 'BasicTwoQubit-v0'
-fidelity_threshold = 0.95
-reward_penalty = 0.01
-max_timesteps = 20
+env_name = 'BasicTwoQubitEnv'
 
+config = {"fidelity_threshold": 0.95,
+          "reward_penalty":0.01,
+          "max_timesteps": 20
+}
 # Environment
-env = gym.make(env_name,
-               fidelity_threshold=fidelity_threshold,
-               reward_penalty=reward_penalty,
-               max_timesteps=max_timesteps)
+
+environment = QuMETGymnasium(env_name, config).make_gym()
 
 #env = gym3.ToGymEnv(env)
-
-check_env(env)
 
 #for idx, gate in enumerate(env.action_gates):
 #    print('Action({:02d}) --> {}'.format(idx, gate))
@@ -52,8 +49,8 @@ policy = "MlpPolicy"
 #get_agent(agent_type, policy, env, gamma, learning_rate, policy_kwargs)
 
 a2c_model = A2C(policy,
-                        env,
+                        environment,
                         gamma=gamma,
                         learning_rate=learning_rate,
                         policy_kwargs=policy_kwargs,
-                        tensorboard_log='logs/')
+                        tensorboard_log='logs/')'''
