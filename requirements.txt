@@ -71,7 +71,7 @@ tensorboard-data-server==0.7.2
 threadpoolctl==3.2.0
 tokenizers==0.15.0
 toml==0.10.2
-torch==2.1.2
+torch==2.1.1
 torch-tb-profiler==0.4.3
 torchmetrics==1.2.0
 torchvision==0.16.1
