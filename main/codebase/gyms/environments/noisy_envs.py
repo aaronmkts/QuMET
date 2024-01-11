@@ -1,7 +1,7 @@
 import pennylane as qml
 import numpy as np
 from .qas_env import QuantumArchSearchEnv
-from ..utils import *
+from .utils import *
 
 
 class NoisyNQubitEnv(QuantumArchSearchEnv):
@@ -14,7 +14,7 @@ class NoisyNQubitEnv(QuantumArchSearchEnv):
         error_rate: float = 0.001,
     ):
         n_qubits = int(np.log2(len(target)))
-        qubits = qml.wires.Wires(range(n_qubits)) #cirq.LineQubit.range(n_qubits)
+        qubits = qml.wires.Wires(range(n_qubits)) 
         state_observables = get_default_observables(qubits)
         action_gates = get_default_gates(qubits)
         super(NoisyNQubitEnv, self).__init__(target,
