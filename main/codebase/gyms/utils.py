@@ -1,43 +1,62 @@
-from typing import Dict, List, Optional, Union
-
-import pennylane as qml
-import numpy as np
-
-def get_default_gates(qubits: List[qml.wires.Wires]) -> List[qml.operation]:
-    gates = []
-    n_qubits = len(qubits)
-    for idx, qubit in enumerate(qubits):
-        next_qubit = qubits[(idx + 1) % n_qubits]
-        gates += [
-            qml.RZ(np.pi / 4, wires=qubit),
-            qml.PauliX(wires=qubit),
-            qml.PauliY(wires=qubit),
-            qml.PauliZ(wires=qubit),
-            qml.Hadamard(wires=qubit),
-            qml.CNOT(wires=[qubit, next_qubit])
-        ]
-    return gates
-
-def get_default_observables(qubits: List[qml.wires.Wires]) -> List[qml.operation]:
-    observables = []
-    for qubit in qubits:
-        observables += [
-            qml.PauliX(wires=qubit),
-            qml.PauliY(wires=qubit),
-            qml.PauliZ(wires=qubit),
-        ]
-    return observables
+from dataclasses import dataclass
+from enum import Enum
 
 
-def get_bell_state() -> np.ndarray: # This doesn't use Cirq so I think we can keep it
-    target = np.zeros(2**2, dtype=complex)
-    target[0] = 1. / np.sqrt(2) + 0.j
-    target[-1] = 1. / np.sqrt(2) + 0.j
-    return target
+class EnvironmentType(Enum):
+    """
+    The type of environment, must be one of the following:
+    - NOISELESS: 
+    """
+
+    NOISELESS = "noiseless"
+    NOISY = "noisy"
 
 
-def get_ghz_state(n_qubits: int = 3) -> np.ndarray: # Same with this one
-    target = np.zeros(2**n_qubits, dtype=complex)
-    target[0] = 1. / np.sqrt(2) + 0.j
-    target[-1] = 1. / np.sqrt(2) + 0.j
-    return target
+class EnvironmentTaskType(Enum):
+    """
+    The task type of the Environment, must be one of the following:
+    STATE_PREPERATION: Preparing QC's for specific quantum states
+    """
+
+    STATE_PREPERATION = "state_preperation"
+
+
+@dataclass
+class QumetEnvironmentInfo:
+    """
+    The environment info for QuMET.
+    """
+
+    # model name
+    name: str
+
+    environment_type: EnvironmentType
+    task_type: EnvironmentTaskType
+
+   
+    # STATE PREPERATION environemnts
+    quantum_state_preperation: bool = False
+
+
+
+    def __post_init__(self):
+        self.environment_type = (
+            EnvironmentType(self.environment_type)
+            if isinstance(self.environment_type, str)
+            else self.environment_type
+        )
+        self.task_type = (
+            EnvironmentTaskType(self.task_type)
+            if isinstance(self.task_type, str)
+            else self.task_type
+        )
+
+        # State Preperation
+        if self.task_type == EnvironmentTaskType.STATE_PREPERATION:
+            assert self.quantum_state_preperation
+
+    
+
+    @property
+    def is_state_preperation_environment(self):
+        return self.task_type == EnvironmentTaskType.STATE_PREPERATION

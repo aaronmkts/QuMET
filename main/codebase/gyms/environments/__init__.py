@@ -1,29 +1,59 @@
-from gym.envs.registration import register
+from .noiseless_envs import *
+from ..utils import QumetEnvironmentInfo
 
-register(id='QuantumArchSearch-v0',
-         entry_point='gyms.environments:QuantumArchSearch',
-         nondeterministic=True)
+NOISELESS_ENVIRONMENTS = { 
+    "BasicNQubitEnv":{
+    "info": QumetEnvironmentInfo("BasicNQubitEnv", environment_type="noiseless", 
+                                 task_type="state_preperation",
+                                 quantum_state_preperation = True),
+    "environment": BasicNQubitEnv    
+},
+    "BasicTwoQubitEnv":{
+    "info": QumetEnvironmentInfo("BasicTwoQubitEnv", environment_type="noiseless", 
+                                 task_type="state_preperation",
+                                 quantum_state_preperation = True),   
+    "environment": BasicTwoQubitEnv
+},
+    "BasicThreeQubitEnv":{
+    "info": QumetEnvironmentInfo("BasicThreeQubitEnv", environment_type="noiseless", 
+                                 task_type="state_preperation",
+                                 quantum_state_preperation = True),
+    "environment": BasicThreeQubitEnv
 
-register(id='BasicTwoQubit-v0',
-         entry_point='gyms.environments.basic_envs:BasicTwoQubitEnv',
-         nondeterministic=True)
+},
+}
 
-register(id='BasicThreeQubit-v0',
-         entry_point='gyms.environments:BasicThreeQubitEnv',
-         nondeterministic=True)
+def is_noiseless_environment(name: str) -> bool:
+    return name in NOISELESS_ENVIRONMENTS
 
-register(id='BasicNQubit-v0',
-         entry_point='gyms.environments:BasicNQubitEnv',
-         nondeterministic=True)
+def get_noiseless_environment_info(name: str) -> QumetEnvironmentInfo:
+    if name not in NOISELESS_ENVIRONMENTS:
+        raise ValueError(f"Manual model {name} is not supported")
+    return NOISELESS_ENVIRONMENTS[name]["info"]
 
-register(id='NoisyTwoQubit-v0',
-         entry_point='gyms.environments:NoisyTwoQubitEnv',
-         nondeterministic=True)
+def get_noiseless_environment(
+    name: str,
+    task: str,
+    dataset_info: dict = None,
+):
+    """
+    Args:
+        name: The name of the model.
+        task: The task type.
+        dataset_info: The dataset info.
+    """
+    if name not in NOISELESS_ENVIRONMENTS:
+        raise ValueError(f"Manual environment {name} is not supported")
+    environment_info: QumetEnvironmentInfo = NOISELESS_ENVIRONMENTS[name]["info"]
+   
+    if task in ['state_preperation']:
+        assert(
+            environment_info.quantum_state_preperation
+        ), f"Task {task} is not supported for {name}"
+    
+        environment_cls = NOISELESS_ENVIRONMENTS[name]["environment"]
+    else:
+        raise ValueError(f"Task {task} is not supported for {name}")
 
-register(id='NoisyThreeQubit-v0',
-         entry_point='gyms.environments:NoisyThreeQubitEnv',
-         nondeterministic=True)
+    return environment_cls
 
-register(id='NoisyNQubit-v0',
-         entry_point='gyms.environments:NoisyNQubitEnv',
-         nondeterministic=True)
