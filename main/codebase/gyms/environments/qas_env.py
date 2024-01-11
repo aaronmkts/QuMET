@@ -50,7 +50,7 @@ class QuantumArchSearchEnv(gym.Env):
         self.seed()
 
     def __str__(self):
-        desc = 'QuantumArchSearch-v0('
+        desc = 'QuantumArchSearchENV('
         desc += '{}={}, '.format('Qubits', len(self.qubits))
         desc += '{}={}, '.format('Target', self.target)
         desc += '{}=[{}], '.format(
