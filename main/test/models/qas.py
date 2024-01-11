@@ -53,4 +53,4 @@ a2c_model = A2C(policy,
                         gamma=gamma,
                         learning_rate=learning_rate,
                         policy_kwargs=policy_kwargs,
-                        tensorboard_log='logs/')'''
+                        tensorboard_log='logs/')
