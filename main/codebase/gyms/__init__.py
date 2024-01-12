@@ -1,9 +1,8 @@
 import gym
 from gym.envs.registration import register
-from .environments import(is_noiseless_environment,
+from .noiseless_envs import(is_noiseless_environment,
                           get_noiseless_environment_info,
                           get_noiseless_environment
-    
 )
 
 from .utils import QumetEnvironmentInfo, EnvironmentType, EnvironmentTaskType
@@ -61,8 +60,8 @@ class QuMETGymnasium():
                 
                 if self.environment_info.environment_type == EnvironmentType.NOISELESS:
                     #Register the base class for environment type
-                    register(id='BasicNQubitEnv',
-                            entry_point='codebase.gyms.environments.noiseless_envs:BasicNQubitEnv',
+                    register(id='NoiselessNQubitEnv',
+                            entry_point='codebase.gyms.environments.noiseless_envs:NoiselessNQubitEnv',
                             nondeterministic=True)
                     
                     if self.name == 'BasicNQubitEnv':
@@ -71,7 +70,6 @@ class QuMETGymnasium():
                         register(id=self.name,
                             entry_point=f'codebase.gyms.environments.noiseless_envs:{self.name}',
                             nondeterministic=True)
-                        print(f'gyms.environments.noiseless_envs:{self.name}')
                 else:
                     raise ValueError(f"Environment type {self.environment_info.environment_type} not supported")
                 

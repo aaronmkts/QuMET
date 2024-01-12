@@ -19,6 +19,8 @@ class EnvironmentTaskType(Enum):
     """
 
     STATE_PREPERATION = "state_preperation"
+    # unitary preperation
+    # VQE (hamiltonian ground states)
 
 
 @dataclass
@@ -27,7 +29,7 @@ class QumetEnvironmentInfo:
     The environment info for QuMET.
     """
 
-    # model name
+    # environment name
     name: str
 
     environment_type: EnvironmentType
