@@ -2,7 +2,6 @@ import pennylane as qml
 import numpy as np
 from ...gyms.tools import QuantumArchSearchEnv, get_default_gates, get_default_observables, get_bell_state, get_ghz_state
 
-
 class NoisyNQubitEnv(QuantumArchSearchEnv):
     def __init__(
         self,

@@ -156,14 +156,14 @@ def get_default_observables(qubits: List[qml.wires.Wires]) -> List[qml.operation
     return observables
 
 
-def get_bell_state() -> np.ndarray: # This doesn't use Cirq so I think we can keep it
+def get_bell_state() -> np.ndarray: # Generalise to N qubits?
     target = np.zeros(2**2, dtype=complex)
     target[0] = 1. / np.sqrt(2) + 0.j
     target[-1] = 1. / np.sqrt(2) + 0.j
     return target
 
 
-def get_ghz_state(n_qubits: int = 3) -> np.ndarray: # Same with this one
+def get_ghz_state(n_qubits: int = 3) -> np.ndarray:
     target = np.zeros(2**n_qubits, dtype=complex)
     target[0] = 1. / np.sqrt(2) + 0.j
     target[-1] = 1. / np.sqrt(2) + 0.j

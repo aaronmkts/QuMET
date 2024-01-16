@@ -1,8 +1,6 @@
 import pennylane as qml
 import numpy as np
 from ...gyms.tools import QuantumArchSearchEnv, get_default_gates, get_default_observables, get_bell_state, get_ghz_state
-import gymnasium
-
 
 class NoiselessNQubitEnv(QuantumArchSearchEnv):
     def __init__(self,
@@ -19,17 +17,15 @@ class NoiselessNQubitEnv(QuantumArchSearchEnv):
                              fidelity_threshold, reward_penalty, max_timesteps)
 
 
-class NoislessTwoQubitEnv(NoiselessNQubitEnv):
+class NoiselessTwoQubitEnv(NoiselessNQubitEnv):
     def __init__(self,
                  target: np.ndarray = get_bell_state(),
                  fidelity_threshold: float = 0.95,
                  reward_penalty: float = 0.01,
                  max_timesteps: int = 20):
         assert len(target) == 4, 'Target must be of size 4'
-        super(NoislessTwoQubitEnv, self).__init__(target, fidelity_threshold,
+        super(NoiselessTwoQubitEnv, self).__init__(target, fidelity_threshold,
                                                reward_penalty, max_timesteps)
-        #self.num = 1
-        #self.ob_space = self.observation_space
 
 class NoiselessThreeQubitEnv(NoiselessNQubitEnv):
     def __init__(self,
@@ -38,5 +34,5 @@ class NoiselessThreeQubitEnv(NoiselessNQubitEnv):
                  reward_penalty: float = 0.01,
                  max_timesteps: int = 20):
         assert len(target) == 8, 'Target must be of size 8'
-        super(NoislessTwoQubitEnv, self).__init__(target, fidelity_threshold,
+        super(NoiselessTwoQubitEnv, self).__init__(target, fidelity_threshold,
                                                  reward_penalty, max_timesteps)
