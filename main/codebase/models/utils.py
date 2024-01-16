@@ -2,26 +2,22 @@ from dataclasses import dataclass
 from enum import Enum
 
 
-class ModelSource(Enum):
+class ModelType(Enum):
     """
-    The source of the model, must be one of the following:
-    - MANUAL: manually implemented
-    - TOY: toy model for testing and debugging
-    - PHYSICAL: model that perform classification using physical data point vectors
+    The type of the model, must be one of the following:
+    - QGAN: Quantum Generative Adversarial Network
     """
 
-    MANUAL = "manual"
+    QGAN = "qgan"
 
 
 class ModelTaskType(Enum):
     """
     The task type of the model, must be one of the following:
-    - VISION: computer vision
-    - PHYSICAL: categorize data points into predefined classes based on their features or attributes
+    - GENERATION: Unsupervised learning to generate new data
     """
 
-    VISION = "vision"
-    PHYSICAL = "physical"
+    GENERATION = "generation"
 
 
 @dataclass
@@ -33,20 +29,17 @@ class QumetModelInfo:
     # model name
     name: str
 
-    model_source: ModelSource
+    model_type: ModelType
     task_type: ModelTaskType
 
-    # Vision models
-    image_classification: bool = False
-
-    # Physical models
-    physical_data_point_classification: bool = False
+    # Generation models
+    data_generation: bool = False
 
     def __post_init__(self):
-        self.model_source = (
-            ModelSource(self.model_source)
-            if isinstance(self.model_source, str)
-            else self.model_source
+        self.model_type = (
+            ModelType(self.model_type)
+            if isinstance(self.model_type, str)
+            else self.model_type
         )
         self.task_type = (
             ModelTaskType(self.task_type)
@@ -55,11 +48,9 @@ class QumetModelInfo:
         )
 
         # Vision models
-        if self.task_type == ModelTaskType.VISION:
-            assert self.image_classification, "Must be an image classification model"
+        if self.task_type == ModelTaskType.GENERATION:
+            assert self.data_generation, "Must be an image generation model"
 
-        # Classification models
-        if self.task_type == ModelTaskType.PHYSICAL:
-            assert (
-                self.physical_data_point_classification
-            ), "Must be an physical data point classification model"
+    @property
+    def is_generation_model(self):
+        return self.task_type == ModelTaskType.GENERATION
