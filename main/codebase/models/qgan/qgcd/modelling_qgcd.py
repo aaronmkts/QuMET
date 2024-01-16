@@ -1,4 +1,4 @@
-"""Pytorch & Pennylane Hybrid Qgan model"""
+"""Pytorch & Pennylane Hybrid QGAN model"""
 
 # Library imports
 import math
@@ -14,8 +14,8 @@ import torch
 import torch.nn as nn
 from typing import Optional, Union
 from pennylane.qnn import TorchLayer as TorchConnector
-from .configuration_qgan import QganConfig, QmlMixin
-
+from .configuration_qgcd import QGCDConfig, QmlMixin
+from pytorch_lightning.core import LightningModule
 _CONFIG_FOR_DOC = "QganConfig"
 
 
@@ -44,7 +44,7 @@ class Discriminator(nn.Module):
 class Generator(nn.Module, QmlMixin):
     def __init__(
         self,
-        config: QganConfig = QganConfig,
+        config: QGCDConfig = QGCDConfig,
         n_qubits: int = 4,
         depth: int = 4,
         device: Optional[Union[str, qml.Device]] = "default.qubit",
@@ -84,3 +84,10 @@ class Generator(nn.Module, QmlMixin):
 
     def forward(self, noise: Tensor):
         return self.q_generator(noise)
+
+class QGCD(LightningModule):
+    def __init__(self):
+        super().__init__()
+
+        self.generator = Generator()
+        self.discriminator = Discriminator()

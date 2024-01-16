@@ -48,13 +48,13 @@ class QmlMixin:
         self._n_qubits = n_qubits
 
 
-class QganConfig:
+class QGCDConfig:
     def __init__(
         self,
         input_size=0,
-        n_qubits=2,
+        n_qubits=4,
         n_a_qubits=0,
-        depth=1,
+        depth=4,
         q_delta=1,
         device="default.qubit",
         diff_method="parameter-shift",
