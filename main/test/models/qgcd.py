@@ -15,10 +15,10 @@ from codebase.dataset import QuMETDataModule
 from codebase.models.manual.qgan.configuration_qgan import QganConfig
 from codebase.models.manual.qgan.modelling_qgan import Generator, Discriminator
 import toml
-
+from codebase.models import get_model 
 
 def main():
-    generator = Generator()
+    generator = get_model("qgcd", "generation", None) #Generator()
     discriminator = Discriminator()
     task = "generation"
     dataset_name = "gaussian"
