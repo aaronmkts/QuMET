@@ -1,21 +1,21 @@
 # Model Zoo for QuMET
 from os import PathLike
-'''
-from .manual import (
-    is_manual_model,
-    get_manual_model,
-    get_manual_model_config,
-    get_manual_model_info,
+
+from .qgan import (
+    is_qgan_model,
+    get_qgan_model,
+    get_qgan_model_config,
+    get_qgan_model_info,
 )
 
-'''
-from .utils import QumetModelInfo, ModelSource, ModelTaskType
 
-"""
+from .utils import QumetModelInfo, ModelType
+
+
 
 def get_model_info(name: str) -> QumetModelInfo:
-    if is_manual_model(name):
-        info = get_manual_model_info(name)
+    if is_qgan_model(name):
+        info = get_qgan_model_info(name)
     else:
         raise ValueError(f"Model {name} not found")
 
@@ -37,9 +37,9 @@ def get_model(
     }
 
 
-    match model_info.model_source:
-        case ModelSource.MANUAL:
-            model = get_manual_model(**model_kwargs)
+    match model_info.model_type:
+        case ModelType.QGAN:
+            model = get_qgan_model(**model_kwargs)
         case _:
-            raise ValueError(f"Model source {model_info.model_source} not supported")
-    return model"""
+            raise ValueError(f"Model type {model_info.model_type} not supported")
+    return model
