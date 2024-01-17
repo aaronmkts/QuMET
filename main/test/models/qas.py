@@ -13,17 +13,14 @@ import torch.optim as optim
 from stable_baselines3 import A2C, PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 from codebase.gyms import QuMETGymnasium
-
+from codebase.tools import load_config
 #from codebase.actions.rl_train import get_agent
 from stable_baselines3.common.env_checker import check_env
 
 # Parameters 
+config = load_config("configs/by_environment/noiseless_envs/noiseless_two_qubit.toml")
 env_name = 'NoisyTwoQubitEnv'
 
-config = {"fidelity_threshold": 0.95,
-          "reward_penalty":0.01,
-          "max_timesteps": 20
-}
 # Environment
 
 environment = QuMETGymnasium(env_name, config).make_gym()
