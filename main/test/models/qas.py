@@ -8,8 +8,6 @@ sys.path.append(
      )
     )
 
-import gym3
-import gym
 import gymnasium
 import torch.optim as optim
 from stable_baselines3 import A2C, PPO
@@ -20,7 +18,7 @@ from codebase.gyms import QuMETGymnasium
 from stable_baselines3.common.env_checker import check_env
 
 # Parameters 
-env_name = 'BasicTwoQubitEnv'
+env_name = 'NoisyTwoQubitEnv'
 
 config = {"fidelity_threshold": 0.95,
           "reward_penalty":0.01,
@@ -29,7 +27,8 @@ config = {"fidelity_threshold": 0.95,
 # Environment
 
 environment = QuMETGymnasium(env_name, config).make_gym()
-
+print(environment)
+''' 
 #env = gym3.ToGymEnv(env)
 
 #for idx, gate in enumerate(env.action_gates):
@@ -54,3 +53,4 @@ a2c_model = A2C(policy,
                         learning_rate=learning_rate,
                         policy_kwargs=policy_kwargs,
                         tensorboard_log='logs/')
+                        '''

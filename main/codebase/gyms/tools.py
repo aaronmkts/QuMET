@@ -4,15 +4,16 @@ from io import StringIO
 from typing import Dict, List, Optional, Union
 
 import pennylane as qml
-import gym
+import gymnasium as gym
 import numpy as np
-from gym import spaces
-from gym.utils import seeding
+from gymnasium import spaces
+import gymnasium
+from gymnasium.utils import seeding
 
 ############# STATE PREPERATION TOOLS #############
 
-class QuantumArchSearchEnv(gym.Env):
-    metadata = {'render.modes': ['ansi', 'human']}
+class QuantumArchSearchEnv(gymnasium.Env):
+    metadata = {'render_modes': ['ansi', 'human']}
 
     def __init__(
         self,
