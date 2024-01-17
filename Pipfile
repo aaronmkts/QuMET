@@ -91,6 +91,7 @@ gym3 = "*"
 gymnasium = "*"
 stable-baselines3 = "*"
 shimmy = "*"
+tabulate = "*"
 
 [dev-packages]
 torch-tb-profiler = "*"
