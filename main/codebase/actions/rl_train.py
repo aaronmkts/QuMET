@@ -5,7 +5,6 @@ import gymnasium
 import torch.optim as optim
 from stable_baselines3 import A2C, PPO
 from stable_baselines3.common.evaluation import evaluate_policy
-from gyms.environments import *
 
 def get_agent(agent, policy, env, gamma, learning_rate, policy_kwargs, save_path, n_epochs=4, clip_range=0.2):
 
