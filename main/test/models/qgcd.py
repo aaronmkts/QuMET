@@ -12,26 +12,26 @@ import torch.nn as nn
 from codebase.actions.train_ import train
 
 from codebase.dataset import QuMETDataModule
-from codebase.models.manual.qgan.configuration_qgan import QganConfig
-from codebase.models.manual.qgan.modelling_qgan import Generator, Discriminator
+from codebase.models.qgan.qgcd.configuration_qgcd import QGCDConfig
+from codebase.models.qgan.qgcd.modelling_qgcd import Generator, Discriminator
 import toml
 from codebase.models import get_model 
 
 def main():
-    generator = get_model("qgcd", "generation", None) #Generator()
+    generator = Generator() #get_model("qgcd", "generation", None) 
     discriminator = Discriminator()
     task = "generation"
     dataset_name = "gaussian"
     
     
     # Reduced for unit test
-    batch_size = 50
+    batch_size = 64
     optimizer = "adam"
-    max_epochs: int = 100
+    max_epochs: int = 50
     max_steps: int = -1
     gradient_accumulation_steps: int = 1
-    learning_rate: float = 5e-3
-    weight_decay: float = 0.0
+    learning_rate: float = 0.01
+    weight_decay: float = 0.005
     lr_scheduler_type: str = "linear"
     num_warmup_steps: int = 0
     save_path: str = "./ckpts/test"

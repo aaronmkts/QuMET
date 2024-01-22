@@ -23,7 +23,7 @@ from codebase.tools import get_optimizer
 from torch.utils.tensorboard import SummaryWriter
 from scipy.stats import entropy
 import os 
-
+os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
 
 def train(
     generator,
@@ -132,14 +132,14 @@ def train(
     fake_labels = torch.full((data_module.batch_size,), 0.0, dtype=torch.float, device=device)
 
     # Fixed noise allows us to visually track the generated images throughout training
-    fixed_noise = torch.rand((1000, 4), device=device) * math.pi / 2
+    fixed_noise = torch.rand((256, 4), device=device) * math.pi / 2
    
     writer = SummaryWriter(save_path)
 
     if evaluate_before_training == True:
         fixed_fake_data = generator(fixed_noise).reshape(-1,1)
         writer.add_histogram('Distribution', fixed_fake_data.squeeze(), 0)
-        writer.add_histogram('True Distribution', test_data.squeeze(), 0)
+        writer.add_histogram('True Distribution', test_data.squeeze().numpy(), 0)
 
     for step in range(max_steps):
         epoch = step // num_update_steps_per_epoch
@@ -162,8 +162,8 @@ def train(
         outD_fake = discriminator(fake_data.detach()).view(-1)
         
 
-        errD_real = criterion(outD_real, real_labels)
-        errD_fake = criterion(outD_fake, fake_labels)
+        errD_real = criterion(outD_real, real_labels) #discriminator loss, real
+        errD_fake = criterion(outD_fake, fake_labels) #discriminator loss, fake
 
         errD = (errD_real + errD_fake) /2
         errD.backward()
@@ -172,22 +172,28 @@ def train(
         # Training the generator
         generator.zero_grad()
         outD_fake = discriminator(fake_data).view(-1)
-        errG = criterion(outD_fake, real_labels)
-        errG.backward()
+        errG = criterion(outD_fake, real_labels) #generator loss
+        errG.backward(retain_graph = True)
         optG.step()
 
-        
+        lr_scheduler.step()
+
         writer.add_scalars('train_loss', {'d_loss': errD.item(),
                                           'g_loss': errG.item()},
                                           step)
-
+        def kl_divergence(p, q):
+            return np.sum(np.where(p != 0, p * np.log(p / q), 0))
         
         # complete an epoch
         if (step + 1) % num_update_steps_per_epoch == 0 or step == max_steps - 1:
             # evaluate
             with torch.no_grad():
-                #During evaluation turn PyTorch autograd off so we arent training with this data               
+                #During evaluation turn PyTorch autograd off so we arent training with this data
                 fixed_fake_data = generator(fixed_noise).reshape(-1,1)
+                
+                entropy_value = fixed_fake_data.detach().squeeze().numpy() / test_data.squeeze().numpy()             
+                
+  
             writer.add_histogram('Distribution', fixed_fake_data.squeeze(), epoch + 1)
   
         progress_bar.set_postfix(
