@@ -16,7 +16,7 @@ from typing import Optional, Union
 from pennylane.qnn import TorchLayer as TorchConnector
 from .configuration_qgcd import QGCDConfig, QmlMixin
 from pytorch_lightning.core import LightningModule
-_CONFIG_FOR_DOC = "QganConfig"
+_CONFIG_FOR_DOC = "QGCDConfig"
 
 
 class Discriminator(nn.Module):
@@ -45,7 +45,7 @@ class Generator(nn.Module, QmlMixin):
     def __init__(
         self,
         config: QGCDConfig = QGCDConfig,
-        n_qubits: int = 4,
+        n_qubits: int = 6,
         depth: int = 4,
         device: Optional[Union[str, qml.Device]] = "default.qubit",
     ) -> None:
@@ -57,14 +57,19 @@ class Generator(nn.Module, QmlMixin):
         self._set_qml_device(device)
 
         q_weight_shapes = {"q_weights": (self.depth * self.n_qubits)}
-        q_generator = qml.QNode(self._circuit, self.device, interface="torch")
-        batch_q_circuit = qml.batch_input(q_generator, argnum = 0 )
-        self.q_generator = TorchConnector(batch_q_circuit, q_weight_shapes)
+        self.q_generator = qml.QNode(self._circuit, self.device, interface="torch")
+        batch_q_circuit = qml.batch_input(self.q_generator, argnum = 0)
+        self.batch_q_generator = TorchConnector(batch_q_circuit, q_weight_shapes)
 
     def __str__(self):
         return f"QuantumGenerator({self.n_qubits}) "
 
-
+    def _draw_circuit(self):
+        noise = torch.rand(1, self.n_qubits) * math.pi / 2
+        circuit = self.batch_q_generator
+        drawer = qml.draw(circuit)
+        return print(drawer(noise))
+    
     def _circuit(self, inputs, q_weights):
         """Builds the circuit to be fed to the connector as a QML node"""
         self._embed_features(inputs)
@@ -74,7 +79,7 @@ class Generator(nn.Module, QmlMixin):
             for y in range(self.n_qubits):
                 qml.RY(q_weights[i][y], wires=y)
             for y in range(self.n_qubits - 1):
-                qml.CZ(wires=[y, y + 1])
+                qml.CNOT(wires=[y, y + 1])
 
         return qml.expval(qml.PauliZ(0))
 
@@ -83,11 +88,11 @@ class Generator(nn.Module, QmlMixin):
         AngleEmbedding(features, wires=wires, rotation="X")
 
     def forward(self, noise: Tensor):
-        return self.q_generator(noise)
+        return self.batch_q_generator(noise)
 
 class QGCD(LightningModule):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config):
+        super().__init__(config)
 
         self.generator = Generator()
         self.discriminator = Discriminator()
