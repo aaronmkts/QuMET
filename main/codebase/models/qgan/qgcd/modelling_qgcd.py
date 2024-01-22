@@ -16,7 +16,9 @@ from typing import Optional, Union
 from pennylane.qnn import TorchLayer as TorchConnector
 from .configuration_qgcd import QGCDConfig, QmlMixin
 from pytorch_lightning.core import LightningModule
+
 _CONFIG_FOR_DOC = "QGCDConfig"
+
 
 
 class Discriminator(nn.Module):
@@ -57,6 +59,7 @@ class Generator(nn.Module, QmlMixin):
         self._set_qml_device(device)
 
         q_weight_shapes = {"q_weights": (self.depth * self.n_qubits)}
+        self.q_generator = TorchConnector(batch_q_circuit, q_weight_shapes)
         self.q_generator = qml.QNode(self._circuit, self.device, interface="torch")
         batch_q_circuit = qml.batch_input(self.q_generator, argnum = 0)
         self.batch_q_generator = TorchConnector(batch_q_circuit, q_weight_shapes)
@@ -69,7 +72,7 @@ class Generator(nn.Module, QmlMixin):
         circuit = self.batch_q_generator
         drawer = qml.draw(circuit)
         return print(drawer(noise))
-    
+
     def _circuit(self, inputs, q_weights):
         """Builds the circuit to be fed to the connector as a QML node"""
         self._embed_features(inputs)
@@ -90,9 +93,9 @@ class Generator(nn.Module, QmlMixin):
     def forward(self, noise: Tensor):
         return self.batch_q_generator(noise)
 
+
 class QGCD(LightningModule):
     def __init__(self, config):
         super().__init__(config)
-
         self.generator = Generator()
         self.discriminator = Discriminator()
