@@ -59,7 +59,6 @@ class Generator(nn.Module, QmlMixin):
         self._set_qml_device(device)
 
         q_weight_shapes = {"q_weights": (self.depth * self.n_qubits)}
-        self.q_generator = TorchConnector(batch_q_circuit, q_weight_shapes)
         self.q_generator = qml.QNode(self._circuit, self.device, interface="torch")
         batch_q_circuit = qml.batch_input(self.q_generator, argnum = 0)
         self.batch_q_generator = TorchConnector(batch_q_circuit, q_weight_shapes)
