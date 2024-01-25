@@ -30,7 +30,7 @@ class Binary_Discriminator(nn.Module):
             # Inputs to first hidden layer (num_input_features -> 64)
             nn.Linear(n_qubits, 64),
             nn.LeakyReLU(),
-            # First hidden layer (64 -> 16)
+            # First hidden layer (64 -> 64)
             nn.Linear(64, 64),
             nn.LeakyReLU(),
             # Second hidden layer (64 -> 64)
