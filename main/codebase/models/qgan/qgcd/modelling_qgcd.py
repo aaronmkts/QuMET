@@ -87,11 +87,13 @@ class Generator(nn.Module, QmlMixin):
         wires = range(self.n_qubits)
         AngleEmbedding(features, wires=wires, rotation="X")
 
-    def forward(self, noise: Tensor):
+    def forward(self, 
+                noise: Tensor):
         return self.batch_q_generator(noise)
 
-class QGCD(LightningModule):
-    def __init__(self, config):
+
+class QGCD(nn.Module):
+    def __init__(self, config: QGCDConfig):
         super().__init__(config)
 
         self.generator = Generator()
