@@ -162,7 +162,7 @@ class QuMETDataModule(pl.LightningDataModule):
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
-            shuffle=True,
+            shuffle=False,
         )
 
     def val_dataloader(self) -> DataLoader:
@@ -181,7 +181,7 @@ class QuMETDataModule(pl.LightningDataModule):
             )
         return DataLoader(
             self.test_dataset,
-            batch_size= 1000,
+            batch_size= self.batch_size,
             shuffle=False,
         )
 
