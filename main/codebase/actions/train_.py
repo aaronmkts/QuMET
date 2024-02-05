@@ -181,7 +181,7 @@ def train(
         writer.add_scalars('train_loss', {'d_loss': errD.item(),
                                           'g_loss': errG.item()},
                                           step)
-       
+        
         # complete an epoch
         if (step + 1) % num_update_steps_per_epoch == 0 or step == max_steps - 1:
             # evaluate
