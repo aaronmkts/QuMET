@@ -1,9 +1,9 @@
 import os
 from pathlib import Path
-
-
 from .gaussian import GaussianDataset
 from .two_d_gaussian import TwoDGaussianDataset
+from .two_d_grid_gaussian import TwoDGridGaussianDataset
+from .two_d_ring_gaussian import TwoDRingGaussianDataset
 
 def get_manual_dataset(name: str, split: str):
     """
@@ -27,8 +27,12 @@ def get_manual_dataset(name: str, split: str):
     match name:
         case "gaussian":
             dataset_cls = GaussianDataset
-        case "two_d_gaussian":
+        case "2dgaussian":
             dataset_cls = TwoDGaussianDataset
+        case "2d_grid_gaussian":
+            dataset_cls = TwoDGridGaussianDataset
+        case "2d_ring_gaussian":
+            dataset_cls = TwoDRingGaussianDataset
         case _:
             raise ValueError(f"Unknown dataset {name}")
         
@@ -55,6 +59,8 @@ def get_manual_dataset(name: str, split: str):
 MANUAL_DATASET_MAPPING = {
     "gaussian": GaussianDataset,
     "two_d_gaussian": TwoDGaussianDataset,
+    "2d_grid_gaussian": TwoDGridGaussianDataset,
+    "2d_ring_gaussian": TwoDRingGaussianDataset
 }
 
 
