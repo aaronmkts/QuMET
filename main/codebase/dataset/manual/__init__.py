@@ -5,7 +5,7 @@ from .two_d_gaussian import TwoDGaussianDataset
 from .two_d_grid_gaussian import TwoDGridGaussianDataset
 from .two_d_ring_gaussian import TwoDRingGaussianDataset
 
-def get_manual_dataset(name: str, split: str):
+def get_manual_dataset(name: str, split: str, binary: bool = False, n_qubits: int = 16):
     """
     Args:
         name (str): name of the dataset
@@ -27,7 +27,7 @@ def get_manual_dataset(name: str, split: str):
     match name:
         case "gaussian":
             dataset_cls = GaussianDataset
-        case "2dgaussian":
+        case "2d_gaussian":
             dataset_cls = TwoDGaussianDataset
         case "2d_grid_gaussian":
             dataset_cls = TwoDGridGaussianDataset
@@ -52,13 +52,13 @@ def get_manual_dataset(name: str, split: str):
     if ori_split == "pred" and dataset_cls.info.pred_split_available:
         split = "test"
 
-    dataset = dataset_cls(split,)
+    dataset = dataset_cls(split, binary, n_qubits)
     return dataset
 
 
 MANUAL_DATASET_MAPPING = {
     "gaussian": GaussianDataset,
-    "two_d_gaussian": TwoDGaussianDataset,
+    "2d_gaussian": TwoDGaussianDataset,
     "2d_grid_gaussian": TwoDGridGaussianDataset,
     "2d_ring_gaussian": TwoDRingGaussianDataset
 }

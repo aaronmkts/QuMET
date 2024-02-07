@@ -17,10 +17,14 @@ np.random.seed(seed)
     generation = True,
 )
 class TwoDGridGaussianDataset(Dataset):
-    def __init__(self,  split = "train") -> None:
+    def __init__(self,  split = "train", binary = False, n_qubits = 16) -> None:
 
-        self.num_discrete_values =  256 #(2 ** n_qubits)
+        self.binary = binary
+        self.n_qubits = n_qubits
+        self.num_dim = 2
+        self.num_discrete_values =  int(2 ** (n_qubits / self.num_dim))
         self.coords = np.linspace(-3, 3, self.num_discrete_values)
+        self.num_gauss = 16
         self.samples, self.grid_elements = self._generate_samples()
         
 
@@ -35,7 +39,7 @@ class TwoDGridGaussianDataset(Dataset):
         
     def _generate_samples(self):
         
-        self.num_gauss = 16
+        
         self.set_length = int(pow(self.num_gauss, 1/2)) 
 
         positions  = np.linspace(-2,2,int(self.set_length))
@@ -47,10 +51,19 @@ class TwoDGridGaussianDataset(Dataset):
         rv = [multivariate_normal(mean=mean, cov=cov) for (mean, cov) in zip(means,covs)]
 
         grid_elements = np.transpose([np.tile(self.coords, len(self.coords)), np.repeat(self.coords, len(self.coords))])
-        prob_data = np.sum([dist.pdf(grid_elements) for dist in rv], axis=0)
-        samples = prob_data / np.sum(prob_data)
-     
-        return samples, grid_elements
+        num_samples = len(grid_elements)
+
+        samples = np.sum([dist.pdf(grid_elements) for dist in rv], axis=0)
+        prob_data = samples / np.sum(samples)
+      
+        if self.binary == True:
+            
+            index_list = list(range(num_samples))
+            sampled_integers = np.random.choice(index_list, size= self.num_gauss ** 4, p= prob_data)
+            grid_elements = np.array(list(map(self._int_to_binary, sampled_integers)))
+
+            
+        return prob_data, grid_elements
         
     
     def _visualise(self):
@@ -63,6 +76,15 @@ class TwoDGridGaussianDataset(Dataset):
         fig.colorbar(surf, shrink=0.5, aspect=5)
         plt.show()
 
+    def _int_to_binary(self, integer):
+
+        resolution = self.n_qubits
+        integer = torch.tensor([integer])
+        mask = 2**torch.arange(resolution-1, -1, -1)
+        binary = integer.bitwise_and(mask).ne(0).float()
+        
+        return binary
+    
     def __len__(self):
         return len(self.samples)
 
