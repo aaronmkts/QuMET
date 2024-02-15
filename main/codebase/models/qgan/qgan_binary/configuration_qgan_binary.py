@@ -9,17 +9,17 @@ class QGCD_Binary_Config:
         self,
         device = 'default.qubit',
         shots = 10000,
-        n_qubits= 6,
+        n_qubits= 16,
         input_size = 2,
         n_a_qubits=0,
-        depth=1,
+        depth=4,
         q_delta=1,
         diff_method="parameter-shift",
         batch_ops=False,  # GPU options
         mpi=False,  # Distribution across nodes
         **kwargs,
     ):
-        self.input_size = input_size ** n_qubits
+        self.input_size = input_size
         self.n_qubits = n_qubits
         self.n_a_qubits = n_a_qubits
         self.depth = depth
