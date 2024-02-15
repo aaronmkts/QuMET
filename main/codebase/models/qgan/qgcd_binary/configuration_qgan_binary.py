@@ -8,7 +8,7 @@ class QGCD_Binary_Config:
     def __init__(
         self,
         device = 'default.qubit',
-        shots = 10000,
+        shots = 1,
         n_qubits= 16,
         input_size = 2,
         n_a_qubits=0,
@@ -19,13 +19,13 @@ class QGCD_Binary_Config:
         mpi=False,  # Distribution across nodes
         **kwargs,
     ):
-        self.input_size = input_size
+        self.input_size = n_qubits
         self.n_qubits = n_qubits
         self.n_a_qubits = n_a_qubits
         self.depth = depth
         self.q_delta = q_delta
         self.device = device
         self.shots = shots
-        self.diff_method = diff_method if (batch_ops and mpi) == False else "adjoint"
+        self.diff_method = diff_method if (batch_ops and mpi) == False else "best"
         self.batch_ops = batch_ops
         self.mpi = mpi
