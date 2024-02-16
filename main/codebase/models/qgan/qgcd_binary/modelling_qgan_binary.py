@@ -17,12 +17,28 @@ from pennylane.qnn import TorchLayer as TorchConnector
 from .configuration_qgan_binary import QGCD_Binary_Config
 
 from typing import Callable, Sequence, Union
-
+import copy
 import numpy as np
 from pennylane.tape import QuantumTape, QuantumScript
 from pennylane.transforms.core import transform
 from pennylane.transforms.batch_params import _nested_stack
 
+
+@transform
+def get_probslist(tape: QuantumTape) -> tuple[Sequence[QuantumTape], Callable]:
+
+    tape = copy.deepcopy(tape)
+
+    measurement = qml.probs()
+    shots = 10000
+
+    new_tape = QuantumScript(tape.operations, measurements = measurement, 
+                                shots=shots, trainable_params = tape.trainable_params)
+    
+    def processing_fn(res):
+        return res[0]
+
+    return [new_tape], processing_fn
 
 @transform
 def batch_input(tape: QuantumTape, argnum: Union[Sequence[int], int],) -> (Sequence[QuantumTape], Callable):
@@ -52,6 +68,7 @@ def batch_input(tape: QuantumTape, argnum: Union[Sequence[int], int],) -> (Seque
         return _nested_stack(res)
 
     return output_tapes, processing_fn
+
 
 
 _CONFIG_FOR_DOC = "QGCD_Binary_Config"
