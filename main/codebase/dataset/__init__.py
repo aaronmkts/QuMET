@@ -214,6 +214,6 @@ class QuMETDataModule(pl.LightningDataModule):
             raise RuntimeError("The pred dataset is not available.")
         return DataLoader(
             self.pred_dataset,
-            batch_size=self.batch_size,
+            batch_size=len(self.pred_dataset),
             shuffle=False,
         )

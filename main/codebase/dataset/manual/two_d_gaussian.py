@@ -12,7 +12,7 @@ np.random.seed(seed)
 @add_dataset_info(
     name="2d_gaussian",
     dataset_source="manual",
-    available_splits=("train", "test"),
+    available_splits=("train", "pred"),
     generation = True,
 )
 class TwoDGaussianDataset(Dataset):
