@@ -23,7 +23,37 @@ from codebase.tools import get_optimizer
 from torch.utils.tensorboard import SummaryWriter
 from scipy.stats import entropy
 import os 
+from pennylane.tape import QuantumTape, QuantumScript
+from typing import Callable, Sequence, Union
+import pennylane as qml
+from pennylane.transforms.core import transform
+
 os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
+
+def get_probs_list(bit_list, n_qubits):
+
+        def _binary_to_int(bit_list):
+            output = 0
+            for bit in bit_list:
+                output = output * 2 + bit
+            return int(output)
+
+        int_list = list(map(_binary_to_int,bit_list))
+
+        count_dict = {integer: 0 for integer in range(2 ** n_qubits)}
+        # Potentially replace for loop with: count_dict.update(Counter(int_list))
+        for integer in int_list:
+            count_dict[integer] += 1
+
+        total_counts = sum(count_dict.values())
+        probs_list = np.array([count / total_counts for count in count_dict.values()])
+
+        return probs_list
+
+
+
+
+
 
 def train(
     generator,
@@ -55,12 +85,13 @@ def train(
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     generator = generator.to(device)
     discriminator = discriminator.to(device)
+    n_qubits = generator.n_qubits
 
     # dataset
     data_module.prepare_data()
     data_module.setup()
     train_dataloader = data_module.train_dataloader()
-    test_dataloader = data_module.test_dataloader() # The entire dataset
+    pred_dataloader = data_module.pred_dataloader() # The entire dataset
     
 
     # optimizers
@@ -122,42 +153,52 @@ def train(
 
     train_iterator = iter(train_dataloader)
     
-    test_data = next(iter(test_dataloader))
-
-
-
+    pred_probs , _ = next(iter(pred_dataloader))
+    
     criterion =  nn.BCELoss()
+
 
     real_labels = torch.full((data_module.batch_size,), 1.0, dtype=torch.float, device=device)
     fake_labels = torch.full((data_module.batch_size,), 0.0, dtype=torch.float, device=device)
 
     # Fixed noise allows us to visually track the generated images throughout training
-    fixed_noise = torch.rand((256, 4), device=device) * math.pi / 2
+
+    samples = 1000
+    fixed_noise = torch.rand((samples, n_qubits), device=device) * math.pi / 2
    
     writer = SummaryWriter(save_path)
 
     if evaluate_before_training == True:
-        fixed_fake_data = generator(fixed_noise).reshape(-1,1)
-        writer.add_histogram('Distribution', fixed_fake_data.squeeze(), 0)
-        writer.add_histogram('True Distribution', test_data.squeeze().numpy(), 0)
-
+        output = generator(fixed_noise)
+        probs_list = get_probs_list(output, n_qubits)
+        entropy_value = entropy(probs_list, pred_probs.squeeze())
+        writer.add_scalar('Relative_Entropy', entropy_value, 0)
+        
     for step in range(max_steps):
         epoch = step // num_update_steps_per_epoch
 
         try:
-            batch = next(train_iterator)
+            probs, batch = next(train_iterator)
         except StopIteration:
             train_iterator = iter(train_dataloader)
-            batch = next(train_iterator)
+            probs, batch = next(train_iterator)
 
         real_data = batch 
-
+        
         # Generate fake-data using noise input
-        noise = torch.rand(data_module.batch_size, 4, device=device) * math.pi / 2
-        fake_data = generator(noise).reshape(-1,1)
+        noise = torch.rand((data_module.batch_size, n_qubits), dtype = torch.float, device=device) * math.pi /2
+
+        fake_data = generator(noise)
+        
+         # Training the generator
+        optG.zero_grad()
+        outD_fake = discriminator(fake_data).view(-1)
+        errG = criterion(outD_fake, real_labels) #generator loss
+        errG.backward(retain_graph = True)
+        optG.step()
 
         # Training the discriminator
-        discriminator.zero_grad()
+        optD.zero_grad()
         outD_real = discriminator(real_data).view(-1)
         outD_fake = discriminator(fake_data.detach()).view(-1)
         
@@ -169,12 +210,6 @@ def train(
         errD.backward()
         optD.step()
         
-        # Training the generator
-        generator.zero_grad()
-        outD_fake = discriminator(fake_data).view(-1)
-        errG = criterion(outD_fake, real_labels) #generator loss
-        errG.backward(retain_graph = True)
-        optG.step()
 
         lr_scheduler.step()
 
@@ -182,17 +217,19 @@ def train(
                                           'g_loss': errG.item()},
                                           step)
         
+
+
+        
         # complete an epoch
         if (step + 1) % num_update_steps_per_epoch == 0 or step == max_steps - 1:
             # evaluate
             with torch.no_grad():
                 #During evaluation turn PyTorch autograd off so we arent training with this data
-                fixed_fake_data = generator(fixed_noise).reshape(-1,1)
+                output = generator(fixed_noise)
                 
-                entropy_value = fixed_fake_data.detach().squeeze().numpy() / test_data.squeeze().numpy()             
-                
-  
-            writer.add_histogram('Distribution', fixed_fake_data.squeeze(), epoch + 1)
+            probs_list = get_probs_list(output, n_qubits)
+            entropy_value = entropy(probs_list, pred_probs.squeeze())
+            writer.add_scalar('Relative_Entropy', entropy_value, step)
   
         progress_bar.set_postfix(
             {
