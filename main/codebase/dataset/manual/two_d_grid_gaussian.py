@@ -13,7 +13,7 @@ np.random.seed(seed)
 @add_dataset_info(
     name="2d_grid_gaussian",
     dataset_source="manual",
-    available_splits=("train", "test"),
+    available_splits=("train", "pred"),
     generation = True,
 )
 class TwoDGridGaussianDataset(Dataset):
@@ -59,7 +59,7 @@ class TwoDGridGaussianDataset(Dataset):
         if self.binary == True:
             
             index_list = list(range(num_samples))
-            sampled_integers = np.random.choice(index_list, size= self.num_gauss ** 4, p= prob_data)
+            sampled_integers = np.random.choice(index_list, size= num_samples, p= prob_data)
             grid_elements = np.array(list(map(self._int_to_binary, sampled_integers)))
 
             
