@@ -218,7 +218,7 @@ class QuMETDataModule(pl.LightningDataModule):
                 "or the validation dataset does not exist."
             )
         return DataLoader(
-            self.train_dataset,
+            self.val_dataset,
             batch_size=self.batch_size,
             shuffle=False,
             num_workers = self.num_workers,
@@ -242,7 +242,7 @@ class QuMETDataModule(pl.LightningDataModule):
         if self.pred_dataset is None:
             raise RuntimeError("The pred dataset is not available.")
         return DataLoader(
-            self.train_dataset,
+            self.pred_dataset,
             batch_size=self.batch_size,
             shuffle=False,
             num_workers = self.num_workers,
