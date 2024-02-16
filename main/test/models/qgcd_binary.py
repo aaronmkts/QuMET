@@ -31,7 +31,7 @@ def main():
     n_qubits = generator.n_qubits
 
     # training
-    batch_size = 256
+    batch_size = 32
     optimizer = "adam"
     max_epochs: int = 100
     max_steps: int = -1
@@ -43,14 +43,16 @@ def main():
     save_path: str = "./ckpts/test/testing"
     load_name: str = None
     load_type: str = ""
-    evaluate_before_training: bool = False
+    evaluate_before_training: bool = True
 
     data_module = QuMETDataModule(
         name=dataset_name,
         batch_size=batch_size,
         binary=binary,
         n_qubits = n_qubits
+
     )
+   
 
     train(
         generator=generator,
