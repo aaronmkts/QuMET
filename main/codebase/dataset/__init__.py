@@ -30,6 +30,8 @@ def get_dataset_info(name: str):
 def get_dataset(
     name: str,
     split: bool,
+    binary: bool = False,
+    n_qubits : int = 16,
     model_name: str = None,
 ):
     """
@@ -53,7 +55,9 @@ def get_dataset(
     name = name.lower()
     if name in MANUAL_DATASET_MAPPING:
         dataset = get_manual_dataset(name, 
-                                    split,)
+                                    split,
+                                    binary,
+                                    n_qubits)
         
     elif name in VISION_DATASET_MAPPING:
         path = DATASET_CACHE_DIR / name
@@ -79,12 +83,16 @@ class QuMETDataModule(pl.LightningDataModule):
         self,
         name: str,
         batch_size: int,
+        binary: bool = False,
+        n_qubits: int = 16,
         model_name: str = None,
     ) -> None:
         super().__init__()
 
         self.name = name
         self.batch_size = batch_size
+        self.binary = binary
+        self.n_qubits = n_qubits
         self.model_name = model_name
 
         self.train_dataset = None
@@ -97,21 +105,29 @@ class QuMETDataModule(pl.LightningDataModule):
         train_dataset = get_dataset(
             self.name,
             split="train",
+            binary = self.binary,
+            n_qubits = self.n_qubits,
             model_name=self.model_name,
         )
         val_dataset = get_dataset(
             self.name,
             split="validation",
+            binary = self.binary,
+            n_qubits = self.n_qubits,
             model_name=self.model_name,
         )
         test_dataset = get_dataset(
             self.name,
             split="test",
+            binary = self.binary,
+            n_qubits = self.n_qubits,
             model_name=self.model_name,
         )
         pred_dataset = get_dataset(
             self.name,
             split="pred",
+            binary = self.binary,
+            n_qubits = self.n_qubits,
             model_name=self.model_name,
         )
 
@@ -129,6 +145,8 @@ class QuMETDataModule(pl.LightningDataModule):
             self.train_dataset = get_dataset(
                 self.name,
                 split="train",
+                binary = self.binary,
+                n_qubits = self.n_qubits,
                 model_name=self.model_name,
             )
             if self.train_dataset is not None:
@@ -137,6 +155,8 @@ class QuMETDataModule(pl.LightningDataModule):
             self.val_dataset = get_dataset(
                 self.name,
                 split="validation",
+                binary = self.binary,
+                n_qubits = self.n_qubits,
                 model_name=self.model_name,
             )
             if self.val_dataset is not None:
@@ -145,6 +165,8 @@ class QuMETDataModule(pl.LightningDataModule):
             self.test_dataset = get_dataset(
                 self.name,
                 split="test",
+                binary = self.binary,
+                n_qubits = self.n_qubits,
                 model_name=self.model_name,
             )
             if self.test_dataset is not None:
@@ -153,6 +175,8 @@ class QuMETDataModule(pl.LightningDataModule):
             self.pred_dataset = get_dataset(
                 self.name,
                 split="pred",
+                binary = self.binary,
+                n_qubits = self.n_qubits,
                 model_name=self.model_name,
             )
             if self.pred_dataset is not None:
@@ -181,7 +205,7 @@ class QuMETDataModule(pl.LightningDataModule):
             )
         return DataLoader(
             self.test_dataset,
-            batch_size= 1000,
+            batch_size= self.batch_size,
             shuffle=False,
         )
 
@@ -190,6 +214,6 @@ class QuMETDataModule(pl.LightningDataModule):
             raise RuntimeError("The pred dataset is not available.")
         return DataLoader(
             self.pred_dataset,
-            batch_size=self.batch_size,
+            batch_size=len(self.pred_dataset),
             shuffle=False,
         )

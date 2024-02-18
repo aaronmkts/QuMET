@@ -2,27 +2,31 @@ import numpy as np
 from scipy.stats import multivariate_normal
 import torch
 from torch.utils.data import Dataset
+import itertools
 from ..utils import add_dataset_info
 import matplotlib.pyplot as plt
 from matplotlib import cm
-# Set the random seed for reproducibility
+import math
+# Set the random seed for reproducibility and constants
+pi = math.pi
 seed = 42
 np.random.seed(seed)
 
 @add_dataset_info(
-    name="2d_gaussian",
+    name="2d_ring_gaussian",
     dataset_source="manual",
     available_splits=("train", "pred"),
     generation = True,
 )
-class TwoDGaussianDataset(Dataset):
+class TwoDRingGaussianDataset(Dataset):
     def __init__(self,  split = "train", binary = False, n_qubits = 16) -> None:
 
         self.binary = binary
         self.n_qubits = n_qubits
         self.num_dim = 2
         self.num_discrete_values =  int(2 ** (n_qubits / self.num_dim))
-        self.coords = np.linspace(-2, 2, self.num_discrete_values)
+        self.coords = np.linspace(-3, 3, self.num_discrete_values)
+        self.num_gauss = 8
         self.samples, self.grid_elements = self._generate_samples()
         
 
@@ -36,24 +40,46 @@ class TwoDGaussianDataset(Dataset):
             )
         
     def _generate_samples(self):
-
         
-        rv = multivariate_normal(mean=[0.0, 0.0], cov=[[1, 0], [0, 1]], seed=seed)
+        
+        means = self._means_ring()
+        sigma = 0.1
+        covs = [np.array([[sigma,0], [0,sigma]]) for i in range(self.num_gauss)]
+
+        rv = [multivariate_normal(mean=mean, cov=cov) for (mean, cov) in zip(means,covs)]
+
         grid_elements = np.transpose([np.tile(self.coords, len(self.coords)), np.repeat(self.coords, len(self.coords))])
         num_samples = len(grid_elements)
 
-        samples = rv.pdf(grid_elements)
+        samples = np.sum([dist.pdf(grid_elements) for dist in rv], axis=0)
         prob_data = samples / np.sum(samples)
-
 
         if self.binary == True:
             
             index_list = list(range(num_samples))
             sampled_integers = np.random.choice(index_list, size= num_samples, p= prob_data)
             grid_elements = np.array(list(map(self._int_to_binary, sampled_integers)))
-
+     
         return prob_data, grid_elements
+    
+    def _means_ring(self):
         
+        self.radius = 2
+        means_list = []
+
+        for i in range(self.num_gauss):
+            
+            theta = ((2 *  pi ) / self.num_gauss) * i 
+
+            x = self.radius * math.sin(theta)
+            y = self.radius * math.cos(theta)
+            
+            means_list.append((x,y))
+
+        means = np.array([np.array([i, j]) for i, j in means_list])
+
+        return means
+
     def _visualise(self):
 
         mesh_x, mesh_y = np.meshgrid(self.coords, self.coords)
@@ -63,7 +89,7 @@ class TwoDGaussianDataset(Dataset):
         surf = ax.plot_surface(mesh_x, mesh_y, prob_grid, cmap=cm.coolwarm, linewidth=0, antialiased=False)
         fig.colorbar(surf, shrink=0.5, aspect=5)
         plt.show()
-
+    
     def _int_to_binary(self, integer):
 
         resolution = self.n_qubits
@@ -75,7 +101,7 @@ class TwoDGaussianDataset(Dataset):
 
     def __len__(self):
         return len(self.samples)
-    
+
     def prepare_data(self) -> None:
         pass
 

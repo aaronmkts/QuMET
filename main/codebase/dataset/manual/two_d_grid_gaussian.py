@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats import multivariate_normal
 import torch
 from torch.utils.data import Dataset
+import itertools
 from ..utils import add_dataset_info
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -10,19 +11,20 @@ seed = 42
 np.random.seed(seed)
 
 @add_dataset_info(
-    name="2d_gaussian",
+    name="2d_grid_gaussian",
     dataset_source="manual",
     available_splits=("train", "pred"),
     generation = True,
 )
-class TwoDGaussianDataset(Dataset):
+class TwoDGridGaussianDataset(Dataset):
     def __init__(self,  split = "train", binary = False, n_qubits = 16) -> None:
 
         self.binary = binary
         self.n_qubits = n_qubits
         self.num_dim = 2
         self.num_discrete_values =  int(2 ** (n_qubits / self.num_dim))
-        self.coords = np.linspace(-2, 2, self.num_discrete_values)
+        self.coords = np.linspace(-3, 3, self.num_discrete_values)
+        self.num_gauss = 16
         self.samples, self.grid_elements = self._generate_samples()
         
 
@@ -36,24 +38,34 @@ class TwoDGaussianDataset(Dataset):
             )
         
     def _generate_samples(self):
-
         
-        rv = multivariate_normal(mean=[0.0, 0.0], cov=[[1, 0], [0, 1]], seed=seed)
+        
+        self.set_length = int(pow(self.num_gauss, 1/2)) 
+
+        positions  = np.linspace(-2,2,int(self.set_length))
+        means = np.array([np.array([i, j]) for i, j in itertools.product(positions,positions)])
+
+        sigma = 0.1
+        covs = [np.array([[sigma,0], [0,sigma]]) for i in range(self.num_gauss)]
+
+        rv = [multivariate_normal(mean=mean, cov=cov) for (mean, cov) in zip(means,covs)]
+
         grid_elements = np.transpose([np.tile(self.coords, len(self.coords)), np.repeat(self.coords, len(self.coords))])
         num_samples = len(grid_elements)
 
-        samples = rv.pdf(grid_elements)
+        samples = np.sum([dist.pdf(grid_elements) for dist in rv], axis=0)
         prob_data = samples / np.sum(samples)
-
-
+      
         if self.binary == True:
             
             index_list = list(range(num_samples))
             sampled_integers = np.random.choice(index_list, size= num_samples, p= prob_data)
             grid_elements = np.array(list(map(self._int_to_binary, sampled_integers)))
 
+            
         return prob_data, grid_elements
         
+    
     def _visualise(self):
 
         mesh_x, mesh_y = np.meshgrid(self.coords, self.coords)
@@ -72,10 +84,10 @@ class TwoDGaussianDataset(Dataset):
         binary = integer.bitwise_and(mask).ne(0).float()
         
         return binary
-
+    
     def __len__(self):
         return len(self.samples)
-    
+
     def prepare_data(self) -> None:
         pass
 
