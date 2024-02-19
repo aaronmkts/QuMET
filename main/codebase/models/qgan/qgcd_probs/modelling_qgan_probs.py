@@ -14,22 +14,22 @@ import torch
 import torch.nn as nn
 from typing import Optional, Union
 from pennylane.qnn import TorchLayer as TorchConnector
-from .configuration_qgan_binary import QGCD_Binary_Config
+from .configuration_qgan_probs import QGCD_Probs_Config
 
 import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
 import pytorch_lightning as L
 
-_CONFIG_FOR_DOC = "QGCD_Binary_Config"
+_CONFIG_FOR_DOC = "QGCD_Probs_Config"
 
 pi = math.pi
 
-class Binary_Discriminator(nn.Module):
+class Probs_Discriminator(nn.Module):
     """Fully connected classical discriminator"""
 
-    def __init__(self, config: QGCD_Binary_Config):
-        super(Binary_Discriminator,self).__init__()
+    def __init__(self, config: QGCD_Probs_Config):
+        super(Probs_Discriminator,self).__init__()
         self.input_size = config.input_size
 
         self.model = nn.Sequential(
@@ -59,12 +59,13 @@ class Binary_Discriminator(nn.Module):
         return self.model(input)
 
 
-class Binary_Generator(nn.Module):
+class Probs_Generator(nn.Module):
     def __init__(
         self,
-        config: QGCD_Binary_Config,
+        config: QGCD_Probs_Config,
     ) -> None:
-        super(Binary_Generator, self).__init__()
+        super(Probs_Generator, self).__init__()
+
         self.config = config
         self.n_qubits = config.n_qubits
         self.depth = config.depth
@@ -97,82 +98,16 @@ class Binary_Generator(nn.Module):
         return self.q_generator(inputs)
 
 
-class GAN(L.LightningModule):
+class QGCD_Probs_GAN(nn.Module):
     def __init__(
         self,
-        config = QGCD_Binary_Config,
+        config = QGCD_Probs_Config,
     ):
-        super().__init__()
-        self.save_hyperparameters()
-        self.automatic_optimization = False
-
+        super().__init__(config)
         # networks
         
-        self.generator = Binary_Generator(config = config)
-        self.discriminator = Binary_Discriminator(config)
-
-    def forward(self, z):
-        return self.generator(z)
-
-    def adversarial_loss(self, y_hat, y):
-        return F.binary_cross_entropy(y_hat, y)
-
-    def training_step(self, batch):
-        real_data = batch
-
-        optimizer_g, optimizer_d = self.optimizers()
-
-        # sample noise
-        z = torch.randn([])
-        z.type_as(real_data)
-
-        # train generator
-        # generate images
-        self.toggle_optimizer(optimizer_g)
-        self.generated_data = self(z)
-
-        # ground truth result (ie: all fake)
-        # put on GPU because we created this tensor inside training_loop
-        valid = torch.ones(real_data.size(), 1)
-        valid = valid.type_as(real_data)
-
-        # adversarial loss is binary cross-entropy
-        g_loss = self.adversarial_loss(self.discriminator(self(z)), valid)
-        self.log("g_loss", g_loss, prog_bar=True)
-        self.manual_backward(g_loss)
-        optimizer_g.step()
-        optimizer_g.zero_grad()
-        self.untoggle_optimizer(optimizer_g)
-
-        # train discriminator
-        # Measure discriminator's ability to classify real from generated samples
-        self.toggle_optimizer(optimizer_d)
-
-        # how well can it label as real?
-        valid = torch.ones(real_data.size(), 1)
-        valid = valid.type_as(real_data)
-
-        real_loss = self.adversarial_loss(self.discriminator(real_data), valid)
-
-        # how well can it label as fake?
-        fake = torch.zeros(real_data.size(), 1)
-        fake = fake.type_as(real_data)
-
-        fake_loss = self.adversarial_loss(self.discriminator(self(z).detach()), fake)
-
-        # discriminator loss is the average of these
-        d_loss = (real_loss + fake_loss) / 2
-        self.log("d_loss", d_loss, prog_bar=True)
-        self.manual_backward(d_loss)
-        optimizer_d.step()
-        optimizer_d.zero_grad()
-        self.untoggle_optimizer(optimizer_d)
-
-    def configure_optimizers(self):
-        lr = 4e-4
-        b1 = 0.777
-        b2 = 0.999
-
-        opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr, betas=(b1, b2))
-        opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2))
-        return [opt_g, opt_d], []
+        self.generator = Probs_Generator(config)
+        self.discriminator = Probs_Discriminator(config)
+        
+    def forward(self, input: Tensor):
+        return self.generator(input)
