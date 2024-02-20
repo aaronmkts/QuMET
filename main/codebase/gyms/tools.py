@@ -42,7 +42,9 @@ class QuantumArchSearchEnv(gymnasium.Env):
 
         # set environment
         self.target_density = target * np.conj(target).T
-        self.simulator = qml.device('default.qubit', wires=len(self.qubits))
+        #self.simulator = qml.device('default.qubit', wires=len(self.qubits))
+        self.device = qml.device('default.qubit', wires=len(self.qubits))
+        self.circuit = qml.QNode(self._get_cirq, self.device)
 
         # set spaces
         self.observation_space = spaces.Box(low=-1.,
@@ -50,6 +52,7 @@ class QuantumArchSearchEnv(gymnasium.Env):
                                             shape=(len(state_observables), ))
         self.action_space = spaces.Discrete(n=len(action_gates))
         self.seed()
+
 
     def __str__(self):
         desc = 'QuantumArchSearchEnv('
@@ -62,35 +65,50 @@ class QuantumArchSearchEnv(gymnasium.Env):
             ', '.join(gate.__str__() for gate in self.state_observables))
         return desc
 
+    
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def reset(self):
+    def reset(self, seed=None):
         self.circuit_gates = []
         return self._get_obs()
 
+    
     def _get_cirq(self, maybe_add_noise=False):
-        circuit = self.simulator 
+        ''' 
+        Research/ understand how pennylane load circuits, 'QNODE'
+        -More time define a circuit before execution, youll need to see how 
+        to iteratively add gates ???
+
+        '''  
         for gate in self.circuit_gates:
-            circuit.append(gate)
+            qml.apply(gate)
+            
             if maybe_add_noise and (self.error_gates is not None):
                 noise_gate = qml.DepolarizingChannel(self.error_gates, wires=gate.qubits) 
-                circuit.append(noise_gate)
+                qml.apply(noise_gate)
+
         if maybe_add_noise and (self.error_observables is not None):
-            noise_observable = qml.BitFlip(self.error_observables, wires=self.qubits) 
-            circuit.append(noise_observable)
-        return circuit
+            noise_observable = qml.BitFlip(self.error_observables, wires=len(self.qubits)) 
+            qml.apply(noise_observable)
+
+        return self.circuit
 
     def _get_obs(self):
-        circuit = self._get_cirq(maybe_add_noise=True)
-        obs = self.simulator.simulate_expectation_values(
+        '''
+        simply executing the circuit will be enough to get the expectation
+        '''
+        circuit = self._get_cirq(maybe_add_noise=False)#True
+        obs = self.circuit(
             circuit, observables=self.state_observables)
+        obs = circuit
         return np.array(obs).real
+    
 
     def _get_fidelity(self):
-        circuit = self._get_cirq(maybe_add_noise=True)
-        pred = self.simulator.simulate(circuit).final_state_vector
+        circuit = self._get_cirq(maybe_add_noise=True)#
+        pred = self.simulator.simulate(circuit).final_state_vector#
         inner = np.inner(np.conj(pred), self.target)
         fidelity = np.conj(inner) * inner
         return fidelity.real

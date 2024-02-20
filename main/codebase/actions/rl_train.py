@@ -3,8 +3,11 @@ import gym3
 import gym
 import gymnasium
 import torch.optim as optim
+import torch
 from stable_baselines3 import A2C, PPO
 from stable_baselines3.common.evaluation import evaluate_policy
+from codebase.tools import get_optimizer
+import torch.optim as optim
 
 def get_agent(agent, policy, env, gamma, learning_rate, policy_kwargs, save_path, n_epochs=4, clip_range=0.2):
 
@@ -32,14 +35,38 @@ def get_agent(agent, policy, env, gamma, learning_rate, policy_kwargs, save_path
         
     return agent
 
-def train(save_path):
+def train(optimizer,
+        learning_rate,
+        gamma,
+        agent_type,
+        policy,
+        total_timesteps,
+        save_path,
+        load_name,
+        load_type,
+        environment
+          ):
 
     if save_path is not None:
         # if save_path is None, the model will not be saved
         if not os.path.isdir(save_path):
             os.makedirs(save_path)
 
-    # GPU 
-    # exp_config
+    #opt = get_optimizer(optim.Adam,optimizer,learning_rate,0)
 
-    pass
+    policy_kwargs = dict(optimizer_class=optim.Adam)
+
+    agent = get_agent(agent_type,
+                           policy,
+                           environment,
+                           gamma,
+                           learning_rate,
+                           policy_kwargs,
+                           save_path
+                           )
+    
+    # Training
+    print("***** Running training *****")
+    agent.learn(total_timesteps=total_timesteps)
+    print("***** Training complete *****")
+

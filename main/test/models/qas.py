@@ -14,40 +14,36 @@ from stable_baselines3 import A2C, PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 from codebase.gyms import QuMETGymnasium
 from codebase.tools import load_config
-#from codebase.actions.rl_train import get_agent
+from codebase.actions.rl_train import train
 from stable_baselines3.common.env_checker import check_env
 
-# Parameters 
-config = load_config("configs/by_environment/noiseless_envs/noiseless_two_qubit.toml")
-env_name = 'NoisyTwoQubitEnv'
+def main():
+    
+    config = load_config("configs/by_environment/noiseless_envs/noiseless_two_qubit.toml")
+    env_name = 'NoisyTwoQubitEnv'
+    optimizer: str = "adam"
+    learning_rate: float = 1e-3
+    gamma: float = 0.99
+    agent_type: str = "a2c"
+    policy: str = "MlpPolicy"
+    total_timesteps: int = 10000
+    save_path: str = "./ckpts/test"
+    load_name: str = None
+    load_type: str = ""
+    environment = QuMETGymnasium(env_name, config).make_gym()
 
-# Environment
+    train(
+        optimizer=optimizer,
+        learning_rate=learning_rate,
+        gamma=gamma,
+        agent_type=agent_type,
+        policy=policy,
+        total_timesteps=total_timesteps,
+        save_path=save_path,
+        load_name=load_name,
+        load_type=load_type,
+        environment=environment
+    )
 
-environment = QuMETGymnasium(env_name, config).make_gym()
-print(environment)
-''' 
-#env = gym3.ToGymEnv(env)
-
-#for idx, gate in enumerate(env.action_gates):
-#    print('Action({:02d}) --> {}'.format(idx, gate))
-
-#for idx, observable in enumerate(env.state_observables):
-#    print('State({:02d}) --> {}'.format(idx, observable))
-
-
-# Parameters
-gamma = 0.99
-learning_rate = 0.0001
-policy_kwargs = dict(optimizer_class=optim.Adam)
-agent = "a2c"
-policy = "MlpPolicy"
-
-#get_agent(agent_type, policy, env, gamma, learning_rate, policy_kwargs)
-
-a2c_model = A2C(policy,
-                        environment,
-                        gamma=gamma,
-                        learning_rate=learning_rate,
-                        policy_kwargs=policy_kwargs,
-                        tensorboard_log='logs/')
-                        '''
+if __name__ == "__main__":
+    main()
