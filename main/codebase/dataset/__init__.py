@@ -30,6 +30,7 @@ def get_dataset_info(name: str):
 def get_dataset(
     name: str,
     split: bool,
+    num_workers: int = os.cpu_count(),
     binary: bool = False,
     n_qubits : int = 16,
     model_name: str = None,
@@ -83,6 +84,7 @@ class QuMETDataModule(pl.LightningDataModule):
         self,
         name: str,
         batch_size: int,
+        num_workers: int,
         binary: bool = False,
         n_qubits: int = 16,
         model_name: str = None,
@@ -91,6 +93,7 @@ class QuMETDataModule(pl.LightningDataModule):
 
         self.name = name
         self.batch_size = batch_size
+        self.num_workers = num_workers
         self.binary = binary
         self.n_qubits = n_qubits
         self.model_name = model_name
@@ -105,27 +108,31 @@ class QuMETDataModule(pl.LightningDataModule):
         train_dataset = get_dataset(
             self.name,
             split="train",
+            num_workers = self.num_workers,
             binary = self.binary,
             n_qubits = self.n_qubits,
             model_name=self.model_name,
         )
         val_dataset = get_dataset(
             self.name,
-            split="validation",
+            split="train",
+            num_workers = self.num_workers,
             binary = self.binary,
             n_qubits = self.n_qubits,
             model_name=self.model_name,
         )
         test_dataset = get_dataset(
             self.name,
-            split="test",
+            split="train",
+            num_workers = self.num_workers,
             binary = self.binary,
             n_qubits = self.n_qubits,
             model_name=self.model_name,
         )
         pred_dataset = get_dataset(
             self.name,
-            split="pred",
+            split="train",
+            num_workers = self.num_workers,
             binary = self.binary,
             n_qubits = self.n_qubits,
             model_name=self.model_name,
@@ -145,6 +152,7 @@ class QuMETDataModule(pl.LightningDataModule):
             self.train_dataset = get_dataset(
                 self.name,
                 split="train",
+                num_workers = self.num_workers,
                 binary = self.binary,
                 n_qubits = self.n_qubits,
                 model_name=self.model_name,
@@ -154,7 +162,8 @@ class QuMETDataModule(pl.LightningDataModule):
         if stage in ["fit", "validate", None]:
             self.val_dataset = get_dataset(
                 self.name,
-                split="validation",
+                split="train",
+                num_workers = self.num_workers,
                 binary = self.binary,
                 n_qubits = self.n_qubits,
                 model_name=self.model_name,
@@ -164,7 +173,8 @@ class QuMETDataModule(pl.LightningDataModule):
         if stage in ["test", None]:
             self.test_dataset = get_dataset(
                 self.name,
-                split="test",
+                split="train",
+                num_workers = self.num_workers,
                 binary = self.binary,
                 n_qubits = self.n_qubits,
                 model_name=self.model_name,
@@ -174,7 +184,8 @@ class QuMETDataModule(pl.LightningDataModule):
         if stage in ["predict", None]:
             self.pred_dataset = get_dataset(
                 self.name,
-                split="pred",
+                split="train",
+                num_workers = self.num_workers,
                 binary = self.binary,
                 n_qubits = self.n_qubits,
                 model_name=self.model_name,
@@ -183,17 +194,31 @@ class QuMETDataModule(pl.LightningDataModule):
                 self.pred_dataset.setup()
 
     def train_dataloader(self) -> DataLoader:
+        if self.train_dataset is None:
+            raise RuntimeError(
+                "The train dataset is not available"
+                "probably because the train set does not have ground truth labels, "
+                "or the train dataset does not exist."
+            )
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
+            num_workers = self.num_workers,
         )
 
     def val_dataloader(self) -> DataLoader:
+        if self.val_dataset is None:
+            raise RuntimeError(
+                "The validation dataset is not available"
+                "probably because the validation set does not have ground truth labels, "
+                "or the validation dataset does not exist."
+            )
         return DataLoader(
-            self.val_dataset,
+            self.train_dataset,
             batch_size=self.batch_size,
-            shuffle=False,
+            shuffle=True,
+            num_workers = self.num_workers,
         )
 
     def test_dataloader(self) -> DataLoader:
@@ -204,16 +229,18 @@ class QuMETDataModule(pl.LightningDataModule):
                 "or the test dataset does not exist. For the former case, try predict_dataloader"
             )
         return DataLoader(
-            self.test_dataset,
-            batch_size= self.batch_size,
-            shuffle=False,
+            self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers = self.num_workers,
         )
 
     def pred_dataloader(self) -> DataLoader:
         if self.pred_dataset is None:
             raise RuntimeError("The pred dataset is not available.")
         return DataLoader(
-            self.pred_dataset,
-            batch_size=len(self.pred_dataset),
-            shuffle=False,
+            self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers = self.num_workers,
         )
