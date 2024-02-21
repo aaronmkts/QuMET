@@ -34,7 +34,7 @@ class TwoDGridGaussianDataset(Dataset):
             self.data = np.array(self.samples).reshape((-1,1))
         else:
             raise RuntimeError(
-                f"split must be `train` or `test`, but got {split}"
+                f"split must be `train` or `pred`, but got {split}"
             )
         
     def _generate_samples(self):
