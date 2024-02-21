@@ -39,7 +39,7 @@ def train(
             os.makedirs(save_path)
         checkpoint_callback = ModelCheckpoint(
             save_top_k=1,
-            monitor="val_loss_epoch",
+            monitor="val_kl_epoch",
             mode="min",
             filename="best",
             dirpath=save_path,
