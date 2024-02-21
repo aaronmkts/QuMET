@@ -9,62 +9,119 @@ sys.path.append(
     )
 
 import torch.nn as nn
-from codebase.actions.train_ import train
+from codebase.actions.train import train
+from codebase.dataset import QuMETDataModule, get_dataset_info
+from codebase.models.qgan.qgcd_probs.modelling_qgan_probs import QGCD_Probs_GAN
+from codebase.models.qgan.qgcd_probs.configuration_qgan_probs import QGCD_Probs_Config
+from codebase.models import get_model, get_model_info
 
-from codebase.dataset import QuMETDataModule
-from codebase.models.qgan.qgcd.configuration_qgcd import QGCDConfig
-from codebase.models.qgan.qgcd.modelling_qgcd import Generator, Discriminator
-import toml
-from codebase.models import get_model 
+import pytorch_lightning as pl
+from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
+import time
+from pathlib import Path
 
 def main():
-    generator = Generator() #get_model("qgcd", "generation", None) 
-    discriminator = Discriminator()
+
+    def _setup_visualizer(visualiser, save_path):
+        visualizer = None
+        match visualiser:
+            case "tensorboard":
+                visualizer = TensorBoardLogger(
+                    save_dir=save_path.joinpath("tensorboard")
+                    )
+            case _:
+                raise ValueError(f"unsupported reporting tool {visualiser}")
+        return visualizer
+    def _setup_folders(task, dataset_name):
+        ROOT = Path(__file__).parent.parent.parent.absolute()
+            # No project name is given; so we construct one structured as follows:
+            # {MODEL-NAME}_{TASK-TYPE}_{DATASET-NAME}_{TIMESTAMP}
+            # NOTE: We set the attribute in args so that any subsequent routine has
+            # access to the name of the project. :)
+        project = "{}_{}_{}".format(
+            task,
+            dataset_name,
+            time.strftime("%Y-%m-%d"),
+            )
+
+        output_dir = Path(os.path.join(ROOT, "qumet_output")) / project
+        output_dir_sw = Path(output_dir) / "software"
+        output_dir_sw.mkdir(parents=True, exist_ok=True)
+
+
+        return output_dir_sw
+    #Model
+    config = QGCD_Probs_Config()
+    model = QGCD_Probs_GAN(config = config) #model = get_model("qgcd", "generation", None) 
+    model_info = get_model_info("qgcd_probs")
+
     task = "generation"
-    dataset_name = "gaussian"
+    dataset_name = "2d_gaussian"
     
-    
-    # Reduced for unit test
+    #Training params
     batch_size = 64
+    n_qubits = 6
+    num_workers = os.cpu_count() / 2
     optimizer = "adam"
-    max_epochs: int = 50
-    max_steps: int = -1
-    gradient_accumulation_steps: int = 1
     learning_rate: float = 0.01
     weight_decay: float = 0.005
-    lr_scheduler_type: str = "linear"
-    num_warmup_steps: int = 0
-    save_path: str = "./ckpts/test"
+    output_dir_sw = _setup_folders(task, dataset_name)
     load_name: str = None
     load_type: str = ""
-    evaluate_before_training: bool = True
+    is_to_auto_requeue = False
+    report_to = "tensorboard"
+    visualizer = _setup_visualizer(report_to, output_dir_sw)
 
     data_module = QuMETDataModule(
         model_name= None,
         name=dataset_name,
         batch_size=batch_size,
+        num_workers = num_workers,
+        n_qubits=n_qubits
     )
+    dataset_info = get_dataset_info(dataset_name)
 
-    train(
-        generator=generator,
-        discriminator  = discriminator,
-        task=task,
-        data_module=data_module,
-        generator_optimizer=optimizer,
-        discriminator_optimizer=optimizer,
-        max_epochs=max_epochs,
-        max_steps=max_steps,
-        generator_learning_rate=learning_rate,
-        discriminator_learning_rate = learning_rate,
-        weight_decay=weight_decay,
-        gradient_accumulation_steps=gradient_accumulation_steps,
-        lr_scheduler_type=lr_scheduler_type,
-        num_warmup_steps=num_warmup_steps,
-        save_path=save_path,
-        load_name=load_name,
-        load_type=load_type,
-        evaluate_before_training = evaluate_before_training
-     )
+    #plt_trainer args
+    max_epochs: int = 50
+    max_steps: int = -1
+    num_devices: int = 1
+    num_nodes: int = 1
+    accelerator: int = "auto"
+    strategy = "auto"
+    trainer_precision = "16-mixed"
+    accumulate_grad_batches = 1
+    log_every_n_steps = 1
+
+    plt_trainer_args = {
+        "max_epochs": max_epochs,
+        "max_steps": max_steps,
+        "devices": num_devices,
+        "num_nodes": num_nodes,
+        "accelerator": accelerator,
+        "strategy": strategy,
+        "precision": trainer_precision,
+        "accumulate_grad_batches": accumulate_grad_batches,
+        "log_every_n_steps": log_every_n_steps,
+    }
+    
+    train_params = {
+        "model": model,
+        "model_info": model_info,
+        "data_module": data_module,
+        "dataset_info": dataset_info,
+        "task": task,
+        "optimizer": optimizer,
+        "learning_rate": learning_rate,
+        "weight_decay": weight_decay,
+        "plt_trainer_args": plt_trainer_args,
+        "auto_requeue": is_to_auto_requeue,
+        "save_path": os.path.join(output_dir_sw, "training_ckpts"),
+        "visualizer": visualizer,
+        "load_name": load_name,
+        "load_type": load_type,
+    }
+    
+    train(**train_params)
 
 
 if __name__ == "__main__":
