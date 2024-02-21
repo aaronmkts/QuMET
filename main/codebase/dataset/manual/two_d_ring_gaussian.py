@@ -32,7 +32,7 @@ class TwoDRingGaussianDataset(Dataset):
 
         if split == "train":
             self.data = np.array(self.samples).reshape((-1,1))
-        elif split == "test":
+        elif split == "pred":
             self.data = np.array(self.samples).reshape((-1,1))
         else:
             raise RuntimeError(
