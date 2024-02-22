@@ -11,8 +11,6 @@ sys.path.append(
 import torch.nn as nn
 from codebase.actions.train import train
 from codebase.dataset import QuMETDataModule, get_dataset_info
-from codebase.models.qgan.qgcd_probs.modelling_qgan_probs import QGCD_Probs_GAN
-from codebase.models.qgan.qgcd_probs.configuration_qgan_probs import QGCD_Probs_Config
 from codebase.models import get_model, get_model_info
 
 import pytorch_lightning as pl
@@ -51,9 +49,8 @@ def main():
 
         return output_dir_sw
     #Model
-    config = QGCD_Probs_Config()
-    model = QGCD_Probs_GAN(config = config) #model = get_model("qgcd", "generation", None) 
-    model_info = get_model_info("qgcd_probs")
+    model_name = "qgcd_probs"
+    model_info = get_model_info(model_name)
 
     task = "generation"
     dataset_name = "2d_gaussian"
@@ -61,7 +58,7 @@ def main():
     #Training params
     batch_size = 64
     n_qubits = 6
-    num_workers = os.cpu_count() / 2
+    num_workers = int(os.cpu_count() / 2)
     optimizer = "adam"
     learning_rate: float = 0.01
     weight_decay: float = 0.005
@@ -80,6 +77,7 @@ def main():
         n_qubits=n_qubits
     )
     dataset_info = get_dataset_info(dataset_name)
+    model = get_model(model_name, task, dataset_info)
 
     #plt_trainer args
     max_epochs: int = 50
