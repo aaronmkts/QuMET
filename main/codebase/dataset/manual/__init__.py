@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from .gaussian import GaussianDataset
 from .two_d_gaussian import TwoDGaussianDataset
 from .two_d_grid_gaussian import TwoDGridGaussianDataset
 from .two_d_ring_gaussian import TwoDRingGaussianDataset
@@ -25,8 +24,6 @@ def get_manual_dataset(name: str, split: str, binary: bool = False, n_qubits: in
     ], f"Unknown split {split}, should be one of train, validation, test, pred"
 
     match name:
-        case "gaussian":
-            dataset_cls = GaussianDataset
         case "2d_gaussian":
             dataset_cls = TwoDGaussianDataset
         case "2d_grid_gaussian":
@@ -57,7 +54,6 @@ def get_manual_dataset(name: str, split: str, binary: bool = False, n_qubits: in
 
 
 MANUAL_DATASET_MAPPING = {
-    "gaussian": GaussianDataset,
     "2d_gaussian": TwoDGaussianDataset,
     "2d_grid_gaussian": TwoDGridGaussianDataset,
     "2d_ring_gaussian": TwoDRingGaussianDataset
