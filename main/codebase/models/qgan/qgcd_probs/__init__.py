@@ -1,2 +1,3 @@
-from .configuration_qgan_probs import QGCD_Probs_Config
-from .modelling_qgan_probs import QGCD_Probs_GAN
+from .modelling_qgan_probs import(
+    get_qgcd_probs
+)
