@@ -27,14 +27,11 @@ class WrapperBase(pl.LightningModule, ABC):
         self.epochs = epochs
         self.optimizer = optimizer
 
-        self.loss_val = MeanMetric()
-        self.loss_test = MeanMetric()
-
     def forward(self, x):
         return self.model(x)
     
     @abstractmethod
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch):
         pass
     
     @abstractmethod
