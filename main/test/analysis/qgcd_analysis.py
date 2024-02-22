@@ -11,32 +11,17 @@ sys.path.append(
     )
 import torch 
 import torch.nn as nn
-from codebase.dataset.manual import TwoDGaussianDataset, TwoDRingGaussianDataset, TwoDGridGaussianDataset
-from codebase.dataset.manual import GaussianDataset
-from codebase.models.qgan.qgcd_binary.modelling_qgan_binary import Binary_Generator, Binary_Discriminator
-from codebase.models.qgan.qgcd_binary.configuration_qgan_binary import QGCD_Binary_Config
+
+from codebase.models.qgan.qgcd_probs.modelling_qgan_probs import QGCD_Probs_GAN, _qgcd_gan
+from codebase.models.qgan.qgcd_probs.configuration_qgan_probs import QGCD_Probs_Config
+from codebase.dataset import QuMETDataModule
+from codebase.models import get_model, get_model_info
+from codebase.dataset import get_dataset_info
+
+from codebase.plt_wrapper import get_model_wrapper
+import pytorch_lightning as L
 
 def main():
-    '''
-    config = QGCD_Binary_Config()
-    generator = Binary_Generator(config = config)
-    discriminator = Binary_Discriminator(config = config)
-    input_ = torch.tensor([])
-    output = generator(input_)
-    probs_ = discriminator(output)
-
-    
-    def binary(x):
-        bits = 16
-        mask = 2**torch.arange(bits-1, -1, -1)
-        x = torch.tensor([x])
-        bitstring = x.bitwise_and(mask).ne(0).float()
-        return bitstring
-    bitstring = binary(6)
-    print(bitstring)
-    ''' 
-    dataset = TwoDGridGaussianDataset()
-    x, y = dataset.__getitem__(index = 5)
-  
+    analysis = False
 if __name__ == "__main__":
     main()
