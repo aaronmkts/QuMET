@@ -4,10 +4,8 @@ from os import PathLike
 from .qgan import (
     is_qgan_model,
     get_qgan_model,
-    get_qgan_model_config,
     get_qgan_model_info,
 )
-
 
 from .utils import QumetModelInfo, ModelType
 

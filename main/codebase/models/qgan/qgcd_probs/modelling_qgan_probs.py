@@ -6,7 +6,6 @@ import random
 import numpy as np
 import pennylane as qml
 from pennylane.templates import AngleEmbedding
-import sys
 from torch import Tensor
 
 # Pytorch imports
@@ -14,23 +13,34 @@ import torch
 import torch.nn as nn
 from typing import Optional, Union
 from pennylane.qnn import TorchLayer as TorchConnector
-from .configuration_qgan_probs import QGCD_Probs_Config
-
-import torch.nn.functional as F
-import torchvision
-import torchvision.transforms as transforms
-import pytorch_lightning as L
-
-_CONFIG_FOR_DOC = "QGCD_Probs_Config"
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 pi = math.pi
 
+#fmt:0ff
+config = {
+    "discriminator":{
+        "input_size": 2
+    },
+    "generator":{
+        "device": "default.qubit",
+        "n_qubits": 6,
+        "n_a_qubits": 0,
+        "shots": 10000,
+        "depth": 4,
+        "q_delta": 1,
+        "diff_method": "adjoint",
+    }
+}
+
+#fmt:on
 class Probs_Discriminator(nn.Module):
     """Fully connected classical discriminator"""
 
-    def __init__(self, config: QGCD_Probs_Config):
-        super(Probs_Discriminator,self).__init__()
-        self.input_size = config.input_size
+    def __init__(self, config, task):
+        super().__init__()
+        name = "discriminator"
+        self.input_size = config[name]["input_size"]
 
         self.model = nn.Sequential(
             # Inputs to first hidden layer (num_input_features -> 64)
@@ -54,22 +64,25 @@ class Probs_Discriminator(nn.Module):
             torch.nn.init.kaiming_uniform_(layer.weight)
             torch.nn.init.kaiming_uniform_(layer.bias)
 
-    def forward(self, 
-                input):
+    def forward(self, input: Tensor)-> Tensor:
         return self.model(input)
 
 
 class Probs_Generator(nn.Module):
     def __init__(
         self,
-        config: QGCD_Probs_Config,
+        config,
+        task,
     ) -> None:
-        super(Probs_Generator, self).__init__()
+        super().__init__()
 
-        self.config = config
-        self.n_qubits = config.n_qubits
-        self.depth = config.depth
-        self.device = qml.device(config.device, wires = config.n_qubits, shots = config.shots)
+        name = "generator"
+        self.n_qubits = config[name]["n_qubits"]
+        self.depth = config[name]["depth"]
+        self.shots = config[name]["shots"]
+        self.device = config[name]["device"]
+
+        self.device = qml.device(self.device, wires = self.n_qubits, shots = self.shots)
         q_weight_shapes = {"q_weights_y": (self.depth, self.n_qubits),
                            "q_weights_z": (self.depth, self.n_qubits)}
         init_method = {"q_weights_y": lambda x : torch.nn.init.uniform_(x, -pi, pi),
@@ -98,16 +111,30 @@ class Probs_Generator(nn.Module):
         return self.q_generator(inputs)
 
 
+
 class QGCD_Probs_GAN(nn.Module):
-    def __init__(
-        self,
-        config = QGCD_Probs_Config,
-    ):
-        super().__init__(config)
+    def __init__(self, config, task):
+        super().__init__()
         # networks
         
-        self.generator = Probs_Generator(config)
-        self.discriminator = Probs_Discriminator(config)
+        self.generator = Probs_Generator(config, task)
+        self.discriminator = Probs_Discriminator(config, task)
         
     def forward(self, input: Tensor):
         return self.generator(input)
+    
+
+# ---------------------------------------
+# QGCD_GANs
+# ---------------------------------------
+    
+def _qgcd_gan(config, task : str) -> QGCD_Probs_GAN:
+
+    model = QGCD_Probs_GAN(config, task)
+    return model
+    
+def get_qgcd_probs(info: Dict) -> QGCD_Probs_GAN:
+
+    task = info.generation
+    return _qgcd_gan(config = config,
+                     task = task)
