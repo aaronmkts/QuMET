@@ -2,7 +2,7 @@ from ..utils import QumetModelInfo
 from os import PathLike
 
 from .qgcd import QGCDConfig, Generator
-from .qgcd_probs import QGCD_Probs_Config, QGCD_Probs_GAN, get_qgcd_probs
+from .qgcd_probs import get_qgcd_probs
 
 #fmt: off
 QGAN_MODELS = {
