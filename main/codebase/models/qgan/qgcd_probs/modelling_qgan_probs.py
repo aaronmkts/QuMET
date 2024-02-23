@@ -7,7 +7,7 @@ import numpy as np
 import pennylane as qml
 from pennylane.templates import AngleEmbedding
 from torch import Tensor
-
+from logging import getLogger
 # Pytorch imports
 import torch
 import torch.nn as nn
@@ -15,6 +15,7 @@ from typing import Optional, Union
 from pennylane.qnn import TorchLayer as TorchConnector
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
+logger = getLogger(__name__)
 pi = math.pi
 
 #fmt:0ff
@@ -136,5 +137,6 @@ def _qgcd_gan(config, task : str) -> QGCD_Probs_GAN:
 def get_qgcd_probs(info: Dict) -> QGCD_Probs_GAN:
 
     task = info.generation
+    logger.info(f"The following {config} loaded for task {task} into QGCD_PROBS_GAN ")
     return _qgcd_gan(config = config,
                      task = task)
