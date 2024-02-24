@@ -18,7 +18,7 @@ def lutnet_transform(img):
 
 
 def _get_mnist_default_transform():
-    transform_list = [tv_transforms.ToTensor(), tv_transforms.Resize((8,8), antialias= True)]
+    transform_list = [tv_transforms.ToTensor()]
     transform = tv_transforms.Compose(transform_list)
     return transform
 
