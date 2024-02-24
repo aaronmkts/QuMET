@@ -10,7 +10,7 @@ from ..utils import add_dataset_info
     available_splits=("train", "test"),
     generation=True,
     num_classes=10,
-    image_size=(1, 8, 8),
+    image_size=(1, 28, 28),
 )
 class MNISTQuMET(datasets.MNIST):
     def __init__(
