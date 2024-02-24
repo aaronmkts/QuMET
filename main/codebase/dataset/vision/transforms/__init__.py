@@ -1,5 +1,6 @@
 from .mnist import get_mnist_transform
 from .fashion_mnist import get_fashion_mnist_transform
+from .cifar import  get_cifar10_transform
 
 def get_vision_dataset_transform(name: str, train: bool, model_name: str):
     """
@@ -15,5 +16,7 @@ def get_vision_dataset_transform(name: str, train: bool, model_name: str):
             return get_mnist_transform(train, model_name)
         case "fashion_mnist":
             return get_fashion_mnist_transform(train, model_name)
+        case "cifar10":
+            return get_cifar10_transform(train, model_name)
         case _:
             raise ValueError(f"Unknown dataset {name}")
