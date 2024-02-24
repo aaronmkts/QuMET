@@ -62,7 +62,10 @@ def get_dataset(
         
     elif name in VISION_DATASET_MAPPING:
         path = DATASET_CACHE_DIR / name
-        dataset = get_vision_dataset(name, path, split, model_name)
+        dataset = get_vision_dataset(name, 
+                                     path, 
+                                     split, 
+                                     model_name)
     else:
         raise ValueError(f"Dataset {name} is not supported")
     return dataset
