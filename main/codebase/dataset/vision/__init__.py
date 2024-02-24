@@ -5,6 +5,7 @@ from pathlib import Path
 # All rights reserved.
 
 from .mnist import get_mnist_dataset, MNISTQuMET
+from .fashion_mnist import get_fashion_mnist_dataset, Fashion_MNISTQuMET
 from .transforms import get_vision_dataset_transform
 
 
@@ -32,11 +33,14 @@ def get_vision_dataset(name: str, path: os.PathLike, split: str, model_name: str
     match name:
         case "mnist":
             dataset = get_mnist_dataset(name, path, train, transform)
+        case "fashion_mnist":
+            dataset = get_fashion_mnist_dataset(name, path, train, transform)
     return dataset
 
 
 VISION_DATASET_MAPPING = {
     "mnist": MNISTQuMET,
+    "fashion_mnist": Fashion_MNISTQuMET,
 }
 
 
