@@ -7,13 +7,14 @@ from ..utils import add_dataset_info
 import matplotlib.pyplot as plt
 from matplotlib import cm
 # Set the random seed for reproducibility
+
 seed = 42
 np.random.seed(seed)
 
 @add_dataset_info(
     name="2d_grid_gaussian",
     dataset_source="manual",
-    available_splits=("train", "pred"),
+    available_splits=("train", "validation"),
     generation = True,
 )
 class TwoDGridGaussianDataset(Dataset):
@@ -31,11 +32,11 @@ class TwoDGridGaussianDataset(Dataset):
         if split == "train":
             self.data = np.array(self.samples).reshape((-1,1))
             
-        elif split == "pred":
+        elif split == "validation":
             self.data = np.array(self.samples).reshape((-1,1))
         else:
             raise RuntimeError(
-                f"split must be `train` or `pred`, but got {split}"
+                f"split must be `train` or `validation`, but got {split}")
         
     def _generate_samples(self):
         

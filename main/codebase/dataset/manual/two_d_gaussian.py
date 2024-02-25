@@ -12,7 +12,7 @@ np.random.seed(seed)
 @add_dataset_info(
     name="2d_gaussian",
     dataset_source="manual",
-    available_splits=("train", "pred"),
+    available_splits=("train", "validation"),
     generation = True,
 )
 class TwoDGaussianDataset(Dataset):
@@ -28,11 +28,11 @@ class TwoDGaussianDataset(Dataset):
 
         if split == "train":
             self.data = np.array(self.samples).reshape((-1,1))
-        elif split == "pred":
+        elif split == "validation":
             self.data = np.array(self.samples).reshape((-1,1))
         else:
             raise RuntimeError(
-                f"split must be `train` or `pred`, but got {split}"
+                f"split must be `train` or `validation`, but got {split}"
             )
         
     def _generate_samples(self):

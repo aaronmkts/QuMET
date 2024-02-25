@@ -16,9 +16,7 @@ from typing import Optional, Union
 from pennylane.qnn import TorchLayer as TorchConnector
 from .configuration_qgcd import QGCDConfig, QmlMixin
 from pytorch_lightning.core import LightningModule
-
 _CONFIG_FOR_DOC = "QGCDConfig"
-
 
 
 class Discriminator(nn.Module):
