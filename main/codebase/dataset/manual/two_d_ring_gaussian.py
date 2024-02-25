@@ -15,7 +15,7 @@ np.random.seed(seed)
 @add_dataset_info(
     name="2d_ring_gaussian",
     dataset_source="manual",
-    available_splits=("train", "pred"),
+    available_splits=("train", "validation"),
     generation = True,
 )
 class TwoDRingGaussianDataset(Dataset):
@@ -28,15 +28,15 @@ class TwoDRingGaussianDataset(Dataset):
         self.coords = np.linspace(-3, 3, self.num_discrete_values)
         self.num_gauss = 8
         self.samples, self.grid_elements = self._generate_samples()
-        
 
         if split == "train":
             self.data = np.array(self.samples).reshape((-1,1))
-        elif split == "pred":
+        elif split == "validation":
             self.data = np.array(self.samples).reshape((-1,1))
+        
         else:
             raise RuntimeError(
-                f"split must be `train` or `pred`, but got {split}"
+                f"split must be `train` or `validation`, but got {split}")
         
     def _generate_samples(self):
         
