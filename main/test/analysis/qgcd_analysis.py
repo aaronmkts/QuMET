@@ -11,6 +11,7 @@ sys.path.append(
     )
 import torch 
 import torch.nn as nn
+
 import itertools
 from codebase.models.qgan.qgcd_probs.modelling_qgan_probs import QGCD_Probs_GAN, _qgcd_gan
 from codebase.models.qgan.qgcd_probs.configuration_qgan_probs import QGCD_Probs_Config
@@ -108,5 +109,6 @@ def main():
         ax_b[i].grid(which='minor', color='black', linestyle='-', linewidth=0.75)
 
     plt.show()
+
 if __name__ == "__main__":
     main()

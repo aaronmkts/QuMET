@@ -120,6 +120,7 @@ class QuMETDataModule(pl.LightningDataModule):
             self.name,
             split="train",
             num_workers = self.num_workers,
+            split="validation",
             binary = self.binary,
             n_qubits = self.n_qubits,
             model_name=self.model_name,
@@ -128,14 +129,17 @@ class QuMETDataModule(pl.LightningDataModule):
             self.name,
             split="train",
             num_workers = self.num_workers,
+            split="test",
             binary = self.binary,
             n_qubits = self.n_qubits,
             model_name=self.model_name,
         )
         pred_dataset = get_dataset(
             self.name,
+
             split="train",
             num_workers = self.num_workers,
+            split="pred",
             binary = self.binary,
             n_qubits = self.n_qubits,
             model_name=self.model_name,
@@ -167,6 +171,7 @@ class QuMETDataModule(pl.LightningDataModule):
                 self.name,
                 split="train",
                 num_workers = self.num_workers,
+                split="validation",
                 binary = self.binary,
                 n_qubits = self.n_qubits,
                 model_name=self.model_name,
@@ -178,6 +183,7 @@ class QuMETDataModule(pl.LightningDataModule):
                 self.name,
                 split="train",
                 num_workers = self.num_workers,
+                split="test",
                 binary = self.binary,
                 n_qubits = self.n_qubits,
                 model_name=self.model_name,
@@ -189,6 +195,7 @@ class QuMETDataModule(pl.LightningDataModule):
                 self.name,
                 split="train",
                 num_workers = self.num_workers,
+                split="pred",
                 binary = self.binary,
                 n_qubits = self.n_qubits,
                 model_name=self.model_name,
@@ -234,6 +241,8 @@ class QuMETDataModule(pl.LightningDataModule):
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
+            self.test_dataset,
+            batch_size= self.batch_size,
             shuffle=False,
             num_workers = self.num_workers,
         )
@@ -244,6 +253,8 @@ class QuMETDataModule(pl.LightningDataModule):
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
+            self.pred_dataset,
+            batch_size=len(self.pred_dataset),
             shuffle=False,
             num_workers = self.num_workers,
         )
