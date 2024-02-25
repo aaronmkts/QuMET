@@ -69,7 +69,7 @@ class Generator(nn.Module, QmlMixin):
         circuit = self.batch_q_generator
         drawer = qml.draw(circuit)
         return print(drawer(noise))
-    
+
     def _circuit(self, inputs, q_weights):
         """Builds the circuit to be fed to the connector as a QML node"""
         self._embed_features(inputs)
@@ -95,6 +95,11 @@ class Generator(nn.Module, QmlMixin):
 class QGCD(nn.Module):
     def __init__(self, config: QGCDConfig):
         super().__init__(config)
+        self.generator = Generator(config)
+        self.discriminator = Discriminator(config)
 
-        self.generator = Generator()
-        self.discriminator = Discriminator()
+        self.post_init()
+
+        def forward(self,
+                    noise: Tensor):
+            return self.generator(noise)

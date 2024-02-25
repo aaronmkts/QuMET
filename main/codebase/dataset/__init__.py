@@ -118,7 +118,7 @@ class QuMETDataModule(pl.LightningDataModule):
         )
         val_dataset = get_dataset(
             self.name,
-            split="train",
+            split="validation",
             num_workers = self.num_workers,
             binary = self.binary,
             n_qubits = self.n_qubits,
@@ -126,7 +126,7 @@ class QuMETDataModule(pl.LightningDataModule):
         )
         test_dataset = get_dataset(
             self.name,
-            split="train",
+            split="test",
             num_workers = self.num_workers,
             binary = self.binary,
             n_qubits = self.n_qubits,
@@ -134,7 +134,7 @@ class QuMETDataModule(pl.LightningDataModule):
         )
         pred_dataset = get_dataset(
             self.name,
-            split="train",
+            split="pred",
             num_workers = self.num_workers,
             binary = self.binary,
             n_qubits = self.n_qubits,
@@ -165,7 +165,7 @@ class QuMETDataModule(pl.LightningDataModule):
         if stage in ["fit", "validate", None]:
             self.val_dataset = get_dataset(
                 self.name,
-                split="train",
+                split="validation",
                 num_workers = self.num_workers,
                 binary = self.binary,
                 n_qubits = self.n_qubits,
@@ -176,7 +176,7 @@ class QuMETDataModule(pl.LightningDataModule):
         if stage in ["test", None]:
             self.test_dataset = get_dataset(
                 self.name,
-                split="train",
+                split="test",
                 num_workers = self.num_workers,
                 binary = self.binary,
                 n_qubits = self.n_qubits,
@@ -187,7 +187,7 @@ class QuMETDataModule(pl.LightningDataModule):
         if stage in ["predict", None]:
             self.pred_dataset = get_dataset(
                 self.name,
-                split="train",
+                split="pred",
                 num_workers = self.num_workers,
                 binary = self.binary,
                 n_qubits = self.n_qubits,
@@ -232,7 +232,7 @@ class QuMETDataModule(pl.LightningDataModule):
                 "or the test dataset does not exist. For the former case, try predict_dataloader"
             )
         return DataLoader(
-            self.train_dataset,
+            self.test_dataset,
             batch_size=self.batch_size,
             shuffle=False,
             num_workers = self.num_workers,

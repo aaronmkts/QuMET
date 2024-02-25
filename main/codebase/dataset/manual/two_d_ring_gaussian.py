@@ -37,7 +37,6 @@ class TwoDRingGaussianDataset(Dataset):
         else:
             raise RuntimeError(
                 f"split must be `train` or `pred`, but got {split}"
-            )
         
     def _generate_samples(self):
         
