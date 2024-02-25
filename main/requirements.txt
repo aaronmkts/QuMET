@@ -33,4 +33,4 @@ pytorch-lightning
 torchmetrics
 tqdm
 typing_extensions
-
+timm
