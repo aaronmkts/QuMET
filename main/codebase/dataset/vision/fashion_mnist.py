@@ -5,14 +5,14 @@ from ..utils import add_dataset_info
 
 
 @add_dataset_info(
-    name="mnist",
+    name="fashion_mnist",
     dataset_source="torchvision",
     available_splits=("train", "test"),
     generation=True,
     num_classes=10,
     image_size=(1, 28, 28),
 )
-class MNISTQuMET(datasets.MNIST):
+class Fashion_MNISTQuMET(datasets.FashionMNIST):
     def __init__(
         self, root: os.PathLike, train: bool, transform: callable, download: bool
     ) -> None:
@@ -25,12 +25,12 @@ class MNISTQuMET(datasets.MNIST):
         pass
 
 
-def get_mnist_dataset(
+def get_fashion_mnist_dataset(
     name: str, path: os.PathLike, train: bool, transform: callable
 ) -> Dataset:
     match name.lower():
-        case "mnist":
-            dataset = MNISTQuMET(path, train=train, transform=transform, download=True)
+        case "fashion_mnist":
+            dataset = Fashion_MNISTQuMET(path, train=train, transform=transform, download=True)
         case _:
             raise ValueError(f"Unknown dataset {name}")
     return dataset

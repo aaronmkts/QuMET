@@ -3,3 +3,4 @@ get-pip.py
 **/ckpts/
 /Pipfile.lock
 /Pipfile
+**/qumet_output/

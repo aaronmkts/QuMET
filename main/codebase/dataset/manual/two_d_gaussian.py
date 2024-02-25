@@ -28,11 +28,11 @@ class TwoDGaussianDataset(Dataset):
 
         if split == "train":
             self.data = np.array(self.samples).reshape((-1,1))
-        elif split == "test":
+        elif split == "pred":
             self.data = np.array(self.samples).reshape((-1,1))
         else:
             raise RuntimeError(
-                f"split must be `train` or `test`, but got {split}"
+                f"split must be `train` or `pred`, but got {split}"
             )
         
     def _generate_samples(self):
