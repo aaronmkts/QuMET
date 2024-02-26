@@ -1,0 +1,15 @@
+# basics
+model = "qgcd_probs"
+dataset = "2d_gaussian"
+
+# training
+training_optimizer = "adam"
+learning_rate = 1e-2
+max_epochs = 10
+batch_size = 64
+
+# torch lightning
+task = "generation"
+num_workers = 4
+num_devices = 1
+accelerator = "auto"
