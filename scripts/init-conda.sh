@@ -9,14 +9,14 @@ set -o nounset
 # The absolute path to the directory of this script.
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
-# create and activate mase env
+# create and activate qumet env
 conda env create -f ${DIR}/../main/environment.yml
 eval "$(conda shell.bash hook)"
 conda activate qumet
 
 # check which python
 current_python=$(which python)
-if [[ ${current_python} = *"envs/mase/bin/python" ]]; then
+if [[ ${current_python} = *"envs/qumet/bin/python" ]]; then
     python -m pip install --user --upgrade pip &&
         python -m pip install -r ${DIR}/../main/requirements.txt
 
