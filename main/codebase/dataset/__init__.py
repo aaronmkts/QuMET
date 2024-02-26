@@ -32,7 +32,7 @@ def get_dataset(
     split: bool,
     num_workers: int = os.cpu_count(),
     binary: bool = False,
-    n_qubits : int = 16,
+    n_qubits: int = 16,
     model_name: str = None,
 ):
     """
@@ -55,24 +55,19 @@ def get_dataset(
 
     name = name.lower()
     if name in MANUAL_DATASET_MAPPING:
-        dataset = get_manual_dataset(name, 
-                                    split,
-                                    binary,
-                                    n_qubits)
-        
+        dataset = get_manual_dataset(name, split, binary, n_qubits)
+
     elif name in VISION_DATASET_MAPPING:
         path = DATASET_CACHE_DIR / name
-        dataset = get_vision_dataset(name, 
-                                     path, 
-                                     split, 
-                                     model_name)
+        dataset = get_vision_dataset(name, path, split, model_name)
     else:
         raise ValueError(f"Dataset {name} is not supported")
     return dataset
 
 
-AVAILABLE_DATASETS = (list(VISION_DATASET_MAPPING.keys()) 
-                      + list(MANUAL_DATASET_MAPPING.keys()))
+AVAILABLE_DATASETS = list(VISION_DATASET_MAPPING.keys()) + list(
+    MANUAL_DATASET_MAPPING.keys()
+)
 
 
 class QuMETDataModule(pl.LightningDataModule):
@@ -111,33 +106,33 @@ class QuMETDataModule(pl.LightningDataModule):
         train_dataset = get_dataset(
             self.name,
             split="train",
-            num_workers = self.num_workers,
-            binary = self.binary,
-            n_qubits = self.n_qubits,
+            num_workers=self.num_workers,
+            binary=self.binary,
+            n_qubits=self.n_qubits,
             model_name=self.model_name,
         )
         val_dataset = get_dataset(
             self.name,
             split="validation",
-            num_workers = self.num_workers,
-            binary = self.binary,
-            n_qubits = self.n_qubits,
+            num_workers=self.num_workers,
+            binary=self.binary,
+            n_qubits=self.n_qubits,
             model_name=self.model_name,
         )
         test_dataset = get_dataset(
             self.name,
             split="test",
-            num_workers = self.num_workers,
-            binary = self.binary,
-            n_qubits = self.n_qubits,
+            num_workers=self.num_workers,
+            binary=self.binary,
+            n_qubits=self.n_qubits,
             model_name=self.model_name,
         )
         pred_dataset = get_dataset(
             self.name,
             split="pred",
-            num_workers = self.num_workers,
-            binary = self.binary,
-            n_qubits = self.n_qubits,
+            num_workers=self.num_workers,
+            binary=self.binary,
+            n_qubits=self.n_qubits,
             model_name=self.model_name,
         )
 
@@ -155,9 +150,9 @@ class QuMETDataModule(pl.LightningDataModule):
             self.train_dataset = get_dataset(
                 self.name,
                 split="train",
-                num_workers = self.num_workers,
-                binary = self.binary,
-                n_qubits = self.n_qubits,
+                num_workers=self.num_workers,
+                binary=self.binary,
+                n_qubits=self.n_qubits,
                 model_name=self.model_name,
             )
             if self.train_dataset is not None:
@@ -166,9 +161,9 @@ class QuMETDataModule(pl.LightningDataModule):
             self.val_dataset = get_dataset(
                 self.name,
                 split="validation",
-                num_workers = self.num_workers,
-                binary = self.binary,
-                n_qubits = self.n_qubits,
+                num_workers=self.num_workers,
+                binary=self.binary,
+                n_qubits=self.n_qubits,
                 model_name=self.model_name,
             )
             if self.val_dataset is not None:
@@ -177,9 +172,9 @@ class QuMETDataModule(pl.LightningDataModule):
             self.test_dataset = get_dataset(
                 self.name,
                 split="test",
-                num_workers = self.num_workers,
-                binary = self.binary,
-                n_qubits = self.n_qubits,
+                num_workers=self.num_workers,
+                binary=self.binary,
+                n_qubits=self.n_qubits,
                 model_name=self.model_name,
             )
             if self.test_dataset is not None:
@@ -188,9 +183,9 @@ class QuMETDataModule(pl.LightningDataModule):
             self.pred_dataset = get_dataset(
                 self.name,
                 split="pred",
-                num_workers = self.num_workers,
-                binary = self.binary,
-                n_qubits = self.n_qubits,
+                num_workers=self.num_workers,
+                binary=self.binary,
+                n_qubits=self.n_qubits,
                 model_name=self.model_name,
             )
             if self.pred_dataset is not None:
@@ -207,7 +202,7 @@ class QuMETDataModule(pl.LightningDataModule):
             self.train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
-            num_workers = self.num_workers,
+            num_workers=self.num_workers,
         )
 
     def val_dataloader(self) -> DataLoader:
@@ -221,7 +216,7 @@ class QuMETDataModule(pl.LightningDataModule):
             self.val_dataset,
             batch_size=self.batch_size,
             shuffle=False,
-            num_workers = self.num_workers,
+            num_workers=self.num_workers,
         )
 
     def test_dataloader(self) -> DataLoader:
@@ -235,7 +230,7 @@ class QuMETDataModule(pl.LightningDataModule):
             self.test_dataset,
             batch_size=self.batch_size,
             shuffle=False,
-            num_workers = self.num_workers,
+            num_workers=self.num_workers,
         )
 
     def pred_dataloader(self) -> DataLoader:
@@ -245,5 +240,5 @@ class QuMETDataModule(pl.LightningDataModule):
             self.pred_dataset,
             batch_size=self.batch_size,
             shuffle=False,
-            num_workers = self.num_workers,
+            num_workers=self.num_workers,
         )

@@ -85,6 +85,7 @@ def execute_cli(cmd, log_output: bool = True, log_file=None, cwd="."):
         result = subprocess.run(cmd, stdout=subprocess.DEVNULL, cwd=cwd)
     return result.returncode
 
+
 def parse_accelerator(accelerator: str):
     if accelerator == "auto":
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

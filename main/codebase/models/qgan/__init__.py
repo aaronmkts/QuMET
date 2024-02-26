@@ -4,7 +4,7 @@ from os import PathLike
 from .qgcd import QGCDConfig, Generator
 from .qgcd_probs import get_qgcd_probs
 
-#fmt: off
+# fmt: off
 QGAN_MODELS = {
     "qgcd":{
         "config_cls": QGCDConfig,
@@ -17,14 +17,17 @@ QGAN_MODELS = {
     }
 }
 
-#fmt:on
+
+# fmt:on
 def is_qgan_model(name: str) -> bool:
     return name in QGAN_MODELS
+
 
 def get_qgan_model_info(name: str) -> QumetModelInfo:
     if name not in QGAN_MODELS:
         raise ValueError(f"QGAN model {name} is not supported")
     return QGAN_MODELS[name]["info"]
+
 
 def get_qgan_model(
     name: str,
@@ -44,18 +47,16 @@ def get_qgan_model(
 
     match task:
         case "generation":
-            assert(
+            assert (
                 model_info.data_generation
             ), f"Task {task} is not supported for {name}"
-            model = QGAN_MODELS[name]["get_model_fn_generation"](
-                info = dataset_info
-            )
+            model = QGAN_MODELS[name]["get_model_fn_generation"](info=dataset_info)
 
-            
         case _:
             raise ValueError(f"Task {task} is not supported for {name}")
 
     return model
+
 
 def get_qgan_model_cls(name: str):
     raise NotImplementedError

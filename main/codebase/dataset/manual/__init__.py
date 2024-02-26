@@ -4,6 +4,7 @@ from .two_d_gaussian import TwoDGaussianDataset
 from .two_d_grid_gaussian import TwoDGridGaussianDataset
 from .two_d_ring_gaussian import TwoDRingGaussianDataset
 
+
 def get_manual_dataset(name: str, split: str, binary: bool = False, n_qubits: int = 16):
     """
     Args:
@@ -32,8 +33,7 @@ def get_manual_dataset(name: str, split: str, binary: bool = False, n_qubits: in
             dataset_cls = TwoDRingGaussianDataset
         case _:
             raise ValueError(f"Unknown dataset {name}")
-        
-    
+
     if ori_split == "train" and not dataset_cls.info.train_split_available:
         return None
 
@@ -56,7 +56,7 @@ def get_manual_dataset(name: str, split: str, binary: bool = False, n_qubits: in
 MANUAL_DATASET_MAPPING = {
     "2d_gaussian": TwoDGaussianDataset,
     "2d_grid_gaussian": TwoDGridGaussianDataset,
-    "2d_ring_gaussian": TwoDRingGaussianDataset
+    "2d_ring_gaussian": TwoDRingGaussianDataset,
 }
 
 

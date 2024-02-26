@@ -140,617 +140,626 @@ CLI_DEFAULTS = {
     "project": None,
 }
 
+
 # Main ---------------------------------------------------------------------------------
 class QuMETCLI:
-   def __init__(self, argv: Sequence[str] | None = None):
-      super().__init__()
+    def __init__(self, argv: Sequence[str] | None = None):
+        super().__init__()
 
-      self.logger = logging.getLogger("codebase")
-      parser = self._setup_parser()
-      args = parser.parse_intermixed_args(argv)
-       # Housekeeping
-      pl.seed_everything(args.seed)
-      if args.to_debug:
-         sys.excepthook = self._excepthook
-         self.logger.setLevel(logging.DEBUG)
-         self.logger.debug("Enabled debug mode.")
-      else:
-         match args.log_level:
-            case "debug":
-               optuna.logging.set_verbosity(optuna.logging.DEBUG)
-               # deepspeed.logger.setLevel(logging.DEBUG)
-               self.logger.setLevel(logging.DEBUG)
-            case "info":
-               optuna.logging.set_verbosity(optuna.logging.WARNING)
-               # deepspeed.logger.setLevel(logging.INFO)
-               self.logger.setLevel(logging.INFO)
-            case "warning":
-               optuna.logging.set_verbosity(optuna.logging.WARNING)
-               # deepspeed.logger.setLevel(logging.WARNING)
-               self.logger.setLevel(logging.WARNING)
-            case "error":
-               optuna.logging.set_verbosity(optuna.logging.ERROR)
-               # deepspeed.logger.setLevel(logging.ERROR)
-               self.logger.setLevel(logging.ERROR)
-            case "critical":
-               optuna.logging.set_verbosity(optuna.logging.CRITICAL)
-               # deepspeed.logger.setLevel(logging.CRITICAL)
-               self.logger.setLevel(logging.CRITICAL)
-            case _:
-               raise ValueError(f"invalid log level {args.log_level!r}")
+        self.logger = logging.getLogger("codebase")
+        parser = self._setup_parser()
+        args = parser.parse_intermixed_args(argv)
+        # Housekeeping
+        pl.seed_everything(args.seed)
+        if args.to_debug:
+            sys.excepthook = self._excepthook
+            self.logger.setLevel(logging.DEBUG)
+            self.logger.debug("Enabled debug mode.")
+        else:
+            match args.log_level:
+                case "debug":
+                    optuna.logging.set_verbosity(optuna.logging.DEBUG)
+                    # deepspeed.logger.setLevel(logging.DEBUG)
+                    self.logger.setLevel(logging.DEBUG)
+                case "info":
+                    optuna.logging.set_verbosity(optuna.logging.WARNING)
+                    # deepspeed.logger.setLevel(logging.INFO)
+                    self.logger.setLevel(logging.INFO)
+                case "warning":
+                    optuna.logging.set_verbosity(optuna.logging.WARNING)
+                    # deepspeed.logger.setLevel(logging.WARNING)
+                    self.logger.setLevel(logging.WARNING)
+                case "error":
+                    optuna.logging.set_verbosity(optuna.logging.ERROR)
+                    # deepspeed.logger.setLevel(logging.ERROR)
+                    self.logger.setLevel(logging.ERROR)
+                case "critical":
+                    optuna.logging.set_verbosity(optuna.logging.CRITICAL)
+                    # deepspeed.logger.setLevel(logging.CRITICAL)
+                    self.logger.setLevel(logging.CRITICAL)
+                case _:
+                    raise ValueError(f"invalid log level {args.log_level!r}")
 
-      # Merge arguments from the configuration file (if one exists) and print
-      # NOTE: The project name is set later on (if no configuration is provided), so
-      # the merged argument table may show None, but this is not the case.
-      self.args = post_parse_load_config(args, CLI_DEFAULTS)
+        # Merge arguments from the configuration file (if one exists) and print
+        # NOTE: The project name is set later on (if no configuration is provided), so
+        # the merged argument table may show None, but this is not the case.
+        self.args = post_parse_load_config(args, CLI_DEFAULTS)
 
-      # Sanity check
-      if not self.args.model or not self.args.dataset:
-         raise ValueError("No model and/or dataset provided! These are required.")
+        # Sanity check
+        if not self.args.model or not self.args.dataset:
+            raise ValueError("No model and/or dataset provided! These are required.")
 
-      (
-         self.model,
-         self.data_module,
-         self.dataset_info,
-         self.model_info,
-      ) = self._setup_model_and_dataset()
-      self.output_dir, self.output_dir_sw = self._setup_folders()
-      self.visualizer = self._setup_visualizer()
+        (
+            self.model,
+            self.data_module,
+            self.dataset_info,
+            self.model_info,
+        ) = self._setup_model_and_dataset()
+        self.output_dir, self.output_dir_sw = self._setup_folders()
+        self.visualizer = self._setup_visualizer()
 
-      if self.args.no_warnings:
-         # Disable all warnings
-         warnings.simplefilter("ignore")
+        if self.args.no_warnings:
+            # Disable all warnings
+            warnings.simplefilter("ignore")
 
-   def run(self):
-      run_action_fn = None
-      match self.args.action:
+    def run(self):
+        run_action_fn = None
+        match self.args.action:
             case "train":
                 run_action_fn = self._run_train
 
-      if run_action_fn is None:
-         raise ValueError(f"Unsupported action: {self.args.action}")
+        if run_action_fn is None:
+            raise ValueError(f"Unsupported action: {self.args.action}")
 
-      if self.args.profile:
-         prof = cProfile.runctx(
-            "run_action_fn()", globals(), locals(), sort="cumtime"
-         )
-      else:
-         run_action_fn()
+        if self.args.profile:
+            prof = cProfile.runctx(
+                "run_action_fn()", globals(), locals(), sort="cumtime"
+            )
+        else:
+            run_action_fn()
 
-   # Actions --------------------------------------------------------------------------
-   def _run_train(self):
-      self.logger.info(f"Training model {self.args.model!r}...")
+    # Actions --------------------------------------------------------------------------
+    def _run_train(self):
+        self.logger.info(f"Training model {self.args.model!r}...")
 
-      plt_trainer_args = {
-         "max_epochs": self.args.max_epochs,
-         "max_steps": self.args.max_steps,
-         "devices": self.args.num_devices,
-         "num_nodes": self.args.num_nodes,
-         "accelerator": self.args.accelerator,
-         "strategy": self.args.strategy,
-         "precision": self.args.trainer_precision,
-         "accumulate_grad_batches": self.args.accumulate_grad_batches,
-         "log_every_n_steps": self.args.log_every_n_steps,
+        plt_trainer_args = {
+            "max_epochs": self.args.max_epochs,
+            "max_steps": self.args.max_steps,
+            "devices": self.args.num_devices,
+            "num_nodes": self.args.num_nodes,
+            "accelerator": self.args.accelerator,
+            "strategy": self.args.strategy,
+            "precision": self.args.trainer_precision,
+            "accumulate_grad_batches": self.args.accumulate_grad_batches,
+            "log_every_n_steps": self.args.log_every_n_steps,
         }
 
-      if self.args.to_debug:
-         # we give a very short number of batches for both train and val
-         plt_trainer_args["limit_train_batches"] = 5
-         plt_trainer_args["limit_val_batches"] = 5
-         plt_trainer_args["limit_test_batches"] = 5
+        if self.args.to_debug:
+            # we give a very short number of batches for both train and val
+            plt_trainer_args["limit_train_batches"] = 5
+            plt_trainer_args["limit_val_batches"] = 5
+            plt_trainer_args["limit_test_batches"] = 5
 
-      # Load from a checkpoint!
-      load_name = None
-      load_types = ["pt", "pl",]
-      if self.args.load_name is not None and self.args.load_type in load_types:
-         load_name = self.args.load_name
+        # Load from a checkpoint!
+        load_name = None
+        load_types = [
+            "pt",
+            "pl",
+        ]
+        if self.args.load_name is not None and self.args.load_type in load_types:
+            load_name = self.args.load_name
 
-      train_params = {
-         "model": self.model,
-         "model_info": self.model_info,
-         "data_module": self.data_module,
-         "dataset_info": self.dataset_info,
-         "task": self.args.task,
-         "optimizer": self.args.training_optimizer,
-         "learning_rate": self.args.learning_rate,
-         "weight_decay": self.args.weight_decay,
-         "plt_trainer_args": plt_trainer_args,
-         "auto_requeue": self.args.is_to_auto_requeue,
-         "save_path": os.path.join(self.output_dir_sw, "training_ckpts"),
-         "visualizer": self.visualizer,
-         "load_name": load_name,
-         "load_type": self.args.load_type,
+        train_params = {
+            "model": self.model,
+            "model_info": self.model_info,
+            "data_module": self.data_module,
+            "dataset_info": self.dataset_info,
+            "task": self.args.task,
+            "optimizer": self.args.training_optimizer,
+            "learning_rate": self.args.learning_rate,
+            "weight_decay": self.args.weight_decay,
+            "plt_trainer_args": plt_trainer_args,
+            "auto_requeue": self.args.is_to_auto_requeue,
+            "save_path": os.path.join(self.output_dir_sw, "training_ckpts"),
+            "visualizer": self.visualizer,
+            "load_name": load_name,
+            "load_type": self.args.load_type,
         }
 
-      self.logger.info(f"##### WEIGHT DECAY ##### {self.args.weight_decay}")
+        self.logger.info(f"##### WEIGHT DECAY ##### {self.args.weight_decay}")
 
-      train(**train_params)
-      self.logger.info("Training is completed")
+        train(**train_params)
+        self.logger.info("Training is completed")
 
-   # Helpers --------------------------------------------------------------------------
-   def _setup_parser(self):
-      # NOTE: For a better developer experience, it's helpful to collapse all function
-      # calls by shift clicking the collapse button in the gutter on IDEs. ;) Also,
-      # when creating a new argument, DO NOT use default in the function call; instead
-      # add it to the CLI_DEFAULTS constant with the key set to the argument's dest.
-      parser = argparse.ArgumentParser(
-         description="""
+    # Helpers --------------------------------------------------------------------------
+    def _setup_parser(self):
+        # NOTE: For a better developer experience, it's helpful to collapse all function
+        # calls by shift clicking the collapse button in the gutter on IDEs. ;) Also,
+        # when creating a new argument, DO NOT use default in the function call; instead
+        # add it to the CLI_DEFAULTS constant with the key set to the argument's dest.
+        parser = argparse.ArgumentParser(
+            description="""
                 QuMET is a simple utility to train a supported model.
             """,
             epilog=f"Maintained by the UoB Quantum Lab. Raise issues at {ISSUES_URL}",
             add_help=False,
         )
 
-      # Main program arguments -------------------------------------------------------
-      main_group = parser.add_argument_group("main arguments")
-      main_group.add_argument(
-         "action",
-         choices=ACTIONS,
-         help=f"action to perform. One of {'(' + '|'.join(ACTIONS) + ')'}",
-         metavar="action",
-      )
-      main_group.add_argument(
-         "model",
-         nargs="?",
-         default=None,
-         help="name of a supported model. Required if configuration NOT provided.",
-      )
-      main_group.add_argument(
-         "dataset",
-         nargs="?",
-         default=None,
-         help="name of a supported dataset. Required if configuration NOT provided.",
-      )
+        # Main program arguments -------------------------------------------------------
+        main_group = parser.add_argument_group("main arguments")
+        main_group.add_argument(
+            "action",
+            choices=ACTIONS,
+            help=f"action to perform. One of {'(' + '|'.join(ACTIONS) + ')'}",
+            metavar="action",
+        )
+        main_group.add_argument(
+            "model",
+            nargs="?",
+            default=None,
+            help="name of a supported model. Required if configuration NOT provided.",
+        )
+        main_group.add_argument(
+            "dataset",
+            nargs="?",
+            default=None,
+            help="name of a supported dataset. Required if configuration NOT provided.",
+        )
 
-      # General options --------------------------------------------------------------
-      general_group = parser.add_argument_group("general options")
-      general_group.add_argument(
-         "--config",
-         dest="config",
-         type=_valid_filepath,
-         help="""
+        # General options --------------------------------------------------------------
+        general_group = parser.add_argument_group("general options")
+        general_group.add_argument(
+            "--config",
+            dest="config",
+            type=_valid_filepath,
+            help="""
             path to a configuration file in the TOML format. Manual CLI overrides
             for arguments have a higher precedence (default: %(default)s)
             """,
-         metavar="PATH",
-      )
-      general_group.add_argument(
-         "--task",
-         dest="task",
-         choices=TASKS,
-         help=f"""
+            metavar="PATH",
+        )
+        general_group.add_argument(
+            "--task",
+            dest="task",
+            choices=TASKS,
+            help=f"""
             task to perform. One of {'(' + '|'.join(TASKS) + ')'}
             (default: %(default)s)
          """,
-         metavar="TASK",
+            metavar="TASK",
         )
-      general_group.add_argument(
-         "--load",
-         dest="load_name",
-         type=_valid_file_or_directory_path,
-         help="path to load the model from. (default: %(default)s)",
-         metavar="PATH",
-      )
-      general_group.add_argument(
-         "--load-type",
-         dest="load_type",
-         choices=LOAD_TYPE,
-         help=f"""
+        general_group.add_argument(
+            "--load",
+            dest="load_name",
+            type=_valid_file_or_directory_path,
+            help="path to load the model from. (default: %(default)s)",
+            metavar="PATH",
+        )
+        general_group.add_argument(
+            "--load-type",
+            dest="load_type",
+            choices=LOAD_TYPE,
+            help=f"""
             the type of checkpoint to be loaded; it's disregarded if --load is NOT
             specified. It is designed to and must be used in tandem with --load.
             One of {'(' + '|'.join(LOAD_TYPE) + ')'} (default: %(default)s)
             """,
-         metavar="",
-      )
-      general_group.add_argument(
-         "--batch-size",
-         dest="batch_size",
-         type=int,
-         help="batch size for training and evaluation. (default: %(default)s)",
-         metavar="NUM",
-      )
-      general_group.add_argument(
-         "--debug",
-         action="store_true",
-         dest="to_debug",
-         help="""
+            metavar="",
+        )
+        general_group.add_argument(
+            "--batch-size",
+            dest="batch_size",
+            type=int,
+            help="batch size for training and evaluation. (default: %(default)s)",
+            metavar="NUM",
+        )
+        general_group.add_argument(
+            "--debug",
+            action="store_true",
+            dest="to_debug",
+            help="""
             run the action in debug mode, which enables verbose logging, custom
             exception hook that uses ipdb, and sets the PL trainer to run in
             "fast_dev_run" mode. (default: %(default)s)
          """,
-      )
-      general_group.add_argument(
-         "--log-level",
-         dest="log_level",
-         choices=LOG_LEVELS,
-         help=f"""
+        )
+        general_group.add_argument(
+            "--log-level",
+            dest="log_level",
+            choices=LOG_LEVELS,
+            help=f"""
             verbosity level of the logger; it's only effective when --debug flag is
             NOT passed in. One of {'(' + '|'.join(LOG_LEVELS) + ')'}
             (default: %(default)s)
          """,
-         metavar="",
-      )
-      general_group.add_argument(
-         "--report-to",
-         dest="report_to",
-         choices=REPORT_TO,
-         help=f"""
+            metavar="",
+        )
+        general_group.add_argument(
+            "--report-to",
+            dest="report_to",
+            choices=REPORT_TO,
+            help=f"""
             reporting tool for logging metrics. One of
             {'(' + '|'.join(REPORT_TO) + ')'} (default: %(default)s )
          """,
-      )
-      general_group.add_argument(
-         "--seed",
-         dest="seed",
-         type=int,
-         help="""
+        )
+        general_group.add_argument(
+            "--seed",
+            dest="seed",
+            type=int,
+            help="""
             seed for random number generators set via Pytorch Lightning's
             seed_everything function. (default: %(default)s)
          """,
-         metavar="NUM",
-      )
+            metavar="NUM",
+        )
 
-      # Trainer options --------------------------------------------------------------
-      trainer_group = parser.add_argument_group("trainer options")
-      trainer_group.add_argument(
-         "--training-optimizer",
-         dest="training_optimizer",
-         choices=OPTIMIZERS,
-         help=f"""
+        # Trainer options --------------------------------------------------------------
+        trainer_group = parser.add_argument_group("trainer options")
+        trainer_group.add_argument(
+            "--training-optimizer",
+            dest="training_optimizer",
+            choices=OPTIMIZERS,
+            help=f"""
             name of supported optimiser for training. One of
             {'(' + '|'.join(OPTIMIZERS) + ')'} (default: %(default)s)
          """,
-         metavar="TYPE",
-      )
-      trainer_group.add_argument(
-         "--trainer-precision",
-         dest="trainer_precision",
-         choices=TRAINER_PRECISION,
-         help=f"""
+            metavar="TYPE",
+        )
+        trainer_group.add_argument(
+            "--trainer-precision",
+            dest="trainer_precision",
+            choices=TRAINER_PRECISION,
+            help=f"""
             numeric precision for training. One of
             {'(' + '|'.join(TRAINER_PRECISION) + ')'} (default: %(default)s)
          """,
-         metavar="TYPE",
-      )
-      trainer_group.add_argument(
-         "--learning-rate",
-         dest="learning_rate",
-         type=float,
-         help="initial learning rate for training. (default: %(default)s)",
-         metavar="NUM",
+            metavar="TYPE",
         )
-      trainer_group.add_argument(
-         "--weight-decay",
-         dest="weight_decay",
-         type=float,
-         help="weight decay for training. (default: %(default)s)",
-         metavar="NUM",
-      )
-      trainer_group.add_argument(
-         "--max-epochs",
-         dest="max_epochs",
-         type=int,
-         help="maximum number of epochs for training. (default: %(default)s)",
-         metavar="NUM",
-      )
-      trainer_group.add_argument(
-         "--max-steps",
-         dest="max_steps",
-         type=_positive_int,
-         help="""
+        trainer_group.add_argument(
+            "--learning-rate",
+            dest="learning_rate",
+            type=float,
+            help="initial learning rate for training. (default: %(default)s)",
+            metavar="NUM",
+        )
+        trainer_group.add_argument(
+            "--weight-decay",
+            dest="weight_decay",
+            type=float,
+            help="weight decay for training. (default: %(default)s)",
+            metavar="NUM",
+        )
+        trainer_group.add_argument(
+            "--max-epochs",
+            dest="max_epochs",
+            type=int,
+            help="maximum number of epochs for training. (default: %(default)s)",
+            metavar="NUM",
+        )
+        trainer_group.add_argument(
+            "--max-steps",
+            dest="max_steps",
+            type=_positive_int,
+            help="""
             maximum number of steps for training. A negative value disables this
             option. (default: %(default)s)
          """,
-         metavar="NUM",
-      )
-      trainer_group.add_argument(
-         "--accumulate-grad-batches",
-         dest="accumulate_grad_batches",
-         type=int,
-         help="number of batches to accumulate gradients. (default: %(default)s)",
-         metavar="NUM",
-      )
-      trainer_group.add_argument(
-         "--log-every-n-steps",
-         dest="log_every_n_steps",
-         type=_positive_int,
-         help="log every n steps. No logs if num_batches < log_every_n_steps. (default: %(default)s))",
-         metavar="NUM",
-      )
-      
-      trainer_group.add_argument(
-         "--num-qubits",
-         dest="num_qubits",
-         type=_positive_int,
-         help="number of qubits for data module. (default: %(default)s))",
-         metavar="NUM",
-      )
+            metavar="NUM",
+        )
+        trainer_group.add_argument(
+            "--accumulate-grad-batches",
+            dest="accumulate_grad_batches",
+            type=int,
+            help="number of batches to accumulate gradients. (default: %(default)s)",
+            metavar="NUM",
+        )
+        trainer_group.add_argument(
+            "--log-every-n-steps",
+            dest="log_every_n_steps",
+            type=_positive_int,
+            help="log every n steps. No logs if num_batches < log_every_n_steps. (default: %(default)s))",
+            metavar="NUM",
+        )
 
-      # Runtime environment options --------------------------------------------------
-      runtime_group = parser.add_argument_group("runtime environment options")
-      runtime_group.add_argument(
-         "--cpu",
-         "--num-workers",
-         dest="num_workers",
-         type=_int,
-         help="""
+        trainer_group.add_argument(
+            "--num-qubits",
+            dest="num_qubits",
+            type=_positive_int,
+            help="number of qubits for data module. (default: %(default)s))",
+            metavar="NUM",
+        )
+
+        # Runtime environment options --------------------------------------------------
+        runtime_group = parser.add_argument_group("runtime environment options")
+        runtime_group.add_argument(
+            "--cpu",
+            "--num-workers",
+            dest="num_workers",
+            type=_int,
+            help="""
             number of CPU workers; the default varies across systems and is set to
             int(os.cpu_count() / 2). (default: %(default)s)
          """,
-         metavar="NUM",
-      )
-      runtime_group.add_argument(
-         "--gpu",
-         "--num-devices",
-         dest="num_devices",
-         type=_positive_int,
-         help="number of GPU devices. (default: %(default)s)",
-         metavar="NUM",
-      )
-      runtime_group.add_argument(
-         "--nodes",
-         dest="num_nodes",
-         type=int,
-         help="number of nodes. (default: %(default)s)",
-         metavar="NUM",
-      )
-      runtime_group.add_argument(
-         "--accelerator",
-         dest="accelerator",
-         choices=ACCELERATORS,
-         help=f"""
+            metavar="NUM",
+        )
+        runtime_group.add_argument(
+            "--gpu",
+            "--num-devices",
+            dest="num_devices",
+            type=_positive_int,
+            help="number of GPU devices. (default: %(default)s)",
+            metavar="NUM",
+        )
+        runtime_group.add_argument(
+            "--nodes",
+            dest="num_nodes",
+            type=int,
+            help="number of nodes. (default: %(default)s)",
+            metavar="NUM",
+        )
+        runtime_group.add_argument(
+            "--accelerator",
+            dest="accelerator",
+            choices=ACCELERATORS,
+            help=f"""
             type of accelerator for training. One of
             {'(' + '|'.join(ACCELERATORS) + ')'} (default: %(default)s)
          """,
-         metavar="TYPE",
-      )
-      runtime_group.add_argument(
-         "--auto-requeue",
-         dest="is_to_auto_requeue",
-         action="store_true",
-         help="""
+            metavar="TYPE",
+        )
+        runtime_group.add_argument(
+            "--auto-requeue",
+            dest="is_to_auto_requeue",
+            action="store_true",
+            help="""
             enable automatic job resubmission on SLURM managed cluster. (default:
             %(default)s)
          """,
-      )
-      runtime_group.add_argument(
-         "--github-ci",
-         action="store_true",
-         dest="github_ci",
-         help="""
+        )
+        runtime_group.add_argument(
+            "--github-ci",
+            action="store_true",
+            dest="github_ci",
+            help="""
             set the execution environment to GitHub's CI pipeline;
             (default: %(default)s)
             """,
-      )
-      
-      # Project-level options --------------------------------------------------------
-      project_group = parser.add_argument_group(title="project options")
-      project_group.add_argument(
-         "--project-dir",
-         dest="project_dir",
-         type=partial(_valid_directory_path, create_dir=True),
-         help="directory to save the project to. (default: %(default)s)",
-         metavar="DIR",
-      )
-      project_group.add_argument(
-         "--project",
-         dest="project",
-         help="""
+        )
+
+        # Project-level options --------------------------------------------------------
+        project_group = parser.add_argument_group(title="project options")
+        project_group.add_argument(
+            "--project-dir",
+            dest="project_dir",
+            type=partial(_valid_directory_path, create_dir=True),
+            help="directory to save the project to. (default: %(default)s)",
+            metavar="DIR",
+        )
+        project_group.add_argument(
+            "--project",
+            dest="project",
+            help="""
             name of the project.
             (default: {MODEL-NAME}_{TASK-TYPE}_{DATASET-NAME}_{TIMESTAMP})
          """,
-         metavar="NAME",
-      )
-      project_group.add_argument(
-         "--profile",
-         action="store_true",
-         dest="profile",
-         help="",
-      )
-      project_group.add_argument(
-         "--no-warnings",
-         action="store_true",
-         dest="no_warnings",
-         help="",
-      )
+            metavar="NAME",
+        )
+        project_group.add_argument(
+            "--profile",
+            action="store_true",
+            dest="profile",
+            help="",
+        )
+        project_group.add_argument(
+            "--no-warnings",
+            action="store_true",
+            dest="no_warnings",
+            help="",
+        )
 
-      # Information flags ------------------------------------------------------------
-      information_group = parser.add_argument_group("information")
-      information_group.add_argument(
-         "-h", "--help", action="help", help="show this help message and exit"
-      )
-      information_group.add_argument(
-         "-V", "--version", action=ShowVersionAction, help="show version and exit"
-      )
-      information_group.add_argument(
-         "--info",
-         action=ShowInfoAction,
-         const=INFO_TYPE[0],
-         choices=INFO_TYPE,
-         help=f"""
+        # Information flags ------------------------------------------------------------
+        information_group = parser.add_argument_group("information")
+        information_group.add_argument(
+            "-h", "--help", action="help", help="show this help message and exit"
+        )
+        information_group.add_argument(
+            "-V", "--version", action=ShowVersionAction, help="show version and exit"
+        )
+        information_group.add_argument(
+            "--info",
+            action=ShowInfoAction,
+            const=INFO_TYPE[0],
+            choices=INFO_TYPE,
+            help=f"""
             list information about supported models or/and datasets and exit. One of
             {'(' + '|'.join(INFO_TYPE) + ')'} (default: %(const)s)
             """,
-         metavar="TYPE",
-      )
+            metavar="TYPE",
+        )
 
-      parser.set_defaults(**CLI_DEFAULTS)
-      return parser
-        
-   def _setup_model_and_dataset(self):
+        parser.set_defaults(**CLI_DEFAULTS)
+        return parser
 
-      self.logger.info(f"Initialising model {self.args.model!r}...")
+    def _setup_model_and_dataset(self):
 
-      # Grab the dataset information and model instance functions; as evident in its
-      # name, when called, the model instance function creates and returns an instance
-      # of a specified model.
-      # NOTE: See main/qumet/models/__init__.py for more information
-      dataset_info = get_dataset_info(self.args.dataset)
+        self.logger.info(f"Initialising model {self.args.model!r}...")
 
-      model_info = models.get_model_info(self.args.model)
-        
-      model = models.get_model(
-         name=self.args.model,
-         task=self.args.task,
-         dataset_info=dataset_info,
-      )
+        # Grab the dataset information and model instance functions; as evident in its
+        # name, when called, the model instance function creates and returns an instance
+        # of a specified model.
+        # NOTE: See main/qumet/models/__init__.py for more information
+        dataset_info = get_dataset_info(self.args.dataset)
 
-      self.logger.info(f"Initialising dataset {self.args.dataset!r}...")
-      data_module = QuMETDataModule(
-         name=self.args.dataset,
-         batch_size=self.args.batch_size,
-         num_workers=self.args.num_workers,
-         n_qubits = self.args.num_qubits,
-         model_name=self.args.model,
-      )
+        model_info = models.get_model_info(self.args.model)
 
-      return model, data_module, dataset_info, model_info
-   
-   def _setup_folders(self):
-      project = None
-      if self.args.project is not None:
-         project = self.args.project
-      else:
-         # No project name is given; so we construct one structured as follows:
-         # {MODEL-NAME}_{TASK-TYPE}_{DATASET-NAME}_{TIMESTAMP}
-         # NOTE: We set the attribute in args so that any subsequent routine has
-         # access to the name of the project. :)
-         project = "{}_{}_{}_{}".format(
-            self.args.model.replace("/", "-"),
-            self.args.task,
-            self.args.dataset,
-            time.strftime("%Y-%m-%d"),
-         )
-         setattr(self.args, "project", project)
+        model = models.get_model(
+            name=self.args.model,
+            task=self.args.task,
+            dataset_info=dataset_info,
+        )
 
-      output_dir = Path(self.args.project_dir) / project
-      output_dir_sw = Path(output_dir) / "software"
-      output_dir_sw.mkdir(parents=True, exist_ok=True)
+        self.logger.info(f"Initialising dataset {self.args.dataset!r}...")
+        data_module = QuMETDataModule(
+            name=self.args.dataset,
+            batch_size=self.args.batch_size,
+            num_workers=self.args.num_workers,
+            n_qubits=self.args.num_qubits,
+            model_name=self.args.model,
+        )
 
-      self.logger.info(f"Project will be created at {output_dir}")
+        return model, data_module, dataset_info, model_info
 
-      return output_dir, output_dir_sw
+    def _setup_folders(self):
+        project = None
+        if self.args.project is not None:
+            project = self.args.project
+        else:
+            # No project name is given; so we construct one structured as follows:
+            # {MODEL-NAME}_{TASK-TYPE}_{DATASET-NAME}_{TIMESTAMP}
+            # NOTE: We set the attribute in args so that any subsequent routine has
+            # access to the name of the project. :)
+            project = "{}_{}_{}_{}".format(
+                self.args.model.replace("/", "-"),
+                self.args.task,
+                self.args.dataset,
+                time.strftime("%Y-%m-%d"),
+            )
+            setattr(self.args, "project", project)
 
-   def _excepthook(self, etype, evalue, etb):
-      from IPython.core import ultratb
+        output_dir = Path(self.args.project_dir) / project
+        output_dir_sw = Path(output_dir) / "software"
+        output_dir_sw.mkdir(parents=True, exist_ok=True)
 
-      ultratb.FormattedTB()(etype, evalue, etb)
-      for exc in [KeyboardInterrupt, FileNotFoundError]:
-         if issubclass(etype, exc):
-            sys.exit(-1)
-      ipdb.post_mortem(etb)
+        self.logger.info(f"Project will be created at {output_dir}")
 
-   def _setup_visualizer(self):
+        return output_dir, output_dir_sw
 
-      visualizer = None
-      match self.args.report_to:
-         case "wandb":
-            visualizer = WandbLogger(
-               project=self.args.project, save_dir=self.output_dir_sw
-               )
-            visualizer.experiment.config.update(vars(self.args))
-         case "tensorboard":
-            visualizer = TensorBoardLogger(
-               save_dir=self.output_dir_sw.joinpath("tensorboard")
-               )
-            visualizer.log_hyperparams(vars(self.args))
-         case _:
-            raise ValueError(f"unsupported reporting tool {self.args.report_to!r}")
-      return visualizer
-   
+    def _excepthook(self, etype, evalue, etb):
+        from IPython.core import ultratb
+
+        ultratb.FormattedTB()(etype, evalue, etb)
+        for exc in [KeyboardInterrupt, FileNotFoundError]:
+            if issubclass(etype, exc):
+                sys.exit(-1)
+        ipdb.post_mortem(etb)
+
+    def _setup_visualizer(self):
+
+        visualizer = None
+        match self.args.report_to:
+            case "wandb":
+                visualizer = WandbLogger(
+                    project=self.args.project, save_dir=self.output_dir_sw
+                )
+                visualizer.experiment.config.update(vars(self.args))
+            case "tensorboard":
+                visualizer = TensorBoardLogger(
+                    save_dir=self.output_dir_sw.joinpath("tensorboard")
+                )
+                visualizer.log_hyperparams(vars(self.args))
+            case _:
+                raise ValueError(f"unsupported reporting tool {self.args.report_to!r}")
+        return visualizer
+
+
 # Custom types ---------------------------------------------------------------------
 # check if the path is a valid file path
 def _valid_filepath(path: str):
-   if not os.path.exists(path):
-      raise argparse.ArgumentTypeError(f"file not found")
-   if not os.path.isfile(path):
-      raise argparse.ArgumentTypeError(f"expected path to file, got {path!r}")
-   return os.path.abspath(path)
+    if not os.path.exists(path):
+        raise argparse.ArgumentTypeError(f"file not found")
+    if not os.path.isfile(path):
+        raise argparse.ArgumentTypeError(f"expected path to file, got {path!r}")
+    return os.path.abspath(path)
+
 
 # Returns the absolute path to a directory if it is indeed a valid path
 def _valid_directory_path(path: str, create_dir: bool = False):
-   if os.path.isfile(path):
-      raise argparse.ArgumentTypeError(
-         f"expected path to directory, got file {path!r}"
-      )
-   if (not os.path.exists(path)) and (not create_dir):
-      raise argparse.ArgumentTypeError(f"directory not found")
-   elif (not os.path.exists(path)) and create_dir:
-      os.makedirs(path, exist_ok=True)
-   return os.path.abspath(path)
+    if os.path.isfile(path):
+        raise argparse.ArgumentTypeError(
+            f"expected path to directory, got file {path!r}"
+        )
+    if (not os.path.exists(path)) and (not create_dir):
+        raise argparse.ArgumentTypeError(f"directory not found")
+    elif (not os.path.exists(path)) and create_dir:
+        os.makedirs(path, exist_ok=True)
+    return os.path.abspath(path)
+
 
 # Returns the absolute path to a file or directory if it is indeed a valid path
 def _valid_file_or_directory_path(path: str):
-   if not os.path.exists(path):
-      raise argparse.ArgumentTypeError(f"file or directory not found")
-   return os.path.abspath(path)
+    if not os.path.exists(path):
+        raise argparse.ArgumentTypeError(f"file or directory not found")
+    return os.path.abspath(path)
+
 
 # Returns None for values less than or equal to 0
 def _positive_int(s: str) -> int | None:
-   try:
-      v = int(s)
-   except ValueError:
-      raise argparse.ArgumentError(f"expected integer, got {s!r}")
+    try:
+        v = int(s)
+    except ValueError:
+        raise argparse.ArgumentError(f"expected integer, got {s!r}")
 
-   if v <= 0:
-      logging.warning(
-         f"{s} is ignored because it is not a positive integer, and is set to None"
-      )
-      return None
-   return v
+    if v <= 0:
+        logging.warning(
+            f"{s} is ignored because it is not a positive integer, and is set to None"
+        )
+        return None
+    return v
+
 
 def _int(s: str) -> int | None:
-   try:
-      v = int(s)
-   except ValueError:
-      raise argparse.ArgumentError(f"expected integer, got {s!r}")
+    try:
+        v = int(s)
+    except ValueError:
+        raise argparse.ArgumentError(f"expected integer, got {s!r}")
 
-   return v
+    return v
 
 
 # Custom actions -------------------------------------------------------------------
 class ShowVersionAction(argparse.Action):
-   def __init__(self, option_strings, dest, help):
-      """
-      Pretty print the version number with the QuMET logo and exit.
-      For more details: https://docs.python.org/3/library/argparse.html#action
-      """
-      super().__init__(option_strings, dest, nargs=0, help=help)
+    def __init__(self, option_strings, dest, help):
+        """
+        Pretty print the version number with the QuMET logo and exit.
+        For more details: https://docs.python.org/3/library/argparse.html#action
+        """
+        super().__init__(option_strings, dest, nargs=0, help=help)
 
-   def __call__(self, parser, *_):
-      print(LOGO)
-      parser.exit()
+    def __call__(self, parser, *_):
+        print(LOGO)
+        parser.exit()
 
 
 class ShowInfoAction(argparse.Action):
-   def __init__(self, option_strings, dest=SUPPRESS, const=None, **kwargs):
-      """
-      Pretty print the version number with the QuMET logo and exit.
-      For more details: https://docs.python.org/3/library/argparse.html#action
-      """
-      super().__init__(option_strings, dest, nargs="?", const=const, **kwargs)
+    def __init__(self, option_strings, dest=SUPPRESS, const=None, **kwargs):
+        """
+        Pretty print the version number with the QuMET logo and exit.
+        For more details: https://docs.python.org/3/library/argparse.html#action
+        """
+        super().__init__(option_strings, dest, nargs="?", const=const, **kwargs)
 
-   def __call__(self, parser, _, values, *__):
-      choice = values if values is not None else self.default
+    def __call__(self, parser, _, values, *__):
+        choice = values if values is not None else self.default
 
-      if choice in ["model", "all"]:
-         self._generate_table(list(models.model_map.keys()), "Supported Models")
-      if choice in ["dataset", "all"]:
-         self._generate_table(AVAILABLE_DATASETS, "Supported Datasets", cols=2)
+        if choice in ["model", "all"]:
+            self._generate_table(list(models.model_map.keys()), "Supported Models")
+        if choice in ["dataset", "all"]:
+            self._generate_table(AVAILABLE_DATASETS, "Supported Datasets", cols=2)
 
-      parser.exit()
+        parser.exit()
 
-   def _generate_table(self, data, title, cols=3):
-      table = []
+    def _generate_table(self, data, title, cols=3):
+        table = []
 
-      rows = (len(data) + cols - 1) // cols
-      for col in range(cols):
-         split = data[col * rows : (col + 1) * rows]
-         if len(split) < rows:
-            # Pad split with empty rows to make up for the difference
-            split.extend([""] * (rows - len(split)))
-         table.append(split)
+        rows = (len(data) + cols - 1) // cols
+        for col in range(cols):
+            split = data[col * rows : (col + 1) * rows]
+            if len(split) < rows:
+                # Pad split with empty rows to make up for the difference
+                split.extend([""] * (rows - len(split)))
+            table.append(split)
 
-      table = list(zip(*table))
-      print(title)
-      print(tabulate(table, tablefmt="pretty"))
+        table = list(zip(*table))
+        print(title)
+        print(tabulate(table, tablefmt="pretty"))

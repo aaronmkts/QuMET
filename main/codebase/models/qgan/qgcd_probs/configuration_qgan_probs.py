@@ -7,10 +7,10 @@ import pennylane as qml
 class QGCD_Probs_Config:
     def __init__(
         self,
-        device = 'default.qubit',
-        shots = 10000,
-        n_qubits= 6,
-        input_size = 2,
+        device="default.qubit",
+        shots=10000,
+        n_qubits=6,
+        input_size=2,
         n_a_qubits=0,
         depth=4,
         q_delta=1,

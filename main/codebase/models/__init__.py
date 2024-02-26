@@ -10,7 +10,6 @@ from .qgan import (
 from .utils import QumetModelInfo, ModelType
 
 
-
 def get_model_info(name: str) -> QumetModelInfo:
     if is_qgan_model(name):
         info = get_qgan_model_info(name)
@@ -24,7 +23,6 @@ def get_model(
     name: str,
     task: str,
     dataset_info: dict,
-
 ):
     model_info = get_model_info(name)
 
@@ -33,7 +31,6 @@ def get_model(
         "task": task,
         "dataset_info": dataset_info,
     }
-
 
     match model_info.model_type:
         case ModelType.QGAN:
