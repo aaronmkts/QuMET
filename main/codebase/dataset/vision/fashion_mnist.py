@@ -30,7 +30,9 @@ def get_fashion_mnist_dataset(
 ) -> Dataset:
     match name.lower():
         case "fashion_mnist":
-            dataset = Fashion_MNISTQuMET(path, train=train, transform=transform, download=True)
+            dataset = Fashion_MNISTQuMET(
+                path, train=train, transform=transform, download=True
+            )
         case _:
             raise ValueError(f"Unknown dataset {name}")
     return dataset

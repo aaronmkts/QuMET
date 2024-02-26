@@ -29,7 +29,7 @@ class QmlMixin:
             self._device = device
         else:
             # shots left as default (1000)
-            self._device = qml.device(device, wires=self._n_qubits, shots = 1000)
+            self._device = qml.device(device, wires=self._n_qubits, shots=1000)
 
     @property
     def device(self) -> qml.Device:

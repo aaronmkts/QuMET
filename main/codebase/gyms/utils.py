@@ -5,7 +5,7 @@ from enum import Enum
 class EnvironmentType(Enum):
     """
     The type of environment, must be one of the following:
-    - NOISELESS: 
+    - NOISELESS:
     """
 
     NOISELESS = "noiseless"
@@ -35,11 +35,8 @@ class QumetEnvironmentInfo:
     environment_type: EnvironmentType
     task_type: EnvironmentTaskType
 
-   
     # STATE PREPERATION environemnts
     quantum_state_preperation: bool = False
-
-
 
     def __post_init__(self):
         self.environment_type = (
@@ -56,8 +53,6 @@ class QumetEnvironmentInfo:
         # State Preperation
         if self.task_type == EnvironmentTaskType.STATE_PREPERATION:
             assert self.quantum_state_preperation
-
-    
 
     @property
     def is_state_preperation_environment(self):

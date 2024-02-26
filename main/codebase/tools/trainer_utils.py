@@ -44,4 +44,3 @@ def get_optimizer(
         case _:
             raise ValueError(f"Unsupported optimizer: {optimizer}")
     return optimizer
-

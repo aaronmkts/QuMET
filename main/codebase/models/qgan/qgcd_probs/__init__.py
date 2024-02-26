@@ -1,3 +1,1 @@
-from .modelling_qgan_probs import(
-    get_qgcd_probs
-)
+from .modelling_qgan_probs import get_qgcd_probs

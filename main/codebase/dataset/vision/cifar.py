@@ -30,7 +30,9 @@ def get_cifar_dataset(
 ) -> Dataset:
     match name.lower():
         case "cifar10":
-            dataset = Cifar10QuMET(path, train=train, transform=transform, download=True)
+            dataset = Cifar10QuMET(
+                path, train=train, transform=transform, download=True
+            )
         case _:
             raise ValueError(f"Unknown dataset {name}")
     return dataset

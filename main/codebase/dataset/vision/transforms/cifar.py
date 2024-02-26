@@ -2,7 +2,7 @@ from timm.data import create_transform
 from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 from torchvision import transforms as tv_transforms
 
-# CIFAR10 
+# CIFAR10
 # -----------------------------------------
 
 DEFAULT_CIFAR_PREPROCESS_ARGS = {
@@ -26,6 +26,7 @@ DEFAULT_CIFAR_PREPROCESS_ARGS = {
 # CIFAR10_DEFAULT_MEAN = (0.4914, 0.4822, 0.4465)
 # CIFAR10_DEFAULT_STD = (0.2470, 0.2435, 0.2616)
 
+
 def _get_cifar_default_transform(train: bool, mean: tuple[float], std: tuple[float]):
     if train:
         transform = create_transform(
@@ -44,10 +45,12 @@ def _get_cifar_default_transform(train: bool, mean: tuple[float], std: tuple[flo
 
     return transform
 
+
 def get_cifar10_default_transform(train: bool) -> tv_transforms.Compose:
     return _get_cifar_default_transform(
         train, IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
     )
+
 
 def get_cifar10_transform(train: bool, model: str = None):
     if model is None:

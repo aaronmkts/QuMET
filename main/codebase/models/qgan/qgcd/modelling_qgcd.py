@@ -16,6 +16,7 @@ from typing import Optional, Union
 from pennylane.qnn import TorchLayer as TorchConnector
 from .configuration_qgcd import QGCDConfig, QmlMixin
 from pytorch_lightning.core import LightningModule
+
 _CONFIG_FOR_DOC = "QGCDConfig"
 
 
@@ -58,7 +59,7 @@ class Generator(nn.Module, QmlMixin):
 
         q_weight_shapes = {"q_weights": (self.depth * self.n_qubits)}
         self.q_generator = qml.QNode(self._circuit, self.device, interface="torch")
-        batch_q_circuit = qml.batch_input(self.q_generator, argnum = 0)
+        batch_q_circuit = qml.batch_input(self.q_generator, argnum=0)
         self.batch_q_generator = TorchConnector(batch_q_circuit, q_weight_shapes)
 
     def __str__(self):
@@ -87,8 +88,7 @@ class Generator(nn.Module, QmlMixin):
         wires = range(self.n_qubits)
         AngleEmbedding(features, wires=wires, rotation="X")
 
-    def forward(self, 
-                noise: Tensor):
+    def forward(self, noise: Tensor):
         return self.batch_q_generator(noise)
 
 
@@ -100,6 +100,5 @@ class QGCD(nn.Module):
 
         self.post_init()
 
-        def forward(self,
-                    noise: Tensor):
+        def forward(self, noise: Tensor):
             return self.generator(noise)

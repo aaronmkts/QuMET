@@ -35,9 +35,10 @@ def load_unwrapped_ckpt(checkpoint: str, model: torch.nn.Module):
     model.load_state_dict(state_dict=state_dict)
     return model
 
+
 def load_model(
     load_name: str, load_type: str = "pl", model: torch.nn.Module = None
-) -> torch.nn.Module :
+) -> torch.nn.Module:
     """Load a pytorch/lightning checkpoint to a model.
 
     Args:
@@ -52,7 +53,7 @@ def load_model(
     Returns:
         nn.Module: the model with the checkpoint loaded
     """
-    
+
     if load_type not in ["pt", "pl"]:
         raise ValueError(f"Unknown extension for 'load_type': {load_type}")
 

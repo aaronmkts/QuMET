@@ -16,7 +16,6 @@ def lutnet_transform(img):
     return img
 
 
-
 def _get_fashion_mnist_default_transform():
     transform_list = [tv_transforms.ToTensor()]
     transform = tv_transforms.Compose(transform_list)
