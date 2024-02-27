@@ -198,10 +198,11 @@ class QuMETDataModule(pl.LightningDataModule):
                 "probably because the train set does not have ground truth labels, "
                 "or the train dataset does not exist."
             )
+
         return DataLoader(
             self.train_dataset,
-            batch_size=self.batch_size,
-            shuffle=True,
+            batch_size= len(self.train_dataset) if "probs" in self.model_name else self.batch_size,
+            shuffle= False if "probs" in self.model_name else True,
             num_workers=self.num_workers,
         )
 
@@ -214,7 +215,7 @@ class QuMETDataModule(pl.LightningDataModule):
             )
         return DataLoader(
             self.val_dataset,
-            batch_size=self.batch_size,
+            batch_size=len(self.val_dataset),
             shuffle=False,
             num_workers=self.num_workers,
         )
