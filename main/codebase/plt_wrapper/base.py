@@ -1,8 +1,6 @@
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import OptimizerLRScheduler
 import torch
-from abc import ABC, abstractmethod
-
 # from deepspeed.ops.adam import FusedAdam
 from torch.optim.lr_scheduler import CosineAnnealingLR
 import io
@@ -13,7 +11,7 @@ import torchvision
 from torchmetrics import Accuracy, MeanMetric
 
 
-class WrapperBase(pl.LightningModule, ABC):
+class WrapperBase(pl.LightningModule):
     def __init__(
         self,
         model,
@@ -33,14 +31,12 @@ class WrapperBase(pl.LightningModule, ABC):
 
     def forward(self, x):
         return self.model(x)
-
-    @abstractmethod
+    
     def training_step(self, batch):
-        pass
+        raise NotImplementedError()
 
-    @abstractmethod
     def configure_optimizers(self):
-        pass
+        raise NotImplementedError()
 
     def plot_to_image(self,figure ):
         """Converts the matplotlib plot specified by 'figure' to a PNG image and
