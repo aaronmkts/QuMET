@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 from torchmetrics import KLDivergence
+import matplotlib.pyplot as plt
+from matplotlib import cm
+import numpy as np
 from ..base import WrapperBase
 
 
@@ -88,12 +91,14 @@ class QGANGenerationModelWrapper(WrapperBase):
         fake_data = (
             self.model.generator(input).type_as(real_data).unsqueeze(0)
         )  # should be using model.forward
-
+        self.gen_out = self.image(fake_data.cpu())
         self.entropy_val(fake_data, real_data)
 
     def on_validation_epoch_end(self) -> None:
         self.log("val_kl_epoch", self.entropy_val, prog_bar=True)
-
+        self.logger.experiment.add_image("gen_output", self.plot_to_image(self.gen_out), 
+                                         global_step=self.current_epoch)
+        
     def configure_optimizers(self):
         # Use self.trainer.model.parameters() instead of self.parameters() to support FullyShared (Model paralleled) training
         match self.optimizer:
@@ -118,3 +123,15 @@ class QGANGenerationModelWrapper(WrapperBase):
                 raise ValueError(f"Unsupported optimizer name {self.optimizer}")
 
         return [optG, optD], []
+    
+    def image(self, prob_data):
+        num_discrete_values = 16
+        coords = np.linspace(-3, 3, num_discrete_values)
+        mesh_x, mesh_y = np.meshgrid(coords, coords)
+        grid_shape = (num_discrete_values, num_discrete_values)
+
+        fig, ax = plt.subplots(figsize=(12, 12), subplot_kw={"projection": "3d"})
+        prob_grid = np.reshape(prob_data, grid_shape)
+        surf = ax.plot_surface(mesh_x, mesh_y, prob_grid, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+        fig.colorbar(surf, shrink=0.5, aspect=5)
+        return fig
