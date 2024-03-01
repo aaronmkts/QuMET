@@ -75,7 +75,7 @@ LOGO = f"""
      For comprehensive information on usage,
             please refer to the docs.
 """
-TASKS = ["generation"]
+TASKS = ["probs_generation", "bitstring_generaton", "image_generation"]
 ACTIONS = ["train"]
 INFO_TYPE = ["all", "model", "dataset"]
 LOAD_TYPE = [
