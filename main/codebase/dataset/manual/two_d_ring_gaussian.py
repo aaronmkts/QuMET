@@ -18,7 +18,8 @@ np.random.seed(seed)
     name="2d_ring_gaussian",
     dataset_source="manual",
     available_splits=("train", "validation"),
-    generation=True,
+    probs_generation=True,
+    bitsring_generation=True,
 )
 class TwoDRingGaussianDataset(Dataset):
     def __init__(self, split="train", binary=False, n_qubits=16) -> None:

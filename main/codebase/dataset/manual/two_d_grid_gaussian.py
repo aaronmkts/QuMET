@@ -17,7 +17,8 @@ np.random.seed(seed)
     name="2d_grid_gaussian",
     dataset_source="manual",
     available_splits=("train", "validation"),
-    generation=True,
+    probs_generation=True,
+    bitsring_generation=True,
 )
 class TwoDGridGaussianDataset(Dataset):
     def __init__(self, split="train", binary=False, n_qubits=16) -> None:
@@ -27,7 +28,7 @@ class TwoDGridGaussianDataset(Dataset):
         self.num_dim = 2
         self.num_discrete_values = int(2 ** (n_qubits / self.num_dim))
         self.coords = np.linspace(-3, 3, self.num_discrete_values)
-        self.num_gauss = 16
+        self.num_gauss = 9
         self.samples, self.grid_elements = self._generate_samples()
 
         if split == "train":
@@ -39,17 +40,17 @@ class TwoDGridGaussianDataset(Dataset):
             raise RuntimeError(
                 f"split must be `train` or `validation`, but got {split}"
             )
-
+    
     def _generate_samples(self):
 
         self.set_length = int(pow(self.num_gauss, 1 / 2))
 
-        positions = np.linspace(-2, 2, int(self.set_length))
+        positions = np.linspace(-1.9, 1.9, int(self.set_length))
         means = np.array(
             [np.array([i, j]) for i, j in itertools.product(positions, positions)]
         )
 
-        sigma = 0.1
+        sigma = 0.15
         covs = [np.array([[sigma, 0], [0, sigma]]) for i in range(self.num_gauss)]
 
         rv = [
