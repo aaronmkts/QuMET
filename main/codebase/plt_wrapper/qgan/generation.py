@@ -30,7 +30,7 @@ class QGANGenerationModelWrapper(WrapperBase):
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         self.entropy_val = KLDivergence()
-
+        
     def adversarial_loss(self, input, target, w):
         bce_loss = target * torch.log(input) + (1 - target) * torch.log(1 - input)
         weighted_loss = w * bce_loss
@@ -125,8 +125,8 @@ class QGANGenerationModelWrapper(WrapperBase):
         return [optG, optD], []
     
     def image(self, prob_data):
-        num_discrete_values = 16
-        coords = np.linspace(-3, 3, num_discrete_values)
+        num_discrete_values = 2 ** (self.model.generator.n_qubits // 2)
+        coords = np.linspace(-2, 2, num_discrete_values)
         mesh_x, mesh_y = np.meshgrid(coords, coords)
         grid_shape = (num_discrete_values, num_discrete_values)
 
