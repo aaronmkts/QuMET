@@ -49,7 +49,7 @@ class QumetModelInfo:
 
         # Vision models
         if self.task_type == ModelTaskType.GENERATION:
-            assert self.data_generation, "Must be an image generation model"
+            assert self.data_generation, "Must be a generative model"
 
     @property
     def is_generation_model(self):
