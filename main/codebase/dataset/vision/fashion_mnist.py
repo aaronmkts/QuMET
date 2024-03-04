@@ -8,7 +8,7 @@ from ..utils import add_dataset_info
     name="fashion_mnist",
     dataset_source="torchvision",
     available_splits=("train", "test"),
-    generation=True,
+    image_generation=True,
     num_classes=10,
     image_size=(1, 28, 28),
 )
