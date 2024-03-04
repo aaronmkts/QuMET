@@ -4,17 +4,18 @@
 import math
 import random
 import numpy as np
-import pennylane as qml
-from pennylane.templates import AngleEmbedding
 from torch import Tensor
 from logging import getLogger
-
-# Pytorch imports
+from typing import Any, Callable, Dict, List, Optional, Type, Union
+from functools import partial
+import matplotlib.pyplot as plt
+# Pytorch & Pennylaneimports
 import torch
 import torch.nn as nn
-from typing import Optional, Union
+import pennylane as qml
 from pennylane.qnn import TorchLayer as TorchConnector
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from pennylane import broadcast
+from pennylane.wires import Wires
 
 logger = getLogger(__name__)
 pi = math.pi
@@ -27,19 +28,28 @@ config = {
         "n_qubits": 6,
         "n_a_qubits": 0,
         "shots": 10000,
-        "depth": 4,
+        "depth": 2,
         "q_delta": 1,
         "diff_method": "adjoint",
     },
 }
 
 
+def wires_pairwise(wires):
+    """Wire sequence for the pairwise pattern."""
+    sequence = []
+    for layer in range(2):
+        block = wires[layer : len(wires) - layer]
+                
+        sequence += [block.subset([i, i + 1]) for i in range(0, len(block) - 1, 2)]
+    return sequence
+
 # fmt:on
 class Probs_Discriminator(nn.Module):
     """Fully connected classical discriminator"""
 
     def __init__(self, config, task):
-        super().__init__()
+        super(Probs_Discriminator, self).__init__()
         name = "discriminator"
         self.input_size = config[name]["input_size"]
 
@@ -58,13 +68,14 @@ class Probs_Discriminator(nn.Module):
             nn.Sigmoid(),
         )
 
-        # self.model.apply(self.init_weights)
+        self.model.apply(self.init_weights)
 
     def init_weights(self, layer):
         if isinstance(layer, nn.Linear):
-            torch.nn.init.kaiming_uniform_(layer.weight)
-            torch.nn.init.kaiming_uniform_(layer.bias)
-
+            nn.init.kaiming_uniform_(layer.weight, 
+                                     mode = 'fan_out', 
+                                     a = 2 * math.sqrt(5))
+    
     def forward(self, input: Tensor) -> Tensor:
         return self.model(input)
 
@@ -82,36 +93,71 @@ class Probs_Generator(nn.Module):
         self.depth = config[name]["depth"]
         self.shots = config[name]["shots"]
         self.device = config[name]["device"]
-
-        self.device = qml.device(self.device, wires=self.n_qubits, shots=self.shots)
+        
+        self.device = qml.device(self.device,
+                                  wires=self.n_qubits, 
+                                  shots=self.shots)
+        
         q_weight_shapes = {
-            "q_weights_y": (self.depth, self.n_qubits),
-            "q_weights_z": (self.depth, self.n_qubits),
+            "q_weights_0": (self.n_qubits, 2),
+            "q_weights_i": (self.depth, self.n_qubits, 2),
         }
         init_method = {
-            "q_weights_y": lambda x: torch.nn.init.uniform_(x, -pi, pi),
-            "q_weights_z": lambda x: torch.nn.init.uniform_(x, -pi, pi),
+            "q_weights_0": lambda x: torch.nn.init.uniform_(x, -pi, pi),
+            "q_weights_i": lambda x: torch.nn.init.uniform_(x, -pi, pi),
         }
-        q_generator = qml.QNode(self._circuit, self.device, interface="torch")
-        self.q_generator = TorchConnector(
-            q_generator, q_weight_shapes, init_method=init_method
-        )
 
-    def __str__(self):
-        return f"QuantumGenerator({self.n_qubits}) "
+        self.q_generator = self._make_qnode(q_weight_shapes, init_method)
+        
+    def _visualise(self):
 
-    def _circuit(self, inputs, q_weights_y, q_weights_z):
-        """Builds the circuit to be fed to the connector as a QML node"""
+        inputs = torch.tensor([])
+        fig, ax = qml.draw_mpl(self.q_generator, style = 'pennylane')(inputs)
+        fig.show()
+        return plt.show()
 
-        # Repeated layer
-        for i in range(self.depth):
-            for y in range(self.n_qubits):
-                qml.RY(q_weights_y[i][y], wires=y)
-                qml.RZ(q_weights_z[i][y], wires=y)
-            for y in range(self.n_qubits - 1):
-                qml.CNOT(wires=[y, y + 1])
+    def _make_qnode(self, q_weight_shapes, init_method):
+        wires = list(range(self.n_qubits))
+        
+        #NOTE: Qnode is composed of alternating layers of rotation gates and engangling gates.
+        #This implementation is for the Efficient SU(2) circuit with pairwise entanglement & (RY,RX) rotations.
 
-        return qml.probs()
+        def __angle_layer(q_weights, wires):
+            
+            def template(q_weights_y,q_weights_z,  wires):
+                qml.RY(q_weights_y, wires = wires)
+                qml.RZ(q_weights_z, wires = wires)
+
+            broadcast(unitary = template, pattern = 'single', wires = wires, parameters=q_weights)
+   
+        def __entangling_layer(entangler: str, pattern: str, wires:int):
+            match entangler:
+                case 'CNOT':
+                    entangling_operation = qml.CNOT
+                case 'CZ':
+                    entangling_operation = qml.CZ
+
+            broadcast(unitary= entangling_operation, pattern = pattern, wires = wires) 
+
+        @qml.qnode(self.device,  interface='torch')
+        def _qnode(inputs, q_weights_0, q_weights_i):
+            """Builds the circuit to be fed to the connector as a QML node"""
+
+            sequence = wires_pairwise(Wires(wires))
+            __angle_layer(q_weights_0, wires)
+        
+            def _subroutine(q_weights_i, wires):
+                qml.Barrier(wires)
+                __entangling_layer(entangler = 'CNOT', pattern = sequence, wires = wires)
+                qml.Barrier(wires)
+                __angle_layer(q_weights_i, wires)
+                
+            
+            qml.layer(_subroutine, self.depth, q_weights_i, wires = wires)
+
+            return qml.probs()
+
+        return TorchConnector(_qnode, q_weight_shapes, init_method = init_method)
 
     def forward(self, inputs: Tensor):
         return self.q_generator(inputs)
