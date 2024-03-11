@@ -24,7 +24,7 @@ class TwoDGridGaussianDatasetB(Dataset):
         self.num_dim = 2
         self.num_discrete_values = int(2 ** (n_qubits / self.num_dim))
         self.coords = np.linspace(-3, 3, self.num_discrete_values)
-        self.size = n_qubits ** 2 + 2
+        self.size =  2 ** (n_qubits *2)
         self.num_gauss = 9
 
         if split == "train":

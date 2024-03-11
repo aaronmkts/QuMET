@@ -24,7 +24,7 @@ class TwoDGaussianDatasetB(Dataset):
         self.num_dim = 2
         self.num_discrete_values = int(2 ** (n_qubits / self.num_dim))
         self.coords = np.linspace(-2, 2, self.num_discrete_values)
-        self.size = n_qubits ** 2 + 2
+        self.size = 2 ** (n_qubits *2)
 
         if split == "train":
             self.data = self._generate_samples()
