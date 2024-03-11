@@ -31,7 +31,6 @@ def get_dataset(
     name: str,
     split: bool,
     num_workers: int = os.cpu_count(),
-    binary: bool = False,
     n_qubits: int = 16,
     model_name: str = None,
 ):
@@ -55,7 +54,7 @@ def get_dataset(
 
     name = name.lower()
     if name in MANUAL_DATASET_MAPPING:
-        dataset = get_manual_dataset(name, split, binary, n_qubits)
+        dataset = get_manual_dataset(name, split, n_qubits)
 
     elif name in VISION_DATASET_MAPPING:
         path = DATASET_CACHE_DIR / name
@@ -83,7 +82,6 @@ class QuMETDataModule(pl.LightningDataModule):
         name: str,
         batch_size: int,
         num_workers: int,
-        binary: bool = False,
         n_qubits: int = 16,
         model_name: str = None,
     ) -> None:
@@ -92,7 +90,6 @@ class QuMETDataModule(pl.LightningDataModule):
         self.name = name
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.binary = binary
         self.n_qubits = n_qubits
         self.model_name = model_name
 
@@ -107,7 +104,6 @@ class QuMETDataModule(pl.LightningDataModule):
             self.name,
             split="train",
             num_workers=self.num_workers,
-            binary=self.binary,
             n_qubits=self.n_qubits,
             model_name=self.model_name,
         )
@@ -115,7 +111,6 @@ class QuMETDataModule(pl.LightningDataModule):
             self.name,
             split="validation",
             num_workers=self.num_workers,
-            binary=self.binary,
             n_qubits=self.n_qubits,
             model_name=self.model_name,
         )
@@ -123,7 +118,6 @@ class QuMETDataModule(pl.LightningDataModule):
             self.name,
             split="test",
             num_workers=self.num_workers,
-            binary=self.binary,
             n_qubits=self.n_qubits,
             model_name=self.model_name,
         )
@@ -131,7 +125,6 @@ class QuMETDataModule(pl.LightningDataModule):
             self.name,
             split="pred",
             num_workers=self.num_workers,
-            binary=self.binary,
             n_qubits=self.n_qubits,
             model_name=self.model_name,
         )
@@ -151,7 +144,6 @@ class QuMETDataModule(pl.LightningDataModule):
                 self.name,
                 split="train",
                 num_workers=self.num_workers,
-                binary=self.binary,
                 n_qubits=self.n_qubits,
                 model_name=self.model_name,
             )
@@ -162,7 +154,6 @@ class QuMETDataModule(pl.LightningDataModule):
                 self.name,
                 split="validation",
                 num_workers=self.num_workers,
-                binary=self.binary,
                 n_qubits=self.n_qubits,
                 model_name=self.model_name,
             )
@@ -173,7 +164,6 @@ class QuMETDataModule(pl.LightningDataModule):
                 self.name,
                 split="test",
                 num_workers=self.num_workers,
-                binary=self.binary,
                 n_qubits=self.n_qubits,
                 model_name=self.model_name,
             )
@@ -184,7 +174,6 @@ class QuMETDataModule(pl.LightningDataModule):
                 self.name,
                 split="pred",
                 num_workers=self.num_workers,
-                binary=self.binary,
                 n_qubits=self.n_qubits,
                 model_name=self.model_name,
             )
