@@ -3,9 +3,12 @@ from pathlib import Path
 from .two_d_gaussian import TwoDGaussianDataset
 from .two_d_grid_gaussian import TwoDGridGaussianDataset
 from .two_d_ring_gaussian import TwoDRingGaussianDataset
+from .bitstrings import (
+    TwoDGaussianDatasetB,
+    TwoDGridGaussianDatasetB,
+    TwoDRingGaussianDatasetB)
 
-
-def get_manual_dataset(name: str, split: str, binary: bool = False, n_qubits: int = 16):
+def get_manual_dataset(name: str, split: str, n_qubits: int = 16):
     """
     Args:
         name (str): name of the dataset
@@ -31,6 +34,12 @@ def get_manual_dataset(name: str, split: str, binary: bool = False, n_qubits: in
             dataset_cls = TwoDGridGaussianDataset
         case "2d_ring_gaussian":
             dataset_cls = TwoDRingGaussianDataset
+        case "2d_gaussian_b":
+            dataset_cls = TwoDGaussianDatasetB
+        case "2d_grid_gaussian_b":
+            dataset_cls = TwoDGridGaussianDatasetB
+        case "2d_ring_gaussian_b":
+            dataset_cls = TwoDRingGaussianDatasetB
         case _:
             raise ValueError(f"Unknown dataset {name}")
 
@@ -49,7 +58,7 @@ def get_manual_dataset(name: str, split: str, binary: bool = False, n_qubits: in
     if ori_split == "pred" and dataset_cls.info.pred_split_available:
         split = "test"
 
-    dataset = dataset_cls(split, binary, n_qubits)
+    dataset = dataset_cls(split, n_qubits)
     return dataset
 
 
@@ -57,6 +66,9 @@ MANUAL_DATASET_MAPPING = {
     "2d_gaussian": TwoDGaussianDataset,
     "2d_grid_gaussian": TwoDGridGaussianDataset,
     "2d_ring_gaussian": TwoDRingGaussianDataset,
+    "2d_gaussian_b": TwoDGaussianDatasetB,
+    "2d_grid_gaussian_b": TwoDGridGaussianDatasetB,
+    "2d_ring_gaussian_b": TwoDRingGaussianDatasetB
 }
 
 
