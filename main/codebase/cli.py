@@ -124,7 +124,7 @@ CLI_DEFAULTS = {
     "max_epochs": 20,
     "max_steps": -1,
     "accumulate_grad_batches": 1,
-    "log_every_n_steps": 1,
+    "log_every_n_steps": 4,
     "num_qubits": 6,
     # Runtime environment options
     "num_workers": int(os.cpu_count() / 2),
