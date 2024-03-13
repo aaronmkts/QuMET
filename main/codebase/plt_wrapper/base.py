@@ -30,7 +30,7 @@ class WrapperBase(pl.LightningModule):
         self.optimizer = optimizer
 
     def forward(self, x):
-        return self.model(x)
+        raise NotImplementedError()
     
     def training_step(self, batch):
         raise NotImplementedError()
