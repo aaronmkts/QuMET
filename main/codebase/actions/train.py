@@ -88,7 +88,7 @@ def train(
         optimizer=optimizer,
     )
 
-    trainer = pl.Trainer(**plt_trainer_args)
+    trainer = pl.Trainer(**plt_trainer_args, deterministic= True)
 
     trainer.fit(
         pl_model,
