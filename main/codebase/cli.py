@@ -115,7 +115,7 @@ CLI_DEFAULTS = {
     "to_debug": False,
     "log_level": LOG_LEVELS[1],
     "report_to": REPORT_TO[1],
-    "seed": 0,
+    "seed": 42,
     # Trainer options
     "training_optimizer": OPTIMIZERS[0],
     "trainer_precision": TRAINER_PRECISION[0],
