@@ -1,5 +1,5 @@
-import pytorch_lightning as pl
-from pytorch_lightning.utilities.types import OptimizerLRScheduler
+import lightning.pytorch as pl
+from lightning.pytorch.utilities.types import OptimizerLRScheduler
 import torch
 # from deepspeed.ops.adam import FusedAdam
 from torch.optim.lr_scheduler import CosineAnnealingLR
