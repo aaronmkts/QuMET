@@ -188,6 +188,6 @@ def _qgcd_gan(config, task: str) -> QGCD_Probs_GAN:
 
 def get_qgcd_probs(info: Dict) -> QGCD_Probs_GAN:
 
-    task = info.generation
-    logger.info(f"The following {config} loaded for task {task} into QGCD_PROBS_GAN ")
+    task = "info.generation"
+    logger.info(f"The following {config} loaded for task into QGCD_PROBS_GAN ")
     return _qgcd_gan(config=config, task=task)
