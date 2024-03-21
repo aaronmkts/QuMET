@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 
 # Set the random seed for reproducibility
-seed = 42
-np.random.seed(seed)
-
+SEED = 42
+torch.manual_seed(SEED)
+np.random.seed(SEED)
 
 @add_dataset_info(
     name="2d_gaussian_b",
@@ -24,20 +24,22 @@ class TwoDGaussianDatasetB(Dataset):
         self.num_dim = 2
         self.num_discrete_values = int(2 ** (n_qubits / self.num_dim))
         self.coords = np.linspace(-2, 2, self.num_discrete_values)
-        self.size = 2 ** (n_qubits *2)
+        self.size = 2 * 2560
 
         if split == "train":
-            self.data = self._generate_samples()
+            self.data, _ = self._generate_samples()
         elif split == "validation":
-            self.data = self._generate_samples()
+            _, prob_data = self._generate_samples()
+            self.data = np.array([prob_data] * self.size)
         else:
             raise RuntimeError(
                 f"split must be `train` or `validation`, but got {split}"
             )
+
         
     def _generate_samples(self):
 
-        rv = multivariate_normal(mean=[0.0, 0.0], cov=[[1, 0], [0, 1]], seed=seed)
+        rv = multivariate_normal(mean=[0.0, 0.0], cov=[[1, 0], [0, 1]], seed=SEED)
         grid_elements = np.transpose(
             [
                 np.tile(self.coords, len(self.coords)),
@@ -45,7 +47,7 @@ class TwoDGaussianDatasetB(Dataset):
             ]
         )
         num_samples = len(grid_elements)
-
+        
         samples = rv.pdf(grid_elements)
         prob_data = samples / np.sum(samples)
 
@@ -54,8 +56,8 @@ class TwoDGaussianDatasetB(Dataset):
             index_list, size=self.size, p=prob_data
         )
         grid_bitstrings = np.array(list(map(self._int_to_binary, sampled_integers)))
-           
-        return grid_bitstrings
+        
+        return grid_bitstrings, prob_data
 
     def _visualise(self, samples):
 
@@ -77,7 +79,11 @@ class TwoDGaussianDatasetB(Dataset):
         binary = integer.bitwise_and(mask).ne(0).float()
 
         return binary
-    
+    def _binary_to_int(self, bit_list):
+            output = 0
+            for bit in bit_list:
+                output = output * 2 + bit
+            return int(output)
     def __len__(self):
         return self.size
 
