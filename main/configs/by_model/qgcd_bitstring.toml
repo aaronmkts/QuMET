@@ -1,20 +1,20 @@
 # basics
-model = "qgcd_probs"
-dataset = "2d_gaussian"
+model = "qgcd_bitstring"
+dataset = "2d_gaussian_b"
 
 # training
 training_optimizer = "adam"
 learning_rate = 1e-2
-max_epochs = 500
-batch_size = 55555555
+max_epochs = 300
+batch_size = 256
 num_qubits = 6
 
 # torch lightning
-task = "probs_generation"
+task = "bitstring_generation"
 num_workers = 0
 num_devices = 1
-accelerator = "auto"
-project = "qgcd_probs_2dgauss/6qubit/500"
+accelerator = "mps"
+project = "discrete_qgcd/shuffle_on_depth2/bceloss/genlater"
 # load
 #load_name = "../qumet_output/qgcd_probs_generation_2d_gaussian_2024-02-29/software/training_ckpts/last.ckpt"
 #load_type = "pl"
