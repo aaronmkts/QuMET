@@ -10,7 +10,7 @@ def get_model_wrapper(model_info, task: str):
         match task:
             case "probs_generation":
                 return QGANGenerationModelWrapper
-            case "bitsring_generation":
+            case "bitstring_generation":
                 return QGANBitstringGenerationModelWrapper
             case "image_generation":
                 return NotImplementedError
