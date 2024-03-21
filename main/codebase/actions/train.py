@@ -1,17 +1,15 @@
 import logging
 import os
 from pathlib import Path
-
-import pytorch_lightning as pl
 from codebase.plt_wrapper import get_model_wrapper
 from codebase.tools.checkpoint_load import load_model
-
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.plugins.environments import SLURMEnvironment
+from codebase.tools.progress_bar import progress_bar
+import lightning.pytorch as pl
+from lightning.pytorch.callbacks  import LearningRateMonitor, ModelCheckpoint
+from lightning.pytorch.loggers import TensorBoardLogger
+from lightning.pytorch.plugins.environments import SLURMEnvironment
 from torch.distributed.fsdp import FullyShardedDataParallel
-from pytorch_lightning.strategies import DDPStrategy
-from codebase.tools.utils import parse_accelerator, to_numpy_if_tensor
+from lightning.pytorch.strategies import DDPStrategy
 
 
 logger = logging.getLogger(__name__)
@@ -45,11 +43,14 @@ def train(
             dirpath=save_path,
             save_last=True,
         )
+        
         # tb_logger = TensorBoardLogger(save_dir=save_path, name="logs")
         lr_monitor_callback = LearningRateMonitor(logging_interval="step")
+
         plt_trainer_args["callbacks"] = [
             checkpoint_callback,
             lr_monitor_callback,
+            progress_bar()
         ]
         plt_trainer_args["logger"] = visualizer
 
@@ -85,9 +86,9 @@ def train(
         epochs=plt_trainer_args["max_epochs"],
         optimizer=optimizer,
     )
-
-    trainer = pl.Trainer(**plt_trainer_args)
-
+    
+    trainer = pl.Trainer(**plt_trainer_args, deterministic= True)
+    
     trainer.fit(
         pl_model,
         datamodule=data_module,

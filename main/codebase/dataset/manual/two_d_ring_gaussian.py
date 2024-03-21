@@ -18,12 +18,11 @@ np.random.seed(seed)
     name="2d_ring_gaussian",
     dataset_source="manual",
     available_splits=("train", "validation"),
-    generation=True,
+    probs_generation=True,
 )
 class TwoDRingGaussianDataset(Dataset):
-    def __init__(self, split="train", binary=False, n_qubits=16) -> None:
+    def __init__(self, split="train", n_qubits=16) -> None:
 
-        self.binary = binary
         self.n_qubits = n_qubits
         self.num_dim = 2
         self.num_discrete_values = int(2 ** (n_qubits / self.num_dim))
@@ -90,26 +89,17 @@ class TwoDRingGaussianDataset(Dataset):
 
         return means
 
-    def _visualise(self):
+    def _visualise(self, samples):
 
         mesh_x, mesh_y = np.meshgrid(self.coords, self.coords)
         grid_shape = (self.num_discrete_values, self.num_discrete_values)
         fig, ax = plt.subplots(figsize=(9, 9), subplot_kw={"projection": "3d"})
-        prob_grid = np.reshape(self.samples, grid_shape)
+        prob_grid = np.reshape(samples, grid_shape)
         surf = ax.plot_surface(
             mesh_x, mesh_y, prob_grid, cmap=cm.coolwarm, linewidth=0, antialiased=False
         )
         fig.colorbar(surf, shrink=0.5, aspect=5)
         plt.show()
-
-    def _int_to_binary(self, integer):
-
-        resolution = self.n_qubits
-        integer = torch.tensor([integer])
-        mask = 2 ** torch.arange(resolution - 1, -1, -1)
-        binary = integer.bitwise_and(mask).ne(0).float()
-
-        return binary
 
     def __len__(self):
         return len(self.samples)

@@ -26,8 +26,10 @@ pandas
 wandb
 gym
 matplotlib
+partial
 PennyLane
 PennyLane-Lightning
+pennylane-catalyst
 Pillow
 pytorch-lightning
 torchmetrics

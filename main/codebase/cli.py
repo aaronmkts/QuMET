@@ -75,7 +75,7 @@ LOGO = f"""
      For comprehensive information on usage,
             please refer to the docs.
 """
-TASKS = ["generation"]
+TASKS = ["probs_generation", "bitstring_generaton", "image_generation"]
 ACTIONS = ["train"]
 INFO_TYPE = ["all", "model", "dataset"]
 LOAD_TYPE = [
@@ -115,7 +115,7 @@ CLI_DEFAULTS = {
     "to_debug": False,
     "log_level": LOG_LEVELS[1],
     "report_to": REPORT_TO[1],
-    "seed": 0,
+    "seed": 42,
     # Trainer options
     "training_optimizer": OPTIMIZERS[0],
     "trainer_precision": TRAINER_PRECISION[0],
@@ -124,7 +124,7 @@ CLI_DEFAULTS = {
     "max_epochs": 20,
     "max_steps": -1,
     "accumulate_grad_batches": 1,
-    "log_every_n_steps": 1,
+    "log_every_n_steps": 4,
     "num_qubits": 6,
     # Runtime environment options
     "num_workers": int(os.cpu_count() / 2),

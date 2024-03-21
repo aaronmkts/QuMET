@@ -1,19 +1,18 @@
 from ..utils import QumetModelInfo
 from os import PathLike
 
-from .qgcd import QGCDConfig, Generator
+from .qgcd_bitstring import get_qgcd_bitstring
 from .qgcd_probs import get_qgcd_probs
 
 # fmt: off
 QGAN_MODELS = {
-    "qgcd":{
-        "config_cls": QGCDConfig,
-        "info": QumetModelInfo("qgcd", model_type="qgan", task_type ="generation", data_generation = True),
-        "continuous_modelling": Generator
+    "qgcd_bitstring":{
+        "get_model_fn_generation": get_qgcd_bitstring,
+        "info": QumetModelInfo("qgcd_probs", model_type="qgan", task_type ="generation", bitstring_sampling = True),
     },
     "qgcd_probs":{
         "get_model_fn_generation": get_qgcd_probs,
-        "info": QumetModelInfo("qgcd_probs", model_type="qgan", task_type ="generation", data_generation = True),
+        "info": QumetModelInfo("qgcd_probs", model_type="qgan", task_type ="generation", distribution_sampling = True),
     }
 }
 
@@ -46,9 +45,15 @@ def get_qgan_model(
     model_info: QumetModelInfo = QGAN_MODELS[name]["info"]
 
     match task:
-        case "generation":
+        case "probs_generation":
             assert (
-                model_info.data_generation
+                model_info.distribution_sampling
+            ), f"Task {task} is not supported for {name}"
+            model = QGAN_MODELS[name]["get_model_fn_generation"](info=dataset_info)
+
+        case "bitstring_generation":
+            assert (
+                model_info.bitstring_sampling
             ), f"Task {task} is not supported for {name}"
             model = QGAN_MODELS[name]["get_model_fn_generation"](info=dataset_info)
 
