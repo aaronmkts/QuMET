@@ -4,6 +4,8 @@ from torchmetrics import KLDivergence
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import numpy as np
+import collections
+
 from ..base import WrapperBase
 
 
@@ -91,12 +93,18 @@ class QGANGenerationModelWrapper(WrapperBase):
         fake_data = (
             self.model.generator(input).type_as(real_data).unsqueeze(0)
         )  # should be using model.forward
-        self.gen_out = self.image(fake_data.cpu())
+        self.countor_map = self.get_image(real_data.cpu().numpy(), fake_data.cpu().numpy())
+        self.projection = self.image(fake_data.cpu())
         self.entropy_val(fake_data, real_data)
+        self.modes, self.high_quality_ratio = self.modes_captured(fake_data)
 
     def on_validation_epoch_end(self) -> None:
         self.log("val_kl_epoch", self.entropy_val, prog_bar=True)
-        self.logger.experiment.add_image("gen_output", self.plot_to_image(self.gen_out), 
+        self.log('modes_captured', self.modes)
+        self.log('high_quality_ratio', self.high_quality_ratio)
+        self.logger.experiment.add_image("2D_Countour_Map", self.plot_to_image(self.countor_map), 
+                                         global_step=self.current_epoch)
+        self.logger.experiment.add_image("Generator_Projection", self.plot_to_image(self.projection), 
                                          global_step=self.current_epoch)
         
     def configure_optimizers(self):
@@ -124,9 +132,43 @@ class QGANGenerationModelWrapper(WrapperBase):
 
         return [optG, optD], []
     
-    def image(self, prob_data):
+    def modes_captured(self, probs_data):
         num_discrete_values = 2 ** (self.model.generator.n_qubits // 2)
-        coords = np.linspace(-2, 2, num_discrete_values)
+        coords = np.linspace(-3, 3, num_discrete_values)
+        grid_elements = np.transpose(
+            [
+                np.tile(coords, len(coords)),
+                np.repeat(coords, len(coords)),
+            ]
+        )
+        num_samples = len(grid_elements)
+        index_list = list(range(num_samples))
+        sampled_integers = np.random.choice(
+            index_list, size=self.model.generator.shots, p=probs_data.squeeze().cpu().numpy()
+        )
+        sampled_coords = grid_elements[sampled_integers]
+        
+        radius = 2
+        thetas = np.linspace(0, 2 * np.pi, 8)
+        xs, ys = radius * np.sin(thetas), radius* np.cos(thetas)
+        MEANS = np.stack([xs, ys]).transpose()
+        STD = 0.1
+
+        l2_store = []
+        for x_ in sampled_coords:
+            l2_store.append([np.sum((x_ - i) ** 2) for i in MEANS])
+        mode = np.argmin(l2_store, 1).flatten().tolist()
+        dis_ = [l2_store[j][i] for j, i in enumerate(mode)]
+        mode_counter = [mode[i] for i in range(len(mode)) if np.sqrt(dis_[i]) <= (3 * STD)]
+        high_quality_ratio = sum(collections.Counter(mode_counter).values()) / float(self.model.generator.shots)
+        modes = len(collections.Counter(mode_counter))
+        
+        return modes, high_quality_ratio
+
+    def image(self, prob_data):
+
+        num_discrete_values = 2 ** (self.model.generator.n_qubits // 2)
+        coords = np.linspace(-3, 3, num_discrete_values)
         mesh_x, mesh_y = np.meshgrid(coords, coords)
         grid_shape = (num_discrete_values, num_discrete_values)
 
@@ -134,4 +176,21 @@ class QGANGenerationModelWrapper(WrapperBase):
         prob_grid = np.reshape(prob_data, grid_shape)
         surf = ax.plot_surface(mesh_x, mesh_y, prob_grid, cmap=cm.coolwarm, linewidth=0, antialiased=False)
         fig.colorbar(surf, shrink=0.5, aspect=5)
-        return fig
+
+    
+    def get_image(self, real_data, fake_data):
+
+        def contour_figure(data, cmap, alpha):
+ 
+            num_discrete_values = 2 ** (self.model.generator.n_qubits// 2)
+            coords = np.linspace(-3, 3, num_discrete_values)
+            mesh_x, mesh_y = np.meshgrid(coords, coords)
+            grid_shape = (num_discrete_values, num_discrete_values)
+          
+            prob_grid = np.reshape(data, grid_shape)
+
+            plt.contourf(mesh_x, mesh_y, prob_grid, cmap=cmap, antialiased=False, alpha = alpha)
+
+        cmap = [cm.Reds, cm.Blues]
+        contour_figure(real_data, cmap[0],0.85)
+        contour_figure(fake_data, cmap[1], 0.55)
