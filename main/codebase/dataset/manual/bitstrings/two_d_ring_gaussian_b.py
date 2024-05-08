@@ -44,7 +44,7 @@ class TwoDRingGaussianDatasetB(Dataset):
 
         means = self._means_ring()
         sigma = 0.1
-        covs = [np.array([[sigma, 0], [0, sigma]]) for i in range(self.num_gauss)]
+        covs = [np.array([[sigma, 0], [0, sigma]]) for _ in range(self.num_gauss)]
 
         rv = [
             multivariate_normal(mean=mean, cov=cov) for (mean, cov) in zip(means, covs)

@@ -50,7 +50,7 @@ def train(
         plt_trainer_args["callbacks"] = [
             checkpoint_callback,
             lr_monitor_callback,
-            progress_bar()
+            #progress_bar()
         ]
         plt_trainer_args["logger"] = visualizer
 

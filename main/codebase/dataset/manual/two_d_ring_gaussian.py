@@ -61,14 +61,6 @@ class TwoDRingGaussianDataset(Dataset):
         samples = np.sum([dist.pdf(grid_elements) for dist in rv], axis=0)
         prob_data = samples / np.sum(samples)
 
-        if self.binary == True:
-
-            index_list = list(range(num_samples))
-            sampled_integers = np.random.choice(
-                index_list, size=num_samples, p=prob_data
-            )
-            grid_elements = np.array(list(map(self._int_to_binary, sampled_integers)))
-
         return prob_data, grid_elements
 
     def _means_ring(self):
@@ -97,6 +89,19 @@ class TwoDRingGaussianDataset(Dataset):
         prob_grid = np.reshape(samples, grid_shape)
         surf = ax.plot_surface(
             mesh_x, mesh_y, prob_grid, cmap=cm.coolwarm, linewidth=0, antialiased=False
+        )
+        fig.colorbar(surf, shrink=0.5, aspect=5)
+        plt.show()
+    
+    def _visualise2(self, samples):
+
+        mesh_x, mesh_y = np.meshgrid(self.coords, self.coords)
+
+        grid_shape = (self.num_discrete_values, self.num_discrete_values)
+        fig, ax = plt.subplots(figsize=(9, 9))
+        prob_grid = np.reshape(samples, grid_shape)
+        surf = ax.contourf(
+            mesh_x, mesh_y, prob_grid, cmap=cm.Blues, linewidth=0, antialiased=False
         )
         fig.colorbar(surf, shrink=0.5, aspect=5)
         plt.show()
