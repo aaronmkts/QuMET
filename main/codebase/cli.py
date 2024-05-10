@@ -118,7 +118,7 @@ CLI_DEFAULTS = {
     "seed": 42,
     # Trainer options
     "training_optimizer": OPTIMIZERS[0],
-    "trainer_precision": TRAINER_PRECISION[0],
+    "trainer_precision": TRAINER_PRECISION[1],
     "learning_rate": 1e-5,
     "weight_decay": 0,
     "max_epochs": 20,
