@@ -1,0 +1,20 @@
+# basics
+model = "efficientsu2"
+dataset = "2d_gaussian_b"
+
+# training
+training_optimizer = "adam"
+learning_rate = 1e-2
+max_epochs = 300
+batch_size = 256
+num_qubits = 6
+
+# torch lightning
+task = "bitstring_generation"
+num_workers = 0
+num_devices = 1
+accelerator = "cpu"
+project = "efficientsu2/2dgauss"
+# load
+#load_name = "../qumet_output/qgcd_probs_generation_2d_gaussian_2024-02-29/software/training_ckpts/last.ckpt"
+#load_type = "pl"

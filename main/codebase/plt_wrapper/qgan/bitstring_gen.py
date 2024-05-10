@@ -39,10 +39,10 @@ class QGANBitstringGenerationModelWrapper(WrapperBase):
 
     
     def training_step(self, batch, batch_idx):
-        measure = 0
+        mode = 'train'
         optG, optD = self.optimizers()
 
-        # data and real/fake labels
+        # Set sata and real/fake labels
         real_data = batch
         
         real_labels = torch.full((real_data.size(0),), 1.0, dtype=torch.float).type_as(
@@ -54,51 +54,51 @@ class QGANBitstringGenerationModelWrapper(WrapperBase):
 
         batch_size = real_data.size(0)
 
+        self.toggle_optimizer(optD)
+        optD.zero_grad()
 
-        # Generate fake-data
-        fake_data = self.model.generator(batch_size, measure).type_as(real_data)
+        discriminator_training_steps = 5
+        for _ in range(discriminator_training_steps):
+            fake_data = self.model.generator(batch_size, mode).type_as(real_data)
+
+            outD_real = self.model.discriminator(real_data)
+            outD_fake = self.model.discriminator(fake_data.detach()) 
+   
+            errD_real = self.criterion(outD_real, real_labels) # Discriminator real loss
+            errD_fake = self.criterion(outD_fake, fake_labels) # Discriminator fake loss
+            errD = (errD_real + errD_fake) 
+            
+            self.manual_backward(errD)
+            optD.step()
+            self.log("Discriminator_loss", errD, prog_bar=True)
+
+        self.untoggle_optimizer(optD)
 
 
         self.toggle_optimizer(optG)
         # Training the generator
-        if (batch_idx ==0) or batch_idx % 5 == 0:
-            optG.zero_grad()
-            outD_fake = self.model.discriminator(fake_data)
-            errG = self.criterion(outD_fake, real_labels) #self.adversarial_loss(outD_fake,real_labels)#self.criterion(outD_fake, real_labels)
-            self.manual_backward(errG, retain_graph = True)
-            optG.step()
-            self.log("train_g_loss_step", errG, prog_bar=True)
     
+        optG.zero_grad()
+        outD_fake = self.model.discriminator(fake_data).detach() #do i detach here?
+        errG = self.criterion(outD_fake, real_labels) 
+
+        gradients = self.model.generator.get_gradient(batch_size, self.model.discriminator)
+        for param in self.model.generator.parameters():
+            param.grad = gradients
+            param.backward(gradients)
+    
+        optG.step()
+        self.log("Generator_loss", errG, prog_bar=True)
         self.untoggle_optimizer(optG)
-
-        # Training the discriminator
-        self.toggle_optimizer(optD)
-        optD.zero_grad()
-       
-        outD_real = self.model.discriminator(real_data)
-        outD_fake = self.model.discriminator(fake_data.detach()) #D_thi(x)
-
-        errD_real = self.criterion(outD_real, real_labels) #self.adversarial_loss(outD_real, real_labels) #self.criterion(outD_real, real_labels)      # Discriminator real loss
-        errD_fake = self.criterion(outD_fake, fake_labels)#self.adversarial_loss(outD_fake, fake_labels) #self.criterion(outD_fake, fake_labels)      # Discriminator fake loss]
-
-        errD = (errD_real + errD_fake) 
-
-        self.manual_backward(errD)
-        self.log("train_d_loss_step", errD, prog_bar=True)
-        optD.step()
-        self.untoggle_optimizer(optD)
-
-        
-
 
     def validation_step(self, batch) -> None:
         # data and real/fake labels
-        measure = 1
+        mode = 'evaluate'
         real_data = batch[0].unsqueeze(0) # all elements of the batch compose of the original prob_data
         
         sample_size = 10000
         fake_data = (
-            self.model.generator(sample_size, measure).type_as(real_data).unsqueeze(0)
+            self.model.generator(sample_size, mode).type_as(real_data).unsqueeze(0)
         )  # should be using model.forward, change the shot count here for generato
         
         
@@ -119,7 +119,7 @@ class QGANBitstringGenerationModelWrapper(WrapperBase):
                 
                 
                 optG = torch.optim.Adam(
-                    self.model.generator.parameters,
+                    self.model.generator.parameters(),
                     lr=self.learning_rate,
                     weight_decay=self.weight_decay,
                     betas=(b1, b2),
