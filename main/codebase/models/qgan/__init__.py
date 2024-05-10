@@ -1,14 +1,14 @@
 from ..utils import QumetModelInfo
 from os import PathLike
 
-from .qgcd_bitstring import get_qgcd_bitstring
+from .efficient_su2 import get_qgcd_bitstring
 from .qgcd_probs import get_qgcd_probs
 
 # fmt: off
 QGAN_MODELS = {
-    "qgcd_bitstring":{
+    "efficientsu2":{
         "get_model_fn_generation": get_qgcd_bitstring,
-        "info": QumetModelInfo("qgcd_probs", model_type="qgan", task_type ="generation", bitstring_sampling = True),
+        "info": QumetModelInfo("EfficientSU2", model_type="qgan", task_type ="generation", bitstring_sampling = True),
     },
     "qgcd_probs":{
         "get_model_fn_generation": get_qgcd_probs,
