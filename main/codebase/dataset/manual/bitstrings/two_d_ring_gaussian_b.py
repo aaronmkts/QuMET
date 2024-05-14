@@ -28,13 +28,14 @@ class TwoDRingGaussianDatasetB(Dataset):
         self.num_dim = 2
         self.num_discrete_values = int(2 ** (n_qubits / self.num_dim))
         self.coords = np.linspace(-3, 3, self.num_discrete_values)
-        self.size =  2 ** (n_qubits *2)
+        self.size =  2560 * 10
         self.num_gauss = 8
 
         if split == "train":
-            self.data = self._generate_samples()
+            self.data, _ = self._generate_samples()
         elif split == "validation":
-            self.data = self._generate_samples()
+            _, prob_data = self._generate_samples()
+            self.data = np.array([prob_data] * self.size)
         else:
             raise RuntimeError(
                 f"split must be `train` or `validation`, but got {split}"
@@ -43,7 +44,7 @@ class TwoDRingGaussianDatasetB(Dataset):
     def _generate_samples(self):
 
         means = self._means_ring()
-        sigma = 0.1
+        sigma = 0.05
         covs = [np.array([[sigma, 0], [0, sigma]]) for _ in range(self.num_gauss)]
 
         rv = [
@@ -67,7 +68,7 @@ class TwoDRingGaussianDatasetB(Dataset):
         )
         grid_bitstrings = np.array(list(map(self._int_to_binary, sampled_integers)))
 
-        return grid_bitstrings
+        return grid_bitstrings, prob_data
 
     def _means_ring(self):
 
