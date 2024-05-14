@@ -27,7 +27,7 @@ logger = getLogger(__name__)
 pi = math.pi
 
 # fmt:0ff
-n_qubits = 6
+n_qubits = 10
 config = {
     "discriminator": {"input_size": n_qubits},
     "generator": {

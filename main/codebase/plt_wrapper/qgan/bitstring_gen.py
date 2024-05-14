@@ -96,18 +96,22 @@ class QGANBitstringGenerationModelWrapper(WrapperBase):
         mode = 'evaluate'
         real_data = batch[0].unsqueeze(0) # all elements of the batch compose of the original prob_data
         
-        sample_size = 10000
+        sample_size = 30000
         fake_data = (
             self.model.generator(sample_size, mode).type_as(real_data).unsqueeze(0)
-        )  # should be using model.forward, change the shot count here for generato
+        )  
         
-        
-        self.gen_out = self.image(fake_data.cpu())
+        self.countor_map = self.contour_plot(real_data.cpu().numpy(), fake_data.cpu().numpy())
         self.entropy_val(fake_data, real_data)
+        self.gen_out = self.density_plot(fake_data.cpu())
+        
+
 
     def on_validation_epoch_end(self) -> None:
         self.log("val_kl_epoch", self.entropy_val, prog_bar = True, on_epoch = True)
-        self.logger.experiment.add_image("gen_output", self.plot_to_image(self.gen_out), 
+        self.logger.experiment.add_image("2D_Countour_Map", self.plot_to_image(self.countor_map), 
+                                         global_step=self.current_epoch)
+        self.logger.experiment.add_image("Generator_Projection", self.plot_to_image(self.gen_out), 
                                          global_step=self.current_epoch)
         
     def configure_optimizers(self):
@@ -136,9 +140,9 @@ class QGANBitstringGenerationModelWrapper(WrapperBase):
 
         return [optG, optD], []
     
-    def image(self, prob_data):
+    def density_plot(self, prob_data):
         num_discrete_values = 2 ** (self.n_qubits // 2)
-        coords = np.linspace(-2, 2, num_discrete_values)
+        coords = np.linspace(-3, 3, num_discrete_values)
         mesh_x, mesh_y = np.meshgrid(coords, coords)
         grid_shape = (num_discrete_values, num_discrete_values)
 
@@ -147,31 +151,20 @@ class QGANBitstringGenerationModelWrapper(WrapperBase):
         surf = ax.plot_surface(mesh_x, mesh_y, prob_grid, cmap=cm.coolwarm, linewidth=0, antialiased=False)
         fig.colorbar(surf, shrink=0.5, aspect=5)
         return fig
-    
-    def _binary_to_int(self, bit_list):
-            output = 0
-            for bit in bit_list:
-                output = output * 2 + bit
-            return int(output)
-    
-    def get_probs_list(self, bit_list):
 
-        def _binary_to_int(bit_list):
-            output = 0
-            for bit in bit_list:
-                output = output * 2 + bit
+    def contour_plot(self, real_data, fake_data):
 
-            return int(output)
-        
-        int_list = list(map(_binary_to_int, bit_list))
+        def contour_figure(data, cmap, alpha):
+ 
+            num_discrete_values = 2 ** (self.n_qubits// 2)
+            coords = np.linspace(-3, 3, num_discrete_values)
+            mesh_x, mesh_y = np.meshgrid(coords, coords)
+            grid_shape = (num_discrete_values, num_discrete_values)
+          
+            prob_grid = np.reshape(data, grid_shape)
 
-        count_dict = {integer: 0 for integer in range(2**self.n_qubits)}
-        
-        # Potentially replace for loop with: count_dict.update(Counter(int_list))
-        for integer in int_list:
-            count_dict[integer] += 1
-        
-        total_counts = sum(count_dict.values())
-        probs_list = torch.tensor([count / total_counts for count in count_dict.values()]).view(1,-1)
+            plt.contourf(mesh_x, mesh_y, prob_grid, cmap=cmap, antialiased=False, alpha = alpha)
 
-        return probs_list
+        cmap = [cm.Reds, cm.Blues]
+        contour_figure(real_data, cmap[0],0.85)
+        contour_figure(fake_data, cmap[1], 0.55)
