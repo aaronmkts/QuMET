@@ -30,10 +30,13 @@ def get_dataset_info(name: str):
 def get_dataset(
     name: str,
     split: bool,
+    transform: str,
+    discretise: bool,
+    n_qubits: int,
     num_workers: int = os.cpu_count(),
-    n_qubits: int = 16,
     model_name: str = None,
 ):
+
     """
     Args:
         name (str): name of the dataset
@@ -54,8 +57,11 @@ def get_dataset(
 
     name = name.lower()
     if name in MANUAL_DATASET_MAPPING:
-        dataset = get_manual_dataset(name, split, n_qubits)
 
+        dataset = get_manual_dataset(name = name, split = split, transform = transform,
+                                      discretise = discretise, n_qubits = n_qubits, 
+                                      model_name = model_name)
+        
     elif name in VISION_DATASET_MAPPING:
         path = DATASET_CACHE_DIR / name
         dataset = get_vision_dataset(name, path, split, model_name)
@@ -81,16 +87,20 @@ class QuMETDataModule(pl.LightningDataModule):
         self,
         name: str,
         batch_size: int,
+        transform: str, 
+        discretise: bool,
+        n_qubits: int,
         num_workers: int,
-        n_qubits: int = 16,
         model_name: str = None,
     ) -> None:
         super().__init__()
-
+      
         self.name = name
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.n_qubits = n_qubits
+        self.transform = transform
+        self.discretise = discretise
         self.model_name = model_name
 
         self.train_dataset = None
@@ -98,13 +108,15 @@ class QuMETDataModule(pl.LightningDataModule):
         self.test_dataset = None
         self.pred_dataset = None
         self.dataset_info = get_dataset_info(name)
-
+ 
     def prepare_data(self) -> None:
         train_dataset = get_dataset(
             self.name,
             split="train",
             num_workers=self.num_workers,
             n_qubits=self.n_qubits,
+            transform = self.transform,
+            discretise = self.discretise,
             model_name=self.model_name,
         )
         val_dataset = get_dataset(
@@ -112,6 +124,8 @@ class QuMETDataModule(pl.LightningDataModule):
             split="validation",
             num_workers=self.num_workers,
             n_qubits=self.n_qubits,
+            transform = self.transform,
+            discretise = self.discretise,
             model_name=self.model_name,
         )
         test_dataset = get_dataset(
@@ -119,6 +133,8 @@ class QuMETDataModule(pl.LightningDataModule):
             split="test",
             num_workers=self.num_workers,
             n_qubits=self.n_qubits,
+            transform = self.transform,
+            discretise = self.discretise,
             model_name=self.model_name,
         )
         pred_dataset = get_dataset(
@@ -126,6 +142,8 @@ class QuMETDataModule(pl.LightningDataModule):
             split="pred",
             num_workers=self.num_workers,
             n_qubits=self.n_qubits,
+            transform = self.transform,
+            discretise = self.discretise,
             model_name=self.model_name,
         )
 
@@ -145,6 +163,8 @@ class QuMETDataModule(pl.LightningDataModule):
                 split="train",
                 num_workers=self.num_workers,
                 n_qubits=self.n_qubits,
+                transform = self.transform,
+                discretise = self.discretise,
                 model_name=self.model_name,
             )
             if self.train_dataset is not None:
@@ -155,6 +175,8 @@ class QuMETDataModule(pl.LightningDataModule):
                 split="validation",
                 num_workers=self.num_workers,
                 n_qubits=self.n_qubits,
+                transform = self.transform,
+                discretise = self.discretise,
                 model_name=self.model_name,
             )
             if self.val_dataset is not None:
@@ -165,6 +187,8 @@ class QuMETDataModule(pl.LightningDataModule):
                 split="test",
                 num_workers=self.num_workers,
                 n_qubits=self.n_qubits,
+                transform = self.transform,
+                discretise = self.discretise,
                 model_name=self.model_name,
             )
             if self.test_dataset is not None:
@@ -175,6 +199,8 @@ class QuMETDataModule(pl.LightningDataModule):
                 split="pred",
                 num_workers=self.num_workers,
                 n_qubits=self.n_qubits,
+                transform = self.transform,
+                discretise = self.discretise,
                 model_name=self.model_name,
             )
             if self.pred_dataset is not None:
@@ -190,8 +216,8 @@ class QuMETDataModule(pl.LightningDataModule):
 
         return DataLoader(
             self.train_dataset,
-            batch_size= len(self.train_dataset) if "probs" in self.model_name else self.batch_size,
-            shuffle= False if "probs" in self.model_name else True,
+            batch_size= self.batch_size,
+            shuffle= True,
             num_workers=self.num_workers,
         )
 

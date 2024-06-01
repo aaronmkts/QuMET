@@ -75,7 +75,8 @@ LOGO = f"""
      For comprehensive information on usage,
             please refer to the docs.
 """
-TASKS = ["probs_generation", "bitstring_generaton", "image_generation"]
+TASKS = ["discrete_generation", "continuous_generaton", "image_generation"]
+TRANSFORM = ['minmax', 'pit', 'pca']
 ACTIONS = ["train"]
 INFO_TYPE = ["all", "model", "dataset"]
 LOAD_TYPE = [
@@ -109,6 +110,7 @@ CLI_DEFAULTS = {
     # General options
     "config": None,
     "task": TASKS[0],
+    "transform": None,
     "load_name": None,
     "load_type": LOAD_TYPE[1],
     "batch_size": 128,
@@ -125,7 +127,7 @@ CLI_DEFAULTS = {
     "max_steps": -1,
     "accumulate_grad_batches": 1,
     "log_every_n_steps": 4,
-    "num_qubits": 6,
+    "n_qubits": 6,
     # Runtime environment options
     "num_workers": int(os.cpu_count() / 2),
     "num_devices": 1,
@@ -329,6 +331,16 @@ class QuMETCLI:
             metavar="TASK",
         )
         general_group.add_argument(
+            "--transform",
+            dest="transform",
+            choices=TRANSFORM,
+            help=f"""
+            transformation to perform. One of {'(' + '|'.join(TASKS) + ')'}
+            (default: %(default)s)
+         """,
+            metavar="TRANSFORM",
+        )
+        general_group.add_argument(
             "--load",
             dest="load_name",
             type=_valid_file_or_directory_path,
@@ -463,8 +475,8 @@ class QuMETCLI:
         )
 
         trainer_group.add_argument(
-            "--num-qubits",
-            dest="num_qubits",
+            "--n_qubits",
+            dest="n_qubits",
             type=_positive_int,
             help="number of qubits for data module. (default: %(default)s))",
             metavar="NUM",
@@ -592,7 +604,8 @@ class QuMETCLI:
         dataset_info = get_dataset_info(self.args.dataset)
 
         model_info = models.get_model_info(self.args.model)
-
+        discretise = True if 'discrete' in self.args.task else False
+        
         model = models.get_model(
             name=self.args.model,
             task=self.args.task,
@@ -603,8 +616,10 @@ class QuMETCLI:
         data_module = QuMETDataModule(
             name=self.args.dataset,
             batch_size=self.args.batch_size,
+            transform = self.args.transform,
+            discretise = discretise,
+            n_qubits=self.args.n_qubits,
             num_workers=self.args.num_workers,
-            n_qubits=self.args.num_qubits,
             model_name=self.args.model,
         )
 
