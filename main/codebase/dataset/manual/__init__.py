@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from .transforms import get_manual_dataset_transform
 from .two_d_gaussian import TwoDGaussianDataset
 from .two_d_grid_gaussian import TwoDGridGaussianDataset
 from .two_d_ring_gaussian import TwoDRingGaussianDataset
@@ -8,17 +9,18 @@ from .bitstrings import (
     TwoDGridGaussianDatasetB,
     TwoDRingGaussianDatasetB)
 
-def get_manual_dataset(name: str, split: str, n_qubits: int = 16):
+def get_manual_dataset(name: str, split: str, transform: str, discretise: bool,
+                       model_name: str, n_qubits: int):
+
     """
     Args:
         name (str): name of the dataset
-        path (str): path to the dataset
-        train (bool): whether the dataset is used for training
         model_name (Optional[str, None]): name of the model. Some pretrained models have
         model-dependent transforms for training and evaluation.
     Returns:
         dataset (torch.utils.data.Dataset): dataset (with transforms)
     """
+
     ori_split = split
     assert split in [
         "train",
@@ -26,6 +28,8 @@ def get_manual_dataset(name: str, split: str, n_qubits: int = 16):
         "test",
         "pred",
     ], f"Unknown split {split}, should be one of train, validation, test, pred"
+ 
+    normaliser, discretisation = get_manual_dataset_transform(name, transform, discretise, model_name)
 
     match name:
         case "2d_gaussian":
@@ -58,7 +62,7 @@ def get_manual_dataset(name: str, split: str, n_qubits: int = 16):
     if ori_split == "pred" and dataset_cls.info.pred_split_available:
         split = "test"
 
-    dataset = dataset_cls(split, n_qubits)
+    dataset = dataset_cls(split, normaliser, discretisation, n_qubits)
     return dataset
 
 
