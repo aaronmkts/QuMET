@@ -46,7 +46,7 @@ class TwoDGridGaussianDatasetB(Dataset):
         )
 
         sigma = 0.15
-        covs = [np.array([[sigma, 0], [0, sigma]]) for i in range(self.num_gauss)]
+        covs = [np.array([[sigma**2, 0], [0, sigma**2]]) for i in range(self.num_gauss)]
 
         rv = [
             multivariate_normal(mean=mean, cov=cov) for (mean, cov) in zip(means, covs)
