@@ -13,11 +13,10 @@ import torch
 import torch.nn as nn
 
 import itertools
-from codebase.models.qgan.qgcd_probs.modelling_qgan_probs import QGCD_Probs_GAN, _qgcd_gan
-from codebase.models.qgan.qgcd_probs.configuration_qgan_probs import QGCD_Probs_Config
+from itertools import product
 from codebase.dataset import QuMETDataModule
 from codebase.models import get_model, get_model_info
-from codebase.dataset import get_dataset_info
+from codebase.dataset import get_dataset
 
 from codebase.plt_wrapper import get_model_wrapper
 import pytorch_lightning as L
@@ -28,87 +27,157 @@ from scipy.stats import multivariate_normal
 import io
 import torchvision
 import tensorflow as tf
+import torch
+from codebase.dataset.manual.transforms.utils import MinMaxNormalizer, PITNormalizer
+import pennylane as qml
+from pennylane.transforms import insert
+from functools import partial
+
+
 def main():
-    '''
-    logdir = "logs/plots/" 
-    file_writer = tf.summary.create_file_writer(logdir)
+    class MinMaxNormalizer:
+        def __init__(self, reverse_lookup = None, epsilon = 0):
+            self.reverse_lookup = reverse_lookup
+            self.epsilon = epsilon
 
-    def plot_to_image(figure):
-        """Converts the matplotlib plot specified by 'figure' to a PNG image and
-        returns it. The supplied figure is closed and inaccessible after this call."""
-        # Save the plot to a PNG in memory.
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-        # Closing the figure prevents it from being displayed directly inside
-        # the notebook.
-        plt.close(figure)
-        buf.seek(0)
-        # Convert PNG buffer to TF image
-        image = tf.image.decode_png(buf.getvalue(), channels=4)
-        image = tf.expand_dims(image, 0)
-        return image
+        def fit_transform(self, data: np.ndarray) -> np.ndarray:
+            self.min = data.min()
+            self.max = data.max() - data.min()
+            data = (data - self.min) / self.max
+            self.reverse_lookup = (self.min, self.max)
+            return data / (1 + self.epsilon)
 
-    def image():
-        num_discrete_values = 8
-        coords = np.linspace(-2, 2, num_discrete_values)
+        def transform(self, data: np.ndarray) -> np.ndarray:
+            min = data.min()
+            max = data.max() - data.min()
+            data = (data - min) / max
+            return data / (1 + self.epsilon)
 
-        rv = multivariate_normal(mean=[0.0, 0.0], cov=[[1, 0], [0, 1]], seed=42)
-        grid_elements = np.transpose([np.tile(coords, len(coords)), np.repeat(coords, len(coords))])
-        prob_data = rv.pdf(grid_elements)
-        prob_data = prob_data / np.sum(prob_data)
-        mesh_x, mesh_y = np.meshgrid(coords, coords)
-        grid_shape = (num_discrete_values, num_discrete_values)
-
-        fig, ax = plt.subplots(figsize=(12, 12), subplot_kw={"projection": "3d"})
-        prob_grid = np.reshape(prob_data, grid_shape)
-        surf = ax.plot_surface(mesh_x, mesh_y, prob_grid, cmap=cm.coolwarm, linewidth=0, antialiased=False)
-        fig.colorbar(surf, shrink=0.5, aspect=5)
-        return fig
+        def inverse_transform(self, data: np.ndarray) -> np.ndarray:
+            data = data * (1 + self.epsilon)
+            self.min, self.max = self.reverse_lookup
+            return data * self.max + self.min
+    # Parameters
+    def center(coord, n):
+        return np.array(coord) / n + 0.5 / n
     
-    figure = image()
-    
-    with file_writer.as_default():
-        tf.summary.image("Training data", plot_to_image(figure), step=0)
-    '''
+    def compute_discretization(n_qubits, n_dim):
+        format_string = "{:0" + str(n_qubits) + "b}"
+        n = 2 ** (n_qubits // n_dim)
+        dict_bins = {}
 
-    def bars_and_stripes(rows, cols):
+        for k, coordinates in enumerate(product(range(n), repeat=n_dim)):
+            dict_bins.update({
+                format_string.format(k): [coordinates, center(coordinates, n)]
+            })
+        return dict_bins
     
-        data = [] 
+    def discretise_samples(data):
+
         
-        for h in itertools.product([0,1], repeat=cols):
-            pic = np.repeat([h], rows, 0)
-            data.append(pic.ravel().tolist())
-            
-        for h in itertools.product([0,1], repeat=rows):
-            pic = np.repeat([h], cols, 1)
-            data.append(pic.ravel().tolist())
+        num_discrete_values = int(2 ** (6 / 2)) #discretisation per dimension
+        nns = tuple(num_discrete_values for _ in range(2)) #siply (n,n) for 2 d and (n,n,n) for 3d data
+        nns_nq = nns + tuple((6,)) #(n,n, n_qubits) 8 by 8 grid with qubits appended
+
+        inverse_bins = np.zeros(nns_nq) #empty matrix with shape ((n,n, n_qubits))
+        for key, value in discretisation.items():
+            id_n = value[0]
+            inverse_bins[id_n] = np.array([int(bit) for bit in key])
+
+        coordinates = np.floor(data * num_discrete_values).astype(int)
+
+        train_dataset = np.array([inverse_bins[tuple(coord)] for coord in coordinates])
+
+        distribution = np.zeros(nns)
+        for xy in coordinates:
+            indices = tuple(xy[ii] for ii in range(2))
+            distribution[indices] += 1
+        # Add a small value to empty elements
+
+        distribution /= np.sum(distribution)
+        distribution = np.array(distribution).reshape((num_discrete_values ** 2))
+
+        return train_dataset, distribution
+    
+    discretisation = compute_discretization(6,2)
+    normaliser = MinMaxNormalizer(epsilon=1e-8)
+
+    def datasetB():
+        num_gauss = 9
+        set_length = int(pow(num_gauss, 1 / 2))
+        num_discrete_values = int(2 ** (6 / 2))
+        coords = np.linspace(-3, 3, num_discrete_values)
+
+        positions = np.linspace(-1.9, 1.9, int(set_length))
+        means = np.array(
+            [np.array([i, j]) for i, j in itertools.product(positions, positions)]
+        )
+
+        sigma = 0.15
+        covs = [np.array([[sigma**2, 0], [0, sigma**2]]) for i in range(num_gauss)]
+
+        rv = [
+            multivariate_normal(mean=mean, cov=cov) for (mean, cov) in zip(means, covs)
+        ]
+
+        grid_elements = np.transpose(
+            [
+                np.tile(coords, len(coords)),
+                np.repeat(coords, len(coords)),
+            ]
+        )
+
+        num_samples = len(grid_elements)
+
+        samples = np.sum([dist.pdf(grid_elements) for dist in rv], axis=0)
+        breakpoint()
+        prob_data = samples / np.sum(samples)
+
+        return prob_data
+
+    
+
+    def datasetA():
+        n_samples = 50000
+        std = 0.05
+        cov = np.diag([std**2, std**2])
+        n_gauss = 25
+        step_size = int(pow(n_gauss, 1 / 2))
+        positions = range(-4,5,2)
+        means = np.array(
+            [np.array([i, j]) for i, j in itertools.product(positions, positions)]
+        )
+
+        def linear_search_optimized(arr, target):
+            for i, num in enumerate(arr):
+                if num == target:
+                    return i
+            return 'not found'
         
-        data = np.unique(np.asarray(data), axis=0)
+        n_samples_per_gauss = n_samples // n_gauss
+        extra_samples = n_samples % n_gauss
+
+        # Create distribution objects for each Gaussian
+        rv = [multivariate_normal(mean=mean, cov=cov) for mean in means]
+
+        # Generate sampless
+        samples = np.zeros((n_samples, 2))
+        component_indices = np.hstack([np.full(n_samples_per_gauss + (1 if i < extra_samples else 0), i) for i in range(n_gauss)])
+        np.random.shuffle(component_indices)
+
+        for i, component_index in enumerate(component_indices):
+            samples[i] = rv[component_index].rvs()
         
+        data = samples
+
         return data
     
-    n , m =  2, 3
+    data = datasetA()
+    np.save('MG25', data)
+    breakpoint()
 
-    bas = bars_and_stripes(n,m)
-    print(bas)
-    n_points, n_qubits  =  bas.shape
+    
 
-    print(n_points,n_qubits)
-    fig, ax_b = plt.subplots(1, bas.shape[0], figsize=(14,2))   #visualization of bars ans stripes data set
-
-    for i in range(bas.shape[0]):
-        ax_b[i].matshow(bas[i].reshape(n, m), vmin=-1, vmax=1)
-        
-        ax_b[i].set_xticks([])
-        ax_b[i].set_yticks([])
-        
-        ax_b[i].set_xticks([0.5], minor=True)
-        ax_b[i].set_yticks([0.5], minor=True)
-        
-        ax_b[i].set_title(bas[i])
-        ax_b[i].grid(which='minor', color='black', linestyle='-', linewidth=0.75)
-
-    plt.show()
-
+    
 if __name__ == "__main__":
     main()

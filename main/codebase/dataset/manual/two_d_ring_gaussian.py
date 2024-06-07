@@ -8,106 +8,92 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import math
 
-# Set the random seed for reproducibility and constants
+# Set the constants
 pi = math.pi
-seed = 42
-np.random.seed(seed)
-
 
 @add_dataset_info(
     name="2d_ring_gaussian",
     dataset_source="manual",
     available_splits=("train", "validation"),
-    probs_generation=True,
+    discrete_generation=True,
+    continuous_generation=True
 )
+
 class TwoDRingGaussianDataset(Dataset):
-    def __init__(self, split="train", n_qubits=16) -> None:
+    def __init__(self, split="train", normaliser = None, discretisation = None, n_qubits=6) -> None:
 
         self.n_qubits = n_qubits
-        self.num_dim = 2
-        self.num_discrete_values = int(2 ** (n_qubits / self.num_dim))
-        self.coords = np.linspace(-3, 3, self.num_discrete_values)
-        self.num_gauss = 8
-        self.samples, self.grid_elements = self._generate_samples()
+        self.normaliser = normaliser
+        self.reverse_lookup = normaliser.reverse_lookup if normaliser else None
+        self.n_dim = 2
+        self.n_samples = 2560 * 5
+        self.discretisation = discretisation(n_qubits, n_dim=2) if discretisation else None
+
 
         if split == "train":
-            self.data = np.array(self.samples).reshape((-1, 1))
+            self.data, _ = self._generate_samples()
         elif split == "validation":
-            self.data = np.array(self.samples).reshape((-1, 1))
-
+            _, prob_data = self._generate_samples()
+            self.data = np.array([prob_data] * self.n_samples)
         else:
             raise RuntimeError(
                 f"split must be `train` or `validation`, but got {split}"
             )
 
     def _generate_samples(self):
+        """Generate 2D Ring"""
+       
+        radius = 1.0 
+        n_mixture = 8 
+        n_samples_per_gauss = int(self.n_samples / n_mixture)  
+        std = 0.1  
+         
+        thetas = np.linspace(0, 2 * np.pi, n_mixture, endpoint=False)
+        xs = radius * np.sin(thetas)
+        ys = radius * np.cos(thetas)
+        means = [np.array([xi, yi]) for xi, yi in zip(xs, ys)]
 
-        means = self._means_ring()
-        sigma = 0.1
-        covs = [np.array([[sigma, 0], [0, sigma]]) for i in range(self.num_gauss)]
+        # Covariance matrix for each Gaussian (assuming isotropic Gaussians)
+        cov = np.diag([std**2, std**2])
+        
+        # Generate samples from each Gaussian distribution
+        samples = [np.random.multivariate_normal(mean, cov, n_samples_per_gauss) for mean in means]
 
-        rv = [
-            multivariate_normal(mean=mean, cov=cov) for (mean, cov) in zip(means, covs)
-        ]
+         # Combine all samples into a single array for easier plotting
+        all_samples = np.vstack(samples)
 
-        grid_elements = np.transpose(
-            [
-                np.tile(self.coords, len(self.coords)),
-                np.repeat(self.coords, len(self.coords)),
-            ]
-        )
-        num_samples = len(grid_elements)
+        data = self.normaliser.fit_transform(all_samples)
+        breakpoint()
+        if self.discretisation:
+            data, distribution = self._discretise_samples(data)
+            return data, distribution
+        return data 
 
-        samples = np.sum([dist.pdf(grid_elements) for dist in rv], axis=0)
-        prob_data = samples / np.sum(samples)
+    def _discretise_samples(self, data):
+        
+        num_discrete_values = int(2 ** (self.n_qubits / self.n_dim)) #discretisation per dimension
+        nns = tuple(num_discrete_values for _ in range(self.n_dim)) #siply (n,n) for 2 d and (n,n,n) for 3d data
+        nns_nq = nns + tuple((self.n_qubits,)) #(n,n, n_qubits) 8 by 8 grid with qubits appended
 
-        return prob_data, grid_elements
+        inverse_bins = np.zeros(nns_nq) #empty matrix with shape ((n,n, n_qubits))
+        for key, value in self.discretisation.items():
+            id_n = value[0]
+            inverse_bins[id_n] = np.array([int(bit) for bit in key])
 
-    def _means_ring(self):
+        coordinates = np.floor(data * num_discrete_values).astype(int)
+        train_dataset = np.array([inverse_bins[tuple(coord)] for coord in coordinates])
 
-        self.radius = 2
-        means_list = []
-
-        for i in range(self.num_gauss):
-
-            theta = ((2 * pi) / self.num_gauss) * i
-
-            x = self.radius * math.sin(theta)
-            y = self.radius * math.cos(theta)
-
-            means_list.append((x, y))
-
-        means = np.array([np.array([i, j]) for i, j in means_list])
-
-        return means
-
-    def _visualise(self, samples):
-
-        mesh_x, mesh_y = np.meshgrid(self.coords, self.coords)
-        grid_shape = (self.num_discrete_values, self.num_discrete_values)
-        fig, ax = plt.subplots(figsize=(9, 9), subplot_kw={"projection": "3d"})
-        prob_grid = np.reshape(samples, grid_shape)
-        surf = ax.plot_surface(
-            mesh_x, mesh_y, prob_grid, cmap=cm.coolwarm, linewidth=0, antialiased=False
-        )
-        fig.colorbar(surf, shrink=0.5, aspect=5)
-        plt.show()
-    
-    def _visualise2(self, samples):
-
-        mesh_x, mesh_y = np.meshgrid(self.coords, self.coords)
-
-        grid_shape = (self.num_discrete_values, self.num_discrete_values)
-        fig, ax = plt.subplots(figsize=(9, 9))
-        prob_grid = np.reshape(samples, grid_shape)
-        surf = ax.contourf(
-            mesh_x, mesh_y, prob_grid, cmap=cm.Blues, linewidth=0, antialiased=False
-        )
-        fig.colorbar(surf, shrink=0.5, aspect=5)
-        plt.show()
+        distribution = np.zeros(nns)
+        for xy in coordinates:
+            indices = tuple(xy[ii] for ii in range(self.n_dim))
+            distribution[indices] += 1
+        distribution /= np.sum(distribution)
+        distribution = np.array(distribution).reshape((num_discrete_values ** 2))
+   
+        return train_dataset, distribution
 
     def __len__(self):
-        return len(self.samples)
+        return self.n_samples
 
     def prepare_data(self) -> None:
         pass
@@ -118,6 +104,5 @@ class TwoDRingGaussianDataset(Dataset):
     def __getitem__(self, index):
 
         data_i = torch.tensor(self.data[index, ...], dtype=torch.float32)
-        label_i = torch.tensor(self.grid_elements[index, ...], dtype=torch.float32)
-
-        return data_i, label_i
+    
+        return data_i

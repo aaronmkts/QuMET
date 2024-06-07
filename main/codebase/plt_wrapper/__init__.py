@@ -1,17 +1,16 @@
 from .qgan import (
-    QGANGenerationModelWrapper,
-    QGANBitstringGenerationModelWrapper
-)
+    QGANDiscreteGenModelWrapper,
+    QGANBitstringGenerationModelWrapper)
 
 
 
 def get_model_wrapper(model_info, task: str):
     if model_info.is_generation_model:
         match task:
-            case "probs_generation":
-                return QGANGenerationModelWrapper
-            case "bitstring_generation":
-                return QGANBitstringGenerationModelWrapper
+            case "discrete_generation":
+                return QGANDiscreteGenModelWrapper
+            case "continous_generation":
+                return NotImplementedError
             case "image_generation":
                 return NotImplementedError
             case _:

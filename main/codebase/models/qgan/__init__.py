@@ -12,7 +12,7 @@ QGAN_MODELS = {
     },
     "qgcd_probs":{
         "get_model_fn_generation": get_qgcd_probs,
-        "info": QumetModelInfo("qgcd_probs", model_type="qgan", task_type ="generation", distribution_sampling = True),
+        "info": QumetModelInfo("qgcd_probs", model_type="qgan", task_type ="generation", observable_sampling = True),
     }
 }
 
@@ -45,15 +45,15 @@ def get_qgan_model(
     model_info: QumetModelInfo = QGAN_MODELS[name]["info"]
 
     match task:
-        case "probs_generation":
+        case "discrete_generation":
             assert (
-                model_info.distribution_sampling
+                model_info.bitstring_sampling
             ), f"Task {task} is not supported for {name}"
             model = QGAN_MODELS[name]["get_model_fn_generation"](info=dataset_info)
 
-        case "bitstring_generation":
+        case "continuous_generation":
             assert (
-                model_info.bitstring_sampling
+                model_info.observable_sampling
             ), f"Task {task} is not supported for {name}"
             model = QGAN_MODELS[name]["get_model_fn_generation"](info=dataset_info)
 

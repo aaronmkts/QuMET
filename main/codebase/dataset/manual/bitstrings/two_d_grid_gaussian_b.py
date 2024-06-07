@@ -15,7 +15,6 @@ np.random.seed(seed)
     name="2d_grid_gaussian_b",
     dataset_source="manual",
     available_splits=("train", "validation"),
-    bitsring_generation=True,
 )
 class TwoDGridGaussianDatasetB(Dataset):
     def __init__(self, split="train", n_qubits=16) -> None:
@@ -47,7 +46,7 @@ class TwoDGridGaussianDatasetB(Dataset):
         )
 
         sigma = 0.15
-        covs = [np.array([[sigma, 0], [0, sigma]]) for i in range(self.num_gauss)]
+        covs = [np.array([[sigma**2, 0], [0, sigma**2]]) for i in range(self.num_gauss)]
 
         rv = [
             multivariate_normal(mean=mean, cov=cov) for (mean, cov) in zip(means, covs)
