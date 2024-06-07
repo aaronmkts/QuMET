@@ -34,7 +34,7 @@ class TwoDGridGaussianDataset(Dataset):
         self.normaliser = normaliser
         self.reverse_lookup = normaliser.reverse_lookup if normaliser else None
         self.n_dim = 2
-        self.n_samples = 2560 * 5
+        self.n_samples = 25600
         self.discretisation = discretisation(n_qubits, n_dim=2) if discretisation else None
         self.n_gauss = 9
 
@@ -51,20 +51,28 @@ class TwoDGridGaussianDataset(Dataset):
     def _generate_samples(self):
 
         # Parameters
-        std = 0.1  
+        std = 0.3
         cov = np.diag([std**2, std**2])
 
         step_size = int(pow(self.n_gauss, 1 / 2))
-        positions = np.linspace(-1.5, 1.5, int(step_size))
+        positions = np.linspace(-1.9, 1.9, int(step_size))
         means = np.array(
             [np.array([i, j]) for i, j in itertools.product(positions, positions)]
         )
-        n_samples_per_gauss = int(self.n_samples / self.n_gauss)
+        n_samples_per_gauss = self.n_samples // self.n_gauss
+        extra_samples = self.n_samples % self.n_gauss
 
-        samples = [np.random.multivariate_normal(mean, cov, n_samples_per_gauss) for mean in means]
-        all_samples = np.vstack(samples)
+        # Create distribution objects for each Gaussian
+        rv = [multivariate_normal(mean=mean, cov=cov) for mean in means]
+        # Generate samples
+        samples = np.zeros((self.n_samples, 2))
+        component_indices = np.hstack([np.full(n_samples_per_gauss + (1 if i < extra_samples else 0), i) for i in range(self.n_gauss)])
+        np.random.shuffle(component_indices)
         
-        data = self.normaliser.fit_transform(all_samples) if self.normaliser else all_samples
+        for i, component_index in enumerate(component_indices):
+            samples[i] = rv[component_index].rvs()
+
+        data = self.normaliser.fit_transform(samples) if self.normaliser else samples
 
         if self.discretisation:
             data, distribution = self._discretise_samples(data)
@@ -89,13 +97,15 @@ class TwoDGridGaussianDataset(Dataset):
         for xy in coordinates:
             indices = tuple(xy[ii] for ii in range(self.n_dim))
             distribution[indices] += 1
+        # Add a small value to empty elements
+
         distribution /= np.sum(distribution)
         distribution = np.array(distribution).reshape((num_discrete_values ** 2))
    
         return train_dataset, distribution
     
     def __len__(self):
-        return len(self.samples)
+        return self.n_samples
 
     def prepare_data(self) -> None:
         pass
