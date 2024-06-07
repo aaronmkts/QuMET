@@ -1,2 +1,2 @@
-from .generation import QGANGenerationModelWrapper
+from .discrete_gen import QGANDiscreteGenModelWrapper
 from .bitstring_gen import QGANBitstringGenerationModelWrapper
