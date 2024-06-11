@@ -4,7 +4,7 @@ import sys
 os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
 sys.path.append(
      os.path.join(
-         os.path.dirname(os.path.realpath(__file__)), "..", "..", ".." ,"main"
+         os.path.dirname(os.path.realpath(__file__)), "..", "..", ".." ,"src"
      )
     )
 
@@ -12,9 +12,9 @@ import gymnasium
 import torch.optim as optim
 from stable_baselines3 import A2C, PPO
 from stable_baselines3.common.evaluation import evaluate_policy
-from codebase.gyms import QuMETGymnasium
-from codebase.tools import load_config
-from codebase.actions.rl_train import train
+from qumet.gyms import QuMETGymnasium
+from qumet.tools import load_config
+from qumet.actions.rl_train import train
 from stable_baselines3.common.env_checker import check_env
 
 def main():

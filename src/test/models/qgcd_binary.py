@@ -4,19 +4,18 @@ import sys
 os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
 sys.path.append(
      os.path.join(
-         os.path.dirname(os.path.realpath(__file__)), "..", "..", ".." ,"main"
+         os.path.dirname(os.path.realpath(__file__)), "..", "..", ".." ,"src"
      )
     )
 
 import torch.nn as nn
-from codebase.actions.train_ import train
 
-from codebase.dataset import QuMETDataModule
-from codebase.models.qgan.qgcd.configuration_qgcd import QGCDConfig
+from qumet.dataset import QuMETDataModule
+from qumet.models.qgan.qgcd.configuration_qgcd import QGCDConfig
 import toml
-from codebase.models import get_model 
-from main.codebase.models.qgan.efficient_su2.modelling_efficient_su2 import Binary_Generator, Binary_Discriminator
-from main.codebase.models.qgan.efficient_su2.configuration_qgan_bitstring import QGCD_Binary_Config
+from qumet.models import get_model 
+from src.qumet.models.qgan.efficient_su2.modelling_efficient_su2 import Binary_Generator, Binary_Discriminator
+from src.qumet.models.qgan.efficient_su2.configuration_qgan_bitstring import QGCD_Binary_Config
 
 def main():
     # model

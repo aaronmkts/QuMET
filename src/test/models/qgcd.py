@@ -4,14 +4,14 @@ import sys
 os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
 sys.path.append(
      os.path.join(
-         os.path.dirname(os.path.realpath(__file__)), "..", "..", ".." ,"main"
+         os.path.dirname(os.path.realpath(__file__)), "..", "..", ".." ,"src"
      )
     )
 
 import torch.nn as nn
-from codebase.actions.train import train
-from codebase.dataset import QuMETDataModule, get_dataset_info
-from codebase.models import get_model, get_model_info
+from qumet.actions.train import train
+from qumet.dataset import QuMETDataModule, get_dataset_info
+from qumet.models import get_model, get_model_info
 
 import pytorch_lightning as pl
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
