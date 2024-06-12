@@ -1,34 +1,42 @@
 import numpy as np
 from scipy.stats import multivariate_normal
-import torch
 from torch.utils.data import Dataset
-import itertools
 from ..utils import add_dataset_info
 import matplotlib.pyplot as plt
 from matplotlib import cm
-import math
+import torch 
+import itertools
+# Set the random seed for reproducibility
 
-# Set the constants
-pi = math.pi
+
 
 @add_dataset_info(
-    name="2d_ring_gaussian",
+    name="2d_grid_gaussian",
     dataset_source="manual",
     available_splits=("train", "validation"),
     discrete_generation=True,
     continuous_generation=True
 )
-
-class TwoDRingGaussianDataset(Dataset):
+class TwoDGridGaussianDataset(Dataset):
     def __init__(self, split="train", normaliser = None, discretisation = None, n_qubits=6) -> None:
+        super().__init__()
+        """
+        Initialize the TwoDGaussianDataset.
+
+        Args:
+            split (str): Dataset split type ('train' or 'validation').
+            normaliser: Normalization object with fit_transform and reverse_lookup methods.
+            discretisation: Discretization function.
+            n_qubits (int): Number of qubits for discretization.
+        """
 
         self.n_qubits = n_qubits
         self.normaliser = normaliser
         self.reverse_lookup = normaliser.reverse_lookup if normaliser else None
         self.n_dim = 2
-        self.n_samples = 2560 * 5
+        self.n_samples = 25600
         self.discretisation = discretisation(n_qubits, n_dim=2) if discretisation else None
-
+        self.n_gauss = 9
 
         if split == "train":
             self.data, _ = self._generate_samples()
@@ -41,29 +49,31 @@ class TwoDRingGaussianDataset(Dataset):
             )
 
     def _generate_samples(self):
-        """Generate 2D Ring"""
-       
-        radius = 1.0 
-        n_mixture = 8 
-        n_samples_per_gauss = int(self.n_samples / n_mixture)  
-        std = 0.1  
-         
-        thetas = np.linspace(0, 2 * np.pi, n_mixture, endpoint=False)
-        xs = radius * np.sin(thetas)
-        ys = radius * np.cos(thetas)
-        means = [np.array([xi, yi]) for xi, yi in zip(xs, ys)]
 
-        # Covariance matrix for each Gaussian (assuming isotropic Gaussians)
+        # Parameters
+        std = 0.3
         cov = np.diag([std**2, std**2])
+
+        step_size = int(pow(self.n_gauss, 1 / 2))
+        positions = np.linspace(-1.9, 1.9, int(step_size))
+        means = np.array(
+            [np.array([i, j]) for i, j in itertools.product(positions, positions)]
+        )
+        n_samples_per_gauss = self.n_samples // self.n_gauss
+        extra_samples = self.n_samples % self.n_gauss
+
+        # Create distribution objects for each Gaussian
+        rv = [multivariate_normal(mean=mean, cov=cov) for mean in means]
+        # Generate samples
+        samples = np.zeros((self.n_samples, 2))
+        component_indices = np.hstack([np.full(n_samples_per_gauss + (1 if i < extra_samples else 0), i) for i in range(self.n_gauss)])
+        np.random.shuffle(component_indices)
         
-        # Generate samples from each Gaussian distribution
-        samples = [np.random.multivariate_normal(mean, cov, n_samples_per_gauss) for mean in means]
+        for i, component_index in enumerate(component_indices):
+            samples[i] = rv[component_index].rvs()
 
-         # Combine all samples into a single array for easier plotting
-        all_samples = np.vstack(samples)
+        data = self.normaliser.fit_transform(samples) if self.normaliser else samples
 
-        data = self.normaliser.fit_transform(all_samples)
-        breakpoint()
         if self.discretisation:
             data, distribution = self._discretise_samples(data)
             return data, distribution
@@ -87,11 +97,13 @@ class TwoDRingGaussianDataset(Dataset):
         for xy in coordinates:
             indices = tuple(xy[ii] for ii in range(self.n_dim))
             distribution[indices] += 1
+        # Add a small value to empty elements
+
         distribution /= np.sum(distribution)
         distribution = np.array(distribution).reshape((num_discrete_values ** 2))
    
         return train_dataset, distribution
-
+    
     def __len__(self):
         return self.n_samples
 
@@ -104,5 +116,5 @@ class TwoDRingGaussianDataset(Dataset):
     def __getitem__(self, index):
 
         data_i = torch.tensor(self.data[index, ...], dtype=torch.float32)
-    
+
         return data_i

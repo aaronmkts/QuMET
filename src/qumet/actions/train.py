@@ -1,9 +1,9 @@
 import logging
 import os
 from pathlib import Path
-from codebase.plt_wrapper import get_model_wrapper
-from codebase.tools.checkpoint_load import load_model
-from codebase.tools.progress_bar import progress_bar
+from qumet.plt_wrapper import get_model_wrapper
+from qumet.tools.checkpoint_load import load_model
+from qumet.tools.progress_bar import progress_bar
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks  import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger

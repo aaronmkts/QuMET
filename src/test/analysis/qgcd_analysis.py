@@ -6,7 +6,7 @@ from scipy.stats import multivariate_normal
 os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
 sys.path.append(
      os.path.join(
-         os.path.dirname(os.path.realpath(__file__)), "..", "..", ".." ,"main"
+         os.path.dirname(os.path.realpath(__file__)), "..", "..", ".." ,"src"
      )
     )
 import torch 
@@ -14,11 +14,11 @@ import torch.nn as nn
 
 import itertools
 from itertools import product
-from codebase.dataset import QuMETDataModule
-from codebase.models import get_model, get_model_info
-from codebase.dataset import get_dataset
+from qumet.dataset import QuMETDataModule
+from qumet.models import get_model, get_model_info
+from qumet.dataset import get_dataset
 
-from codebase.plt_wrapper import get_model_wrapper
+from qumet.plt_wrapper import get_model_wrapper
 import pytorch_lightning as L
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -28,7 +28,7 @@ import io
 import torchvision
 import tensorflow as tf
 import torch
-from codebase.dataset.manual.transforms.utils import MinMaxNormalizer, PITNormalizer
+from qumet.dataset.manual.transforms.utils import MinMaxNormalizer, PITNormalizer
 import pennylane as qml
 from pennylane.transforms import insert
 from functools import partial
