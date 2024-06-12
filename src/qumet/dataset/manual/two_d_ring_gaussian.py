@@ -18,10 +18,9 @@ pi = math.pi
     discrete_generation=True,
     continuous_generation=True
 )
-
 class TwoDRingGaussianDataset(Dataset):
     def __init__(self, split="train", normaliser = None, discretisation = None, n_qubits=6) -> None:
-
+        super().__init__()
         self.n_qubits = n_qubits
         self.normaliser = normaliser
         self.reverse_lookup = normaliser.reverse_lookup if normaliser else None

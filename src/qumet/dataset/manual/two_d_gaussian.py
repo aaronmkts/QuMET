@@ -18,7 +18,7 @@ import torch
 )
 class TwoDGaussianDataset(Dataset):
     def __init__(self, split="train", normaliser = None, discretisation = None, n_qubits=6) -> None:
-       
+        super().__init__()
         """
         Initialize the TwoDGaussianDataset.
 

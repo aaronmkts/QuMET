@@ -11,7 +11,7 @@ import itertools
 
 
 @add_dataset_info(
-    name="2d_gaussian",
+    name="2d_grid_gaussian",
     dataset_source="manual",
     available_splits=("train", "validation"),
     discrete_generation=True,
@@ -19,7 +19,7 @@ import itertools
 )
 class TwoDGridGaussianDataset(Dataset):
     def __init__(self, split="train", normaliser = None, discretisation = None, n_qubits=6) -> None:
-       
+        super().__init__()
         """
         Initialize the TwoDGaussianDataset.
 
