@@ -48,7 +48,7 @@ import torch
 import pennylane
 
 from . import models
-from .actions import train
+from .actions import train, validate
 from .dataset import QuMETDataModule, AVAILABLE_DATASETS, get_dataset_info
 from .tools import post_parse_load_config, load_config
 
@@ -110,7 +110,7 @@ CLI_DEFAULTS = {
     # General options
     "config": None,
     "task": TASKS[0],
-    "transform": None,
+    "transform": TRANSFORM[0],
     "load_name": None,
     "load_type": LOAD_TYPE[1],
     "batch_size": 128,
@@ -209,6 +209,8 @@ class QuMETCLI:
         match self.args.action:
             case "train":
                 run_action_fn = self._run_train
+            case "validate":
+                run_action_fn = self.run_validate
 
         if run_action_fn is None:
             raise ValueError(f"Unsupported action: {self.args.action}")
@@ -273,6 +275,41 @@ class QuMETCLI:
         train(**train_params)
         self.logger.info("Training is completed")
 
+    def _run_validate(self):
+        self.logger.info(f"Validating model {self.args.model!r}...")
+
+        plt_trainer_args = {
+            "devices": self.args.num_devices,
+            "num_nodes": self.args.num_nodes,
+            "accelerator": self.args.accelerator,
+            "strategy": self.args.strategy,
+            "precision": self.args.trainer_precision,
+        }
+
+        # The checkpoint must be present, except when the model is pretrained.
+        if self.args.load_name is None and not self.args.is_pretrained:
+            raise ValueError("expected checkpoint via --load, got None")
+
+        validate_params = {
+            "model": self.model,
+            "model_info": self.model_info,
+            "data_module": self.data_module,
+            "dataset_info": self.dataset_info,
+            "task": self.args.task,
+            "optimizer": self.args.training_optimizer,
+            "learning_rate": self.args.learning_rate,
+            "weight_decay": self.args.weight_decay,
+            "plt_trainer_args": plt_trainer_args,
+            "auto_requeue": self.args.is_to_auto_requeue,
+            "save_path": os.path.join(self.output_dir_sw, "training_ckpts"),
+            "visualizer": self.visualizer,
+            "load_name": self.args.load_name,
+            "load_type": self.args.load_type,
+        }
+
+        validate(**validate_params)
+        self.logger.info("Validation is completed")
+        
     # Helpers --------------------------------------------------------------------------
     def _setup_parser(self):
         # NOTE: For a better developer experience, it's helpful to collapse all function
