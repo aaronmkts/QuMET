@@ -21,14 +21,26 @@ def _get_mnist_default_transform():
     transform = tv_transforms.Compose(transform_list)
     return transform
 
+def _get_mnist_patchgan_transform():
+    transform_list = [tv_transforms.ToTensor(), tv_transforms.Resize(8)]
+    transform = tv_transforms.Compose(transform_list)
+ 
+    return transform
 
 def get_mnist_default_transform(train: bool) -> tv_transforms.Compose:
     return _get_mnist_default_transform()
 
+def get_mnist_patchgan_transform(train: bool) -> tv_transforms.Compose:
+    return _get_mnist_patchgan_transform()
 
 def get_mnist_transform(train: bool, model: str = None):
+    
     if model is None:
         return get_mnist_default_transform(train)
+        
+    if model == 'patchgan':
+        return get_mnist_patchgan_transform(train)
+        
     else:
         # Currently no model-dependent transform for mnist is supported.
         return get_mnist_default_transform(train)
