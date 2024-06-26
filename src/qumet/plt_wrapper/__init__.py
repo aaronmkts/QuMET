@@ -1,6 +1,7 @@
 from .qgan import (
     QGANDiscreteGenModelWrapper,
-    QGANBitstringGenerationModelWrapper)
+    QGANBitstringGenerationModelWrapper,
+    QGANImageGenerationModelWrapper)
 
 
 
@@ -12,6 +13,6 @@ def get_model_wrapper(model_info, task: str):
             case "continous_generation":
                 return NotImplementedError
             case "image_generation":
-                return NotImplementedError
+                return QGANImageGenerationModelWrapper
             case _:
                 raise ValueError(f"Task {task} is not supported for {model_info.name}")
