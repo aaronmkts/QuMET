@@ -36,10 +36,10 @@ config = {
         "n_qubits": 5,
         "n_a_qubits": 0,
         "shots": 10000,
-        "depth": 2,
+        "depth": 6,
         "q_delta": 1,
         "diff_method": "adjoint",
-        "n_generators": 4,
+        "n_generators": 8,
         "q_delta": 1
 
     },
@@ -127,9 +127,9 @@ class MosaiQGenerator(nn.Module):
     def forward(self, x, batch_size):
         images = []
         patch_size = image_size
-        images = torch.Tensor(x.size(0), 0).to(device)
+        images = torch.Tensor(x.size(0), 0)
         for params in self.q_params:
-            patches = torch.Tensor(0, patch_size).to(device)
+            patches = torch.Tensor(0, patch_size)
             for elem in x:
                 f = quantum_circuit(elem, params)
                 f = torch.tensor(f)
