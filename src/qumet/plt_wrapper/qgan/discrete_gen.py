@@ -173,4 +173,67 @@ class QGANDiscreteGenModelWrapper(WrapperBase):
         contour_figure(real_data, cmap[0],0.85)
         contour_figure(fake_data, cmap[1], 0.55)
 
+        
+         def modes_captured(self, probs_data):
+        num_discrete_values = 2 ** (self.model.generator.n_qubits // 2)
+        coords = np.linspace(-3, 3, num_discrete_values)
+        grid_elements = np.transpose(
+            [
+                np.tile(coords, len(coords)),
+                np.repeat(coords, len(coords)),
+            ]
+        )
+        num_samples = len(grid_elements)
+        index_list = list(range(num_samples))
+        sampled_integers = np.random.choice(
+            index_list, size=self.model.generator.shots, p=probs_data.squeeze().cpu().numpy()
+        )
+        sampled_coords = grid_elements[sampled_integers]
+        
+        radius = 2
+        thetas = np.linspace(0, 2 * np.pi, 8)
+        xs, ys = radius * np.sin(thetas), radius* np.cos(thetas)
+        MEANS = np.stack([xs, ys]).transpose()
+        STD = 0.1
+
+        l2_store = []
+        for x_ in sampled_coords:
+            l2_store.append([np.sum((x_ - i) ** 2) for i in MEANS])
+        mode = np.argmin(l2_store, 1).flatten().tolist()
+        dis_ = [l2_store[j][i] for j, i in enumerate(mode)]
+        mode_counter = [mode[i] for i in range(len(mode)) if np.sqrt(dis_[i]) <= (3 * STD)]
+        high_quality_ratio = sum(collections.Counter(mode_counter).values()) / float(self.model.generator.shots)
+        modes = len(collections.Counter(mode_counter))
+        
+        return modes, high_quality_ratio
+
+    def image(self, prob_data):
+
+        num_discrete_values = 2 ** (self.model.generator.n_qubits // 2)
+        coords = np.linspace(-3, 3, num_discrete_values)
+        mesh_x, mesh_y = np.meshgrid(coords, coords)
+        grid_shape = (num_discrete_values, num_discrete_values)
+
+        fig, ax = plt.subplots(figsize=(12, 12), subplot_kw={"projection": "3d"})
+        prob_grid = np.reshape(prob_data, grid_shape)
+        surf = ax.plot_surface(mesh_x, mesh_y, prob_grid, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+        fig.colorbar(surf, shrink=0.5, aspect=5)
+
+    
+    def get_image(self, real_data, fake_data):
+
+        def contour_figure(data, cmap, alpha):
+ 
+            num_discrete_values = 2 ** (self.model.generator.n_qubits// 2)
+            coords = np.linspace(-3, 3, num_discrete_values)
+            mesh_x, mesh_y = np.meshgrid(coords, coords)
+            grid_shape = (num_discrete_values, num_discrete_values)
+          
+            prob_grid = np.reshape(data, grid_shape)
+
+            plt.contourf(mesh_x, mesh_y, prob_grid, cmap=cmap, antialiased=False, alpha = alpha)
+
+        cmap = [cm.Reds, cm.Blues]
+        contour_figure(real_data, cmap[0],0.85)
+        contour_figure(fake_data, cmap[1], 0.55)
         '''

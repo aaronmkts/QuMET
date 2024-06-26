@@ -1,0 +1,159 @@
+import torch
+import torch.nn as nn
+from torchmetrics import KLDivergence
+import matplotlib.pyplot as plt
+from matplotlib import cm
+import numpy as np
+import math
+import collections
+from scipy.linalg import sqrtm
+from ..base import WrapperBase
+
+
+class QGANImageGenerationModelWrapper(WrapperBase):
+    def __init__(
+        self,
+        model,
+        dataset_info,
+        learning_rate=1e-4,
+        weight_decay=0.0,
+        epochs=100,
+        optimizer=None,
+    ):
+        super().__init__(
+            model=model,
+            dataset_info=dataset_info,
+            learning_rate=learning_rate,
+            weight_decay=weight_decay,
+            epochs=epochs,
+            optimizer=optimizer,
+        )
+        self.image_size = dataset_info.image_size[1:]
+        self.dataset_info = dataset_info
+        self.optimizer = optimizer
+        self.automatic_optimization = False
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
+        self.n_qubits = self.model.generator.n_qubits
+        self.criterion = nn.BCELoss()
+        self.fixed_noise = torch.rand(8, self.n_qubits) * math.pi / 2
+        
+        
+        
+    def training_step(self, batch):
+        optG, optD = self.optimizers()
+        
+        # data and real/fake labels
+        train_data, _ = batch
+        real_data = train_data.reshape(-1, self.image_size[0] * self.image_size[1])
+
+        batch_size = real_data.size(0)
+
+        real_labels = torch.full((batch_size,), 1.0, dtype=torch.float).type_as(
+            real_data
+        )
+        fake_labels = torch.full((batch_size,), 0.0, dtype=torch.float).type_as(
+            real_data
+        )
+        #log real images here
+        
+        # Generate fake-data using noise input
+        noise = torch.rand(batch_size, self.n_qubits) * math.pi / 2
+        fake_data = self.model.generator(noise).type_as(real_data)
+
+        # Training the discriminator
+        self.toggle_optimizer(optD)
+
+        optD.zero_grad()
+       
+        outD_real = self.model.discriminator(real_data).view(-1)
+        outD_fake = self.model.discriminator(fake_data.detach()).view(-1)
+        errD_real = self.criterion(outD_real, real_labels)  # Discriminator real loss
+        errD_fake = self.criterion(outD_fake, fake_labels)  # Discriminator fake loss
+        
+        self.manual_backward(errD_real)
+        self.manual_backward(errD_fake)
+
+        errD = (errD_real + errD_fake) 
+        self.log("train_d_loss_step", errD, prog_bar=True)
+        optD.step()
+
+        self.untoggle_optimizer(optD)
+        
+        # Training the generator
+        self.toggle_optimizer(optG)
+
+        optG.zero_grad()
+
+        outD_fake = self.model.discriminator(fake_data).view(-1)
+   
+        errG = self.criterion(outD_fake, real_labels)
+        self.manual_backward(errG)
+
+        self.log("train_g_loss_step", errG, prog_bar=True)
+        optG.step()
+
+        self.untoggle_optimizer(optG)
+        '''
+
+    def validation_step(self, batch) -> None:
+        #calc fid
+        #calc jsd div 
+        #calc is
+        #calc mode score
+
+    
+
+    
+
+    def on_validation_epoch_end(self) -> None:
+        self.log("FID")
+        self.log('IS')
+        self.log('JSD')
+        self.logger.experiment.add_image("2D_Countour_Map")
+        '''
+    def calculate_fid(act1, act2):
+        mu1, sigma1 = act1.mean(axis=0), np.cov(act1, rowvar=False)
+        mu2, sigma2 = act2.mean(axis=0), np.cov(act2, rowvar=False)
+        ssdiff = np.sum((mu1 - mu2)**2.0)
+        covmean = sqrtm(sigma1.dot(sigma2))
+        if np.iscomplexobj(covmean):
+            covmean = covmean.real
+        fid = ssdiff + np.trace(sigma1 + sigma2 - 2.0 * covmean)
+        return fid
+    
+    def configure_optimizers(self):
+        # Use self.trainer.model.parameters() instead of self.parameters() to support FullyShared (Model paralleled) training
+        match self.optimizer.lower():
+            case "adam":
+                b1 = 0.777
+                b2 = 0.999
+
+                optG = torch.optim.Adam(
+                    self.model.generator.parameters(),
+                    lr=0.03,
+                    weight_decay=self.weight_decay,
+                    betas=(b1, b2),
+                )
+
+                optD = torch.optim.Adam(
+                    self.model.discriminator.parameters(),
+                    lr=0.01,
+                    weight_decay=self.weight_decay,
+                    betas=(b1, b2),
+                )
+            case "sgd":
+                lrG = 0.3  # Learning rate for the generator
+                lrD = 0.01  # Learning rate for the discriminator
+
+                optD = torch.optim.SGD(
+                    self.model.discriminator.parameters(), 
+                    lr=lrD)
+                optG = torch.optim.SGD(self.model.generator.parameters(),
+                                        lr=lrG)
+            case _:
+                raise ValueError(f"Unsupported optimizer name {self.optimizer}")
+
+        return [optG, optD], []
+    
+   

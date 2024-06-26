@@ -2,7 +2,7 @@ from torch.utils.data import Dataset
 from torchvision import datasets
 import os
 from ..utils import add_dataset_info
-
+from .transforms import DataTransformationMixin
 
 @add_dataset_info(
     name="mnist",
@@ -10,13 +10,18 @@ from ..utils import add_dataset_info
     available_splits=("train", "test"),
     image_generation=True,
     num_classes=10,
-    image_size=(1, 28, 28),
+    image_size=(1, 8, 8),
 )
-class MNISTQuMET(datasets.MNIST):
+class MNISTQuMET(datasets.MNIST, DataTransformationMixin):
     def __init__(
-        self, root: os.PathLike, train: bool, transform: callable, download: bool
+        self, root: os.PathLike, train: bool, transform: callable, download: bool, model_name: str
     ) -> None:
         super().__init__(root, train=train, transform=transform, download=download)
+        
+        filter_labels = [0]
+        if filter_labels:
+            self.filter_labels(filter_labels)
+        
 
     def prepare_data(self) -> None:
         pass
@@ -26,11 +31,11 @@ class MNISTQuMET(datasets.MNIST):
 
 
 def get_mnist_dataset(
-    name: str, path: os.PathLike, train: bool, transform: callable
+    name: str, path: os.PathLike, train: bool, transform: callable, model_name: str
 ) -> Dataset:
     match name.lower():
         case "mnist":
-            dataset = MNISTQuMET(path, train=train, transform=transform, download=True)
+            dataset = MNISTQuMET(path, train=train, transform=transform, model_name = model_name, download=True)
         case _:
             raise ValueError(f"Unknown dataset {name}")
     return dataset

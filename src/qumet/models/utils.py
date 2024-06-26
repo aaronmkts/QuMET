@@ -35,6 +35,7 @@ class QumetModelInfo:
     # Generation models
     bitstring_sampling: bool = False
     observable_sampling: bool = False
+    
 
     def __post_init__(self):
         self.model_type = (

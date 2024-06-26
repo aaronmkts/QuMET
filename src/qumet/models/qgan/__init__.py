@@ -2,17 +2,22 @@ from ..utils import QumetModelInfo
 from os import PathLike
 
 from .efficient_su2 import get_qgcd_bitstring
+from .patchgan import get_patchgan
 from .qgcd_probs import get_qgcd_probs
 
 # fmt: off
 QGAN_MODELS = {
     "efficientsu2":{
         "get_model_fn_generation": get_qgcd_bitstring,
-        "info": QumetModelInfo("EfficientSU2", model_type="qgan", task_type ="generation", bitstring_sampling = True),
+        "info": QumetModelInfo("efficientsu2", model_type="qgan", task_type ="generation", bitstring_sampling = True),
     },
     "qgcd_probs":{
         "get_model_fn_generation": get_qgcd_probs,
         "info": QumetModelInfo("qgcd_probs", model_type="qgan", task_type ="generation", observable_sampling = True),
+    },
+    "patchgan":{
+        "get_model_fn_generation": get_patchgan,
+        "info": QumetModelInfo("patchgan", model_type="qgan", task_type ="generation",  observable_sampling = True),
     }
 }
 
@@ -52,6 +57,12 @@ def get_qgan_model(
             model = QGAN_MODELS[name]["get_model_fn_generation"](info=dataset_info)
 
         case "continuous_generation":
+            assert (
+                model_info.observable_sampling
+            ), f"Task {task} is not supported for {name}"
+            model = QGAN_MODELS[name]["get_model_fn_generation"](info=dataset_info)
+        
+        case "image_generation":
             assert (
                 model_info.observable_sampling
             ), f"Task {task} is not supported for {name}"

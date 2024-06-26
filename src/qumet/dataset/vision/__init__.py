@@ -29,15 +29,15 @@ def get_vision_dataset(name: str, path: os.PathLike, split: str, model_name: str
     ], f"Unknown split {split}, should be one of train, validation, test, pred"
 
     train = split == "train"
-    transform = get_vision_dataset_transform(name, train, model_name)
+    transform = get_vision_dataset_transform(name, train, model_name) #Torchvision transforms
 
     match name:
         case "mnist":
-            dataset = get_mnist_dataset(name, path, train, transform)
+            dataset = get_mnist_dataset(name, path, train, transform, model_name)
         case "fashion_mnist":
-            dataset = get_fashion_mnist_dataset(name, path, train, transform)
+            dataset = get_fashion_mnist_dataset(name, path, train, transform, model_name)
         case "cifar":
-            dataset = get_cifar_dataset(name, path, train, transform)
+            dataset = get_cifar_dataset(name, path, train, transform, model_name)
 
     return dataset
 
