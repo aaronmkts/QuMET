@@ -17,7 +17,7 @@ from itertools import product
 from qumet.dataset import QuMETDataModule
 from qumet.models import get_model, get_model_info
 from qumet.dataset import get_dataset
-
+import torch.optim as optim
 from qumet.plt_wrapper import get_model_wrapper
 import pytorch_lightning as L
 import matplotlib.pyplot as plt
@@ -35,148 +35,105 @@ from functools import partial
 
 
 def main():
-    class MinMaxNormalizer:
-        def __init__(self, reverse_lookup = None, epsilon = 0):
-            self.reverse_lookup = reverse_lookup
-            self.epsilon = epsilon
 
-        def fit_transform(self, data: np.ndarray) -> np.ndarray:
-            self.min = data.min()
-            self.max = data.max() - data.min()
-            data = (data - self.min) / self.max
-            self.reverse_lookup = (self.min, self.max)
-            return data / (1 + self.epsilon)
+    # Check if MPS device is available
+    device = torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
+    print(f'Using device: {device}')
 
-        def transform(self, data: np.ndarray) -> np.ndarray:
-            min = data.min()
-            max = data.max() - data.min()
-            data = (data - min) / max
-            return data / (1 + self.epsilon)
+    class MMD:
 
-        def inverse_transform(self, data: np.ndarray) -> np.ndarray:
-            data = data * (1 + self.epsilon)
-            self.min, self.max = self.reverse_lookup
-            return data * self.max + self.min
-    # Parameters
-    def center(coord, n):
-        return np.array(coord) / n + 0.5 / n
-    
-    def compute_discretization(n_qubits, n_dim):
-        format_string = "{:0" + str(n_qubits) + "b}"
-        n = 2 ** (n_qubits // n_dim)
-        dict_bins = {}
+        def __init__(self, scales, space):
+            gammas = 1 / (2 * (scales**2))
+            sq_dists = np.abs(space[:, None] - space[None, :]) ** 2
+            self.K = sum(np.exp(-gamma * sq_dists) for gamma in gammas) / len(scales)
+            self.K = torch.tensor(self.K, dtype=torch.float64).to(device)
+            self.scales = scales
 
-        for k, coordinates in enumerate(product(range(n), repeat=n_dim)):
-            dict_bins.update({
-                format_string.format(k): [coordinates, center(coordinates, n)]
-            })
-        return dict_bins
-    
-    def discretise_samples(data):
+        def k_expval(self, px, py):
+            return torch.matmul(px, torch.matmul(self.K, py))
 
-        
-        num_discrete_values = int(2 ** (6 / 2)) #discretisation per dimension
-        nns = tuple(num_discrete_values for _ in range(2)) #siply (n,n) for 2 d and (n,n,n) for 3d data
-        nns_nq = nns + tuple((6,)) #(n,n, n_qubits) 8 by 8 grid with qubits appended
+        def __call__(self, px, py):
+            pxy = px - py
+            return self.k_expval(pxy, pxy)
+            
+    class QCBM:
 
-        inverse_bins = np.zeros(nns_nq) #empty matrix with shape ((n,n, n_qubits))
-        for key, value in discretisation.items():
-            id_n = value[0]
-            inverse_bins[id_n] = np.array([int(bit) for bit in key])
+        def __init__(self, circ, mmd, py):
+            self.circ = circ
+            self.mmd = mmd
+            self.py = torch.tensor(py, dtype=torch.float64).to(device)  # target distribution π(x)
 
-        coordinates = np.floor(data * num_discrete_values).astype(int)
+        def mmd_loss(self, params):
+            px = self.circ(params)
+            return self.mmd(px, self.py), px
+            
+        def kl_divergence(self, px):
+            # Avoid division by zero and handle log(0) cases
+            qcbm_probs = px.clone().detach()
+            target_probs = self.py
+            kl_div = -torch.sum(target_probs * torch.nan_to_num(torch.log(qcbm_probs / target_probs)))
+            return kl_div
 
-        train_dataset = np.array([inverse_bins[tuple(coord)] for coord in coordinates])
+    def get_bars_and_stripes(n):
+        bitstrings = [list(np.binary_repr(i, n))[::-1] for i in range(2**n)]
+        bitstrings = np.array(bitstrings, dtype=int)
 
-        distribution = np.zeros(nns)
-        for xy in coordinates:
-            indices = tuple(xy[ii] for ii in range(2))
-            distribution[indices] += 1
-        # Add a small value to empty elements
+        stripes = bitstrings.copy()
+        stripes = np.repeat(stripes, n, 0)
+        stripes = stripes.reshape(2**n, n * n)
 
-        distribution /= np.sum(distribution)
-        distribution = np.array(distribution).reshape((num_discrete_values ** 2))
+        bars = bitstrings.copy()
+        bars = bars.reshape(2**n * n, 1)
+        bars = np.repeat(bars, n, 1)
+        bars = bars.reshape(2**n, n * n)
+        return np.vstack((stripes[0 : stripes.shape[0] - 1], bars[1 : bars.shape[0]]))
 
-        return train_dataset, distribution
-    
-    discretisation = compute_discretization(6,2)
-    normaliser = MinMaxNormalizer(epsilon=1e-8)
+    n = 3
+    n_qubits = n**2
+    dev = qml.device("default.qubit", wires=n_qubits)
+    n_layers = 6
+    wshape = qml.StronglyEntanglingLayers.shape(n_layers=n_layers, n_wires=n_qubits)
+    weights = np.random.random(size=wshape)
+    weights = torch.tensor(weights, requires_grad=True, dtype=torch.float64).to(device)
 
-    def datasetB():
-        num_gauss = 9
-        set_length = int(pow(num_gauss, 1 / 2))
-        num_discrete_values = int(2 ** (6 / 2))
-        coords = np.linspace(-3, 3, num_discrete_values)
-
-        positions = np.linspace(-1.9, 1.9, int(set_length))
-        means = np.array(
-            [np.array([i, j]) for i, j in itertools.product(positions, positions)]
+    @qml.qnode(dev, interface='torch')
+    def circuit(weights):
+        qml.StronglyEntanglingLayers(
+            weights=weights, ranges=[1] * n_layers, wires=range(n_qubits)
         )
+        return qml.probs()
 
-        sigma = 0.15
-        covs = [np.array([[sigma**2, 0], [0, sigma**2]]) for i in range(num_gauss)]
+    data = get_bars_and_stripes(n)
+    bitstrings = []
+    nums = []
+    for d in data:
+        bitstrings += ["".join(str(int(i)) for i in d)]
+        nums += [int(bitstrings[-1], 2)]
+    probs = np.zeros(2**n_qubits)
+    probs[nums] = 1 / len(data)
+    probs = torch.tensor(probs, dtype=torch.float64).to(device)  # Ensure probs is a Float tensor
 
-        rv = [
-            multivariate_normal(mean=mean, cov=cov) for (mean, cov) in zip(means, covs)
-        ]
+    bandwidth = np.array([0.25, 0.5, 1])
+    space = np.arange(2**n_qubits)
 
-        grid_elements = np.transpose(
-            [
-                np.tile(coords, len(coords)),
-                np.repeat(coords, len(coords)),
-            ]
-        )
+    mmd = MMD(bandwidth, space)
+    qcbm = QCBM(circuit, mmd, probs)
 
-        num_samples = len(grid_elements)
+    optimizer = optim.Adam([weights], lr=0.1)
 
-        samples = np.sum([dist.pdf(grid_elements) for dist in rv], axis=0)
-        breakpoint()
-        prob_data = samples / np.sum(samples)
+    # Training loop
+    num_epochs = 100
+    for epoch in range(num_epochs):
+        optimizer.zero_grad()
+        loss, px = qcbm.mmd_loss(weights)
+        loss.backward()
+        optimizer.step()
+        kl_div = qcbm.kl_divergence(px)
 
-        return prob_data
+        print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {loss.item()}, KL Divergence: {kl_div.item()}')
 
-    
 
-    def datasetA():
-        n_samples = 50000
-        std = 0.05
-        cov = np.diag([std**2, std**2])
-        n_gauss = 25
-        step_size = int(pow(n_gauss, 1 / 2))
-        positions = range(-4,5,2)
-        means = np.array(
-            [np.array([i, j]) for i, j in itertools.product(positions, positions)]
-        )
-
-        def linear_search_optimized(arr, target):
-            for i, num in enumerate(arr):
-                if num == target:
-                    return i
-            return 'not found'
-        
-        n_samples_per_gauss = n_samples // n_gauss
-        extra_samples = n_samples % n_gauss
-
-        # Create distribution objects for each Gaussian
-        rv = [multivariate_normal(mean=mean, cov=cov) for mean in means]
-
-        # Generate sampless
-        samples = np.zeros((n_samples, 2))
-        component_indices = np.hstack([np.full(n_samples_per_gauss + (1 if i < extra_samples else 0), i) for i in range(n_gauss)])
-        np.random.shuffle(component_indices)
-
-        for i, component_index in enumerate(component_indices):
-            samples[i] = rv[component_index].rvs()
-        
-        data = samples
-
-        return data
-    
-    data = datasetA()
-    np.save('MG25', data)
-    breakpoint()
-
-    
+   
 
     
 if __name__ == "__main__":
