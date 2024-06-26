@@ -34,7 +34,7 @@ config = {
         "n_qubits": 5,
         "n_a_qubits": 1,
         "shots": 10000,
-        "depth": 2,
+        "depth": 6,
         "q_delta": 1,
         "diff_method": "adjoint",
         "n_generators": 4,
