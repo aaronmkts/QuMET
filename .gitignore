@@ -4,3 +4,4 @@ get-pip.py
 /Pipfile.lock
 /Pipfile
 **/qumet_output/
+**/.main_cache/
