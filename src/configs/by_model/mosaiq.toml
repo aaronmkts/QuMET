@@ -1,7 +1,7 @@
 # basics
 model = "mosaiq"
 dataset = "mnist"
-
+transform = 'pca'
 # training
 training_optimizer = "sgd"
 learning_rate = 1e-2

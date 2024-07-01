@@ -64,7 +64,7 @@ def get_dataset(
         
     elif name in VISION_DATASET_MAPPING:
         path = DATASET_CACHE_DIR / name
-        dataset = get_vision_dataset(name, path, split, model_name)
+        dataset = get_vision_dataset(name, path, split, model_name, transform)
     else:
         raise ValueError(f"Dataset {name} is not supported")
     return dataset
@@ -147,14 +147,13 @@ class QuMETDataModule(pl.LightningDataModule):
             model_name=self.model_name,
         )
 
-        if self.dataset_info.requires_preprocessing:
-            train_dataset.prepare_data()
-            if not self.dataset_info.preprocess_one_split_for_all:
-                val_dataset.prepare_data()
-                if test_dataset is not None:
-                    test_dataset.prepare_data()
-                if pred_dataset is not None:
-                    pred_dataset.prepare_data()
+        train_dataset.prepare_data()
+        if not self.dataset_info.preprocess_one_split_for_all:
+            val_dataset.prepare_data()
+            if test_dataset is not None:
+                test_dataset.prepare_data()
+            if pred_dataset is not None:
+                pred_dataset.prepare_data()
 
     def setup(self, stage: str = None) -> None:
         if stage in ["fit", None]:
@@ -213,7 +212,7 @@ class QuMETDataModule(pl.LightningDataModule):
                 "probably because the train set does not have ground truth labels, "
                 "or the train dataset does not exist."
             )
-
+        
         return DataLoader(
             self.train_dataset,
             batch_size= self.batch_size,
