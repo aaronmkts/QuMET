@@ -125,10 +125,6 @@ class QGANImageGenerationModelWrapper(WrapperBase):
 
         return [optG, optD], []
     
-
-    
-   
-
 class PatchGANWrapper(QGANImageGenerationModelWrapper):
     def __init__(self,
         model,
@@ -195,7 +191,6 @@ class PatchGANWrapper(QGANImageGenerationModelWrapper):
 
         self.untoggle_optimizer(optG)
 
-
 class MosaiQGANWrapper(QGANImageGenerationModelWrapper):
     def __init__(self,
         model,
@@ -213,7 +208,7 @@ class MosaiQGANWrapper(QGANImageGenerationModelWrapper):
         self.noise_upper_bound = math.pi / 8
 
     def training_step(self, batch):
-    
+        
         optG, optD = self.optimizers()
         
         # data and real/fake labels
@@ -232,7 +227,7 @@ class MosaiQGANWrapper(QGANImageGenerationModelWrapper):
         
         # Generate fake-data using noise input
         noise = self.generate_noise('adaptive', batch_size)
-        fake_data = self.model.generator(noise).type_as(real_data)
+        fake_data = self.model.generator(noise, batch_size).type_as(real_data)
 
         # Training the discriminator
         self.toggle_optimizer(optD)
@@ -259,7 +254,7 @@ class MosaiQGANWrapper(QGANImageGenerationModelWrapper):
         optG.zero_grad()
         outD_fake = self.model.discriminator(fake_data).view(-1)
         errG = self.criterion(outD_fake, real_labels)
-        self.manual_backward(errG)
+        self.manual_backward(errG) #here
         optG.step()
 
         if original_ratio is None:
