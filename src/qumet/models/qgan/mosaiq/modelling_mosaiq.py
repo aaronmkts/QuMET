@@ -54,7 +54,7 @@ image_size = 5
 #DISCRIMINATOR
 
 class Discriminator(nn.Module):
-    def __init__(self):
+    def __init__(self, config, task):
         super().__init__()
         name = "discriminator"
         self.input_size = config[name]["input_size"]
@@ -112,7 +112,7 @@ class MosaiQGenerator(nn.Module):
         name = "generator"
         n_generators = config[name]["n_generators"]
         q_delta = config[name]["q_delta"]
-
+        self.n_qubits = config[name]["n_qubits"]
         super().__init__()
 
         self.q_params = nn.ParameterList(
