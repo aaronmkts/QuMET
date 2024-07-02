@@ -4,7 +4,7 @@ from os import PathLike
 from .efficient_su2 import get_qgcd_bitstring
 from .patchgan import get_patchgan
 from .qgcd_probs import get_qgcd_probs
-
+from .mosaiq import get_mosaiq
 # fmt: off
 QGAN_MODELS = {
     "efficientsu2":{
@@ -18,6 +18,10 @@ QGAN_MODELS = {
     "patchgan":{
         "get_model_fn_generation": get_patchgan,
         "info": QumetModelInfo("patchgan", model_type="qgan", task_type ="generation",  observable_sampling = True),
+    },
+    "mosaiq":{
+        "get_model_fn_generation": get_mosaiq,
+        "info": QumetModelInfo("mosaiq", model_type="qgan", task_type ="generation",  observable_sampling = True),
     }
 }
 

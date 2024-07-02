@@ -2,6 +2,17 @@ import numpy as np
 from sklearn.decomposition import PCA
 from torchvision import transforms as tv_transforms
 import torch 
+import torch.nn as nn
+
+def scale_data(data, scale=None, dtype=np.float32):
+    
+    if scale is None:
+        scale = [-1, 1]
+    
+    min_data, max_data = [float(np.min(data)), float(np.max(data))]
+    min_scale, max_scale = [float(scale[0]), float(scale[1])]
+    data = ((max_scale - min_scale) * (data - min_data) / (max_data - min_data)) + min_scale
+    return data.astype(dtype)
 
 def filter_by_labels(dataset, labels: list):
     """
@@ -19,18 +30,45 @@ def filter_by_labels(dataset, labels: list):
 
     return dataset
 
-def apply_pca(dataset, n_features: int):
-    """
-    Applies PCA to the dataset to reduce the number of features.
-    """
-    X_data = dataset.data.numpy()  # Convert to numpy array if necessary
+def svd_flip(u, v):
+    # columns of u, rows of v
+    max_abs_cols = torch.argmax(torch.abs(u), 0)
+    i = torch.arange(u.shape[1]).to(u.device)
+    signs = torch.sign(u[max_abs_cols, i])
+    u *= signs
+    v *= signs.view(-1, 1)
+    return u, v
 
-    # Flatten the data if it's not already flattened
-    X_flat_data = X_data.reshape(X_data.shape[0], -1)
-    
-    pca = PCA(n_components=n_features)
-    X_data_pca = pca.fit_transform(X_flat_data)
+class PCA(nn.Module):
+    def __init__(self, n_components):
+        super().__init__()
+        self.n_components = n_components
 
-    dataset.data = X_data_pca
+    @torch.no_grad()
+    def fit(self, X):
+        n, d = X.size()
+        if self.n_components is not None:
+            d = min(self.n_components, d)
+        self.register_buffer("mean_", X.mean(0, keepdim=True))
+        Z = X - self.mean_ # center
+        U, S, Vh = torch.linalg.svd(Z, full_matrices=False)
+        Vt = Vh
+        U, Vt = svd_flip(U, Vt)
+        self.register_buffer("components_", Vt[:d])
+        return self
 
-    return dataset
+    def forward(self, X):
+        return self.transform(X)
+
+    def transform(self, X):
+        assert hasattr(self, "components_"), "PCA must be fit before use."
+        return torch.matmul(X - self.mean_, self.components_.t())
+
+    def fit_transform(self, X):
+        self.fit(X)
+        return self.transform(X)
+
+    def inverse_transform(self, Y):
+        assert hasattr(self, "components_"), "PCA must be fit before use."
+        return torch.matmul(Y, self.components_) + self.mean_
+

@@ -10,7 +10,7 @@ from .cifar import get_cifar_dataset, Cifar10QuMET
 from .transforms import get_vision_dataset_transform
 
 
-def get_vision_dataset(name: str, path: os.PathLike, split: str, model_name: str):
+def get_vision_dataset(name: str, path: os.PathLike, split: str, model_name: str, transform: str):
     """
     Args:
         name (str): name of the dataset
@@ -27,7 +27,8 @@ def get_vision_dataset(name: str, path: os.PathLike, split: str, model_name: str
         "test",
         "pred",
     ], f"Unknown split {split}, should be one of train, validation, test, pred"
-
+    
+    preprocessing = transform
     train = split == "train"
     transform = get_vision_dataset_transform(name, train, model_name) #Torchvision transforms
 

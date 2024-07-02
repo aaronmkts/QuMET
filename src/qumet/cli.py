@@ -113,7 +113,7 @@ CLI_DEFAULTS = {
     "transform": TRANSFORM[0],
     "load_name": None,
     "load_type": LOAD_TYPE[1],
-    "batch_size": 128,
+    "batch_size": 8,
     "to_debug": False,
     "log_level": LOG_LEVELS[1],
     "report_to": REPORT_TO[1],
@@ -132,7 +132,7 @@ CLI_DEFAULTS = {
     "num_workers": int(os.cpu_count() / 2),
     "num_devices": 1,
     "num_nodes": 1,
-    "accelerator": ACCELERATORS[0],
+    "accelerator": ACCELERATORS[1],
     "strategy": STRATEGIES[0],
     "is_to_auto_requeue": False,
     "github_ci": False,
@@ -148,8 +148,9 @@ class QuMETCLI:
     def __init__(self, argv: Sequence[str] | None = None):
         super().__init__()
 
-        self.logger = logging.getLogger("codebase")
+        self.logger = logging.getLogger("QuMET")
         parser = self._setup_parser()
+        
         args = parser.parse_intermixed_args(argv)
         # Housekeeping
         pl.seed_everything(args.seed)
@@ -186,6 +187,7 @@ class QuMETCLI:
         # NOTE: The project name is set later on (if no configuration is provided), so
         # the merged argument table may show None, but this is not the case.
         self.args = post_parse_load_config(args, CLI_DEFAULTS)
+        
 
         # Sanity check
         if not self.args.model or not self.args.dataset:
@@ -210,11 +212,12 @@ class QuMETCLI:
             case "train":
                 run_action_fn = self._run_train
             case "validate":
-                run_action_fn = self.run_validate
+                run_action_fn = self._run_validate
 
         if run_action_fn is None:
             raise ValueError(f"Unsupported action: {self.args.action}")
-
+        
+        
         if self.args.profile:
             prof = cProfile.runctx(
                 "run_action_fn()", globals(), locals(), sort="cumtime"
@@ -320,7 +323,7 @@ class QuMETCLI:
             description="""
                 QuMET is a simple utility to train a supported model.
             """,
-            epilog=f"Maintained by the UoB Quantum Lab. Raise issues at {ISSUES_URL}",
+            epilog=f"Maintained by the QuCLIP Lab. Raise issues at {ISSUES_URL}",
             add_help=False,
         )
 

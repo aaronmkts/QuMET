@@ -1,5 +1,5 @@
 from torchvision import transforms as tv_transforms
-
+import torch
 # MNIST
 # -----------------------------------------
 
@@ -27,20 +27,28 @@ def _get_mnist_patchgan_transform():
  
     return transform
 
+def _get_mnist_mosaiq_transform():
+    transform_list = [tv_transforms.ToTensor(), tv_transforms.Lambda(torch.flatten)]
+    transform = tv_transforms.Compose(transform_list)
+
+    return transform
+
 def get_mnist_default_transform(train: bool) -> tv_transforms.Compose:
     return _get_mnist_default_transform()
 
 def get_mnist_patchgan_transform(train: bool) -> tv_transforms.Compose:
     return _get_mnist_patchgan_transform()
 
+def get_mnist_mosaiq_transform(train: bool):
+    return _get_mnist_mosaiq_transform()
+
 def get_mnist_transform(train: bool, model: str = None):
     
-    if model is None:
-        return get_mnist_default_transform(train)
-        
-    if model == 'patchgan':
-        return get_mnist_patchgan_transform(train)
-        
-    else:
-        # Currently no model-dependent transform for mnist is supported.
-        return get_mnist_default_transform(train)
+    match model:
+        case "patchgan":
+            return get_mnist_patchgan_transform(train)
+        case "mosaiq":
+            return get_mnist_mosaiq_transform(train)
+        case None:
+            return get_mnist_default_transform(train)
+
