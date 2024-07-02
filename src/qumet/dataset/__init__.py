@@ -229,7 +229,7 @@ class QuMETDataModule(pl.LightningDataModule):
             )
         return DataLoader(
             self.val_dataset,
-            batch_size=len(self.val_dataset),
+            batch_size = self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
         )
