@@ -64,12 +64,13 @@ class VAEImageGenerationModelWrapper(WrapperBase):
 
         return [optG], []
     
-    def gaussian_likelihood(self, mean, logscale, sample):
+    def gaussian_likelihood(self, x_hat, logscale, x):
         scale = torch.exp(logscale)
+        mean = x_hat
         dist = torch.distributions.Normal(mean, scale)
 
         # measure prob of seeing image under p(x|z)
-        log_pxz = dist.log_prob(sample)
+        log_pxz = dist.log_prob(x)
 
         return log_pxz.sum(dim=(1, 2, 3))
 
@@ -100,44 +101,55 @@ class VAEWrapper(VAEImageGenerationModelWrapper):
         optimizer=None):
         super().__init__(model, dataset_info, learning_rate, 
                          weight_decay, epochs, optimizer)
-    
-    def loss_function(self, mu, std, x, x_hat, z):
-        #Reconstruction loss
-        recon_loss = self.gaussian_likelihood(x_hat, self.model.log_scale, x)   
-        #KL divergence
-        kl = self.kl_divergence(z, mu, std)
-        #ELBO
-        elbo = kl - recon_loss
-
-        return {'elbo': elbo.mean(),
-                'kl': kl.mean(),
-                'recon_loss': recon_loss.mean()}
-    
+        
     def training_step(self, batch):
 
         x, _ = batch
 
-        mu, std, x_hat, z = self.model.forward(x)
+        mu, std, z, x_hat = self.model.forward(x)
 
-        total_loss = self.loss_function(mu, std, x, x_hat, z)
+        # reconstruction loss
+        recon_loss = self.gaussian_likelihood(x_hat, self.model.log_scale, x)
 
-        self.log('train_kl_loss', total_loss['kl'], on_step=True,
-                    on_epoch=True, prog_bar=False)
-        self.log('train_recon_loss', total_loss['recon_loss'], on_step=True,
-                    on_epoch=True, prog_bar=False)
-        self.log('train_loss', total_loss['elbo'], on_step=True,
-                    on_epoch=True, prog_bar=True)
- 
-        return total_loss['elbo']
+        #expectation under z of the kl divergence between q(z|x) and
+        #a standard normal distribution of the same shape
+        kl = self.kl_divergence(z, mu, std)
+
+        # elbo
+        elbo = (kl - recon_loss)
+    
+        elbo = elbo.mean()
+
+        self.log('train_kl_loss', kl.mean(), on_step=True,
+                 on_epoch=True, prog_bar=True)
+        self.log('train_recon_loss', recon_loss.mean(), on_step=True,
+                 on_epoch=True, prog_bar=False)
+        self.log('train_loss', elbo, on_step=True,
+                 on_epoch=True, prog_bar=True)
+
+        # train_images = make_grid(x[:16]).cpu().numpy()
+        return elbo
 
     def validation_step(self, batch):
 
         x, _ = batch
         
-        mu, std, x_hat, z = self.model.forward(x)
-        total_loss = self.loss_function(mu, std, x, x_hat, z)
-        self.log('val_loss', total_loss['elbo'], on_step=True, on_epoch=True, prog_bar=True)
-        self.log('val_kl_epoch', total_loss['kl'], on_step=True, on_epoch=True, prog_bar=True)
+        mu, std, z, x_hat = self.model.forward(x)
+
+        # reconstruction loss
+        recon_loss = self.gaussian_likelihood(x_hat, self.model.log_scale, x)
+
+        #expectation under z of the kl divergence between q(z|x) and
+        #a standard normal distribution of the same shape
+        kl = self.kl_divergence(z, mu, std)
+
+        # elbo
+        elbo = kl - recon_loss
+        elbo = elbo.mean()
+
+        self.log('val_kl_epoch', kl.mean(), on_step=False, on_epoch=True)
+        self.log('val_recon_loss', recon_loss.mean(), on_step=False, on_epoch=True)
+        self.log('val_loss', elbo, on_step=False, on_epoch=True)
 
         self.logger.experiment.add_image('Normalized Inputs', make_grid(x[:8]))
 
