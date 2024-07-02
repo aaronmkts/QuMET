@@ -61,7 +61,8 @@ class VAE(nn.Module):
         
     def encode(self, x):
         hidden = self.encoder(x)
-        mu, log_var = self.hidden2mu(hidden), self.hidden2log_var(hidden)
+        mu = self.hidden2mu(hidden)
+        log_var = self.hidden2log_var(hidden)
 
         return mu, log_var
     
@@ -75,20 +76,20 @@ class VAE(nn.Module):
         # Reparametrization Trick to allow gradients to backpropagate from the
         # stochastic part of the model
 
-        sigma = torch.exp(0.5*log_var) # variance
+        sigma = torch.exp(0.5*log_var).sqrt() # standard deviation
         z = torch.randn_like(sigma)
-        return mu + sigma * z
+        return mu + sigma*z
     
     def forward(self, x):
         
         mu, log_var = self.encode(x)
-        std = torch.exp(log_var / 2)
+        std = torch.exp(log_var / 2).sqrt() # standard deviation
         #Sample from distribution
         z = torch.distributions.Normal(mu, std).rsample()
         #Push sample through decoder
         x_hat = self.decode(z)
 
-        return mu, std, x_hat, z
+        return mu, std, z, x_hat
     
 def _vae(config, task: str) -> VAE:
 
