@@ -132,7 +132,7 @@ class MosaiQGenerator(nn.Module):
             patches = torch.Tensor(0, patch_size)
             for elem in x:
                 f = quantum_circuit(elem, params)
-                f = torch.tensor(f)
+                f = torch.stack(f)
                 q_out = f.float().unsqueeze(0)
                 patches = torch.cat((patches, q_out))
             flattened_order =  [j for sub in ordering for j in sub]
