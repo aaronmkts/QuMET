@@ -4,6 +4,7 @@ from pathlib import Path
 from qumet.plt_wrapper import get_model_wrapper
 from qumet.tools.checkpoint_load import load_model
 from qumet.tools.progress_bar import progress_bar
+from qumet.tools.callbacks import ImageSampler
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks  import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
@@ -46,12 +47,21 @@ def train(
         
         # tb_logger = TensorBoardLogger(save_dir=save_path, name="logs")
         lr_monitor_callback = LearningRateMonitor(logging_interval="step")
-
-        plt_trainer_args["callbacks"] = [
+        
+        # Conditionally initialize ImageSampler based on model type
+        if model_info.name == 'vae':
+            image_sampler = ImageSampler()
+        else:
+            image_sampler = None
+        
+        callbacks = [
             checkpoint_callback,
             lr_monitor_callback,
-            #progress_bar()
+            image_sampler,
+            # progress_bar()
         ]
+        plt_trainer_args["callbacks"] = [cb for cb in callbacks if cb is not None]
+        
         plt_trainer_args["logger"] = visualizer
 
     # plugin
@@ -71,7 +81,7 @@ def train(
     #     )
     # elif plt_trainer_args["strategy"] in ["fsdp_custom"]:
     #     plt_trainer_args["strategy"] = CustomFSDPStrategy()
-
+    
     wrapper_cls = get_model_wrapper(model_info, task)
 
     if load_name is not None:
