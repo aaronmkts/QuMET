@@ -70,7 +70,7 @@ LOGO = f"""
     QuMET (qmt): QuMET's Command Line Interface
                 VERSION {VERSION}
 
-          Maintained by the UoB Quantum Lab
+          Maintained by the QuCLIP Lab
 
      For comprehensive information on usage,
             please refer to the docs.
@@ -192,7 +192,7 @@ class QuMETCLI:
         # Sanity check
         if not self.args.model or not self.args.dataset:
             raise ValueError("No model and/or dataset provided! These are required.")
-
+        
         (
             self.model,
             self.data_module,
@@ -642,7 +642,6 @@ class QuMETCLI:
         # of a specified model.
         # NOTE: See main/qumet/models/__init__.py for more information
         dataset_info = get_dataset_info(self.args.dataset)
-
         model_info = models.get_model_info(self.args.model)
         discretise = True if 'discrete' in self.args.task else False
         
