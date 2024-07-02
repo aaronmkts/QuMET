@@ -9,6 +9,7 @@ import collections
 from scipy.linalg import sqrtm
 from ..base import WrapperBase
 from abc import abstractmethod
+from line_profiler import profile
 
 class QGANImageGenerationModelWrapper(WrapperBase):
     def __init__(
@@ -138,6 +139,7 @@ class PatchGANWrapper(QGANImageGenerationModelWrapper):
 
         self.fixed_noise = self.generate_noise('uniform-angle', 16)
 
+    
     def training_step(self, batch):
         optG, optD = self.optimizers()
         
@@ -164,7 +166,7 @@ class PatchGANWrapper(QGANImageGenerationModelWrapper):
         self.toggle_optimizer(optD)
 
         optD.zero_grad()
-       
+        
         outD_real = self.model.discriminator(real_data).view(-1)
         outD_fake = self.model.discriminator(fake_data.detach()).view(-1)
         errD_real = self.criterion(outD_real, real_labels)  # Discriminator real loss
@@ -184,6 +186,7 @@ class PatchGANWrapper(QGANImageGenerationModelWrapper):
         optG.zero_grad()
         outD_fake = self.model.discriminator(fake_data).view(-1)
         errG = self.criterion(outD_fake, real_labels)
+        
         self.manual_backward(errG)
 
         self.log("train_g_loss_step", errG, prog_bar=True)
@@ -254,13 +257,15 @@ class MosaiQGANWrapper(QGANImageGenerationModelWrapper):
         optG.zero_grad()
         outD_fake = self.model.discriminator(fake_data).view(-1)
         errG = self.criterion(outD_fake, real_labels)
-        self.manual_backward(errG) #here
+        self.manual_backward(errG) 
         optG.step()
 
-        if original_ratio is None:
-                original_ratio = errD.detach().numpy()/errG.detach().numpy()
-        noise_upper_bound = self.get_noise_upper_bound(errG, errD, original_ratio)
+        if self.original_ratio is None:
+                self.original_ratio = errD.detach().numpy()/errG.detach().numpy()
+        noise_upper_bound = self.get_noise_upper_bound(errG, errD, self.original_ratio)
         self.upper_bounds.append(noise_upper_bound)
         self.log("train_g_loss_step", errG, prog_bar=True)
     
         self.untoggle_optimizer(optG)
+
+       
