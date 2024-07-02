@@ -49,6 +49,6 @@ def get_mnist_transform(train: bool, model: str = None):
             return get_mnist_patchgan_transform(train)
         case "mosaiq":
             return get_mnist_mosaiq_transform(train)
-        case None:
+        case _:
             return get_mnist_default_transform(train)
 
