@@ -5,3 +5,4 @@ get-pip.py
 /Pipfile
 **/qumet_output/
 **/.main_cache/
+**/.qumet_cache/
