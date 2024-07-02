@@ -9,6 +9,7 @@ class ModelType(Enum):
     """
 
     QGAN = "qgan"
+    VAE = "vae"
 
 
 class ModelTaskType(Enum):
