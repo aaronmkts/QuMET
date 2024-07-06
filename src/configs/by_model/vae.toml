@@ -1,0 +1,16 @@
+# basics
+model = "vae"
+dataset = "mnist"
+# training
+training_optimizer = "adam"
+learning_rate = 1e-2
+max_epochs = 50
+batch_size = 32
+
+# torch lightning
+task = "image_generation"
+num_workers = 0
+num_devices = 1
+accelerator = "cpu"
+
+project = "vae_mnist28x28_0/elbo_loss"
