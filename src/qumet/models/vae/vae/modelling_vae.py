@@ -61,8 +61,7 @@ class VAE(nn.Module):
         
     def encode(self, x):
         hidden = self.encoder(x)
-        mu = self.hidden2mu(hidden)
-        log_var = self.hidden2log_var(hidden)
+        mu, log_var = self.hidden2mu(hidden), self.hidden2log_var(hidden)
 
         return mu, log_var
     
@@ -78,7 +77,7 @@ class VAE(nn.Module):
 
         sigma = torch.exp(0.5*log_var).sqrt() # standard deviation
         z = torch.randn_like(sigma)
-        return mu + sigma*z
+        return mu + sigma * z
     
     def forward(self, x):
         
@@ -89,7 +88,7 @@ class VAE(nn.Module):
         #Push sample through decoder
         x_hat = self.decode(z)
 
-        return mu, std, z, x_hat
+        return mu, std, x_hat, z
     
 def _vae(config, task: str) -> VAE:
 
