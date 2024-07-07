@@ -75,14 +75,14 @@ class VAE(nn.Module):
         # Reparametrization Trick to allow gradients to backpropagate from the
         # stochastic part of the model
 
-        sigma = torch.exp(0.5*log_var).sqrt() # standard deviation
+        sigma = torch.exp(0.5*log_var) # variance
         z = torch.randn_like(sigma)
         return mu + sigma * z
     
     def forward(self, x):
         
         mu, log_var = self.encode(x)
-        std = torch.exp(log_var / 2).sqrt() # standard deviation
+        std = torch.exp(log_var / 2)
         #Sample from distribution
         z = torch.distributions.Normal(mu, std).rsample()
         #Push sample through decoder
