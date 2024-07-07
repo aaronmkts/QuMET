@@ -2,7 +2,8 @@ from .qgan import (
     QGANDiscreteGenModelWrapper,
     QGANBitstringGenerationModelWrapper,
     MosaiQGANWrapper,
-    PatchGANWrapper)
+    PatchGANWrapper,
+    SSPQGANWrapper)
 
 from .vae import VAEWrapper
 
@@ -22,6 +23,8 @@ def get_model_wrapper(model_info, task: str):
                         return PatchGANWrapper
                     elif model_info.name =='mosaiq':
                         return MosaiQGANWrapper
+                    elif model_info.name == 'sspqgan':
+                        return SSPQGANWrapper
                     else:
                         return ValueError(f"A training wrapper is not supported for {model_info.name}")
                 case _:
