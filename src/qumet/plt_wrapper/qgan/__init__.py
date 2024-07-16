@@ -1,3 +1,3 @@
 from .discrete_gen import QGANDiscreteGenModelWrapper
 from .bitstring_gen import QGANBitstringGenerationModelWrapper
-from .image_generation import PatchGANWrapper, MosaiQGANWrapper
+from .image_generation import PatchGANWrapper, MosaiQGANWrapper, SSPQGANWrapper

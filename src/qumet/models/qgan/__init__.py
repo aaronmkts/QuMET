@@ -5,6 +5,7 @@ from .efficient_su2 import get_qgcd_bitstring
 from .patchgan import get_patchgan
 from .qgcd_probs import get_qgcd_probs
 from .mosaiq import get_mosaiq
+from .ssqgan import get_sspqgan
 # fmt: off
 QGAN_MODELS = {
     "efficientsu2":{
@@ -22,6 +23,10 @@ QGAN_MODELS = {
     "mosaiq":{
         "get_model_fn_generation": get_mosaiq,
         "info": QumetModelInfo("mosaiq", model_type="qgan", task_type ="generation",  observable_sampling = True),
+    },
+    "sspqgan":{
+        "get_model_fn_generation": get_sspqgan,
+        "info": QumetModelInfo("sspqgan", model_type="qgan", task_type ="generation",  observable_sampling = True),
     }
 }
 

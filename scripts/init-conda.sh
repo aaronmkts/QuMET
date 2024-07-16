@@ -10,7 +10,7 @@ set -o nounset
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
 # create and activate qumet env
-conda env create -f ${DIR}/../main/environment.yml
+conda env create -f ${DIR}/../environment.yml
 eval "$(conda shell.bash hook)"
 conda activate qumet
 
@@ -18,7 +18,7 @@ conda activate qumet
 current_python=$(which python)
 if [[ ${current_python} = *"envs/qumet/bin/python" ]]; then
     python -m pip install --user --upgrade pip &&
-        python -m pip install -r ${DIR}/../main/requirements.txt
+        python -m pip install -r ${DIR}/../requirements.txt
 
     if [[ $? -eq 0 ]]; then
         echo "✅ Successfully installed all the requirements"

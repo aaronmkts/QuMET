@@ -10,6 +10,7 @@ from scipy.linalg import sqrtm
 from ..base import WrapperBase
 from abc import abstractmethod
 from line_profiler import profile
+import torch.nn.functional as F
 
 class QGANImageGenerationModelWrapper(WrapperBase):
     def __init__(
@@ -59,21 +60,12 @@ class QGANImageGenerationModelWrapper(WrapperBase):
         self.log('JSD')
         self.logger.experiment.add_image("2D_Countour_Map")
         '''
-
-    def calculate_fid(act1, act2):
-        mu1, sigma1 = act1.mean(axis=0), np.cov(act1, rowvar=False)
-        mu2, sigma2 = act2.mean(axis=0), np.cov(act2, rowvar=False)
-        ssdiff = np.sum((mu1 - mu2)**2.0)
-        covmean = sqrtm(sigma1.dot(sigma2))
-        if np.iscomplexobj(covmean):
-            covmean = covmean.real
-        fid = ssdiff + np.trace(sigma1 + sigma2 - 2.0 * covmean)
-        return fid
     
     #NOISE FUNCTIONS
 
     def relu(self, x):
         return x * (x > 0)
+    
     def get_noise_upper_bound(self, gen_loss, disc_loss, original_ratio):
         R = disc_loss.detach().numpy()/gen_loss.detach().numpy()
         return math.pi/8 + (5 *math.pi / 8) * self.relu(np.tanh((R - (original_ratio))))
@@ -155,7 +147,6 @@ class PatchGANWrapper(QGANImageGenerationModelWrapper):
         fake_labels = torch.full((batch_size,), 0.0, dtype=torch.float).type_as(
             real_data
         )
-        #log real images here
         
         # Generate fake-data using noise input
         noise = self.generate_noise('uniform-angle', batch_size)
@@ -267,5 +258,157 @@ class MosaiQGANWrapper(QGANImageGenerationModelWrapper):
         self.log("train_g_loss_step", errG, prog_bar=True)
     
         self.untoggle_optimizer(optG)
+
+class SSPQGANWrapper(QGANImageGenerationModelWrapper):
+    def __init__(self,
+        model,
+        dataset_info,
+        learning_rate=1e-4,
+        weight_decay=0.0,
+        epochs=100,
+        optimizer=None):
+        super().__init__(model, dataset_info, learning_rate, 
+                         weight_decay, epochs, optimizer)
+
+    def kl_divergence(self, z, mu, std):
+        # --------------------------
+        # Monte carlo KL divergence
+        # --------------------------
+        # 1. define the first two probabilities (in this case Normal for both)
+        p = torch.distributions.Normal(torch.zeros_like(mu), torch.ones_like(std))
+        q = torch.distributions.Normal(mu, std)
+
+        # 2. get the probabilities from the equation
+        log_qzx = q.log_prob(z)
+        log_pz = p.log_prob(z)
+
+        # kl
+        kl = (log_qzx - log_pz)
+        kl = kl.sum(-1)
+        return kl
+        
+    def vae_loss(self, real_data, fake_data, mu, log_var):
+        # Reconstruction loss
+        recon_loss = self.criterion(fake_data, real_data)
+        # KL Divergence
+        kl_div = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+        return recon_loss + kl_div
+    
+    def discriminator_loss(self, real_labels, fake_labels, real_data, fake_data):
+    
+        outD_real = self.model.discriminator(real_data).view(-1)
+        outD_fake = self.model.discriminator(fake_data.detach()).view(-1)
+        errD_real = self.criterion(outD_real, real_labels)  # Discriminator real loss
+        errD_fake = self.criterion(outD_fake, fake_labels)
+
+        return errD_real, errD_fake
+    
+    def generator_loss(self, real_labels, fake_data, real_data):
+        #Gan loss + reconstruction loss
+        outD_fake = self.model.discriminator(fake_data).view(-1)
+        errG = self.criterion(outD_fake, real_labels)
+
+        recon_loss = F.binary_cross_entropy(fake_data, real_data, reduction='sum')
+        return errG + recon_loss
+
+    
+    def training_step(self, batch):
+        optG, optD, optVAE = self.optimizers()
+        
+        # data and real/fake labels
+        train_data, _ = batch
+        real_data = train_data.reshape(-1, self.image_size[0] * self.image_size[1])
+
+        batch_size = real_data.size(0)
+
+        real_labels = torch.full((batch_size,), 1.0, dtype=torch.float).type_as(
+            real_data
+        )
+        fake_labels = torch.full((batch_size,), 0.0, dtype=torch.float).type_as(
+            real_data
+        )
+
+        mu, log_var, fake_data, z = self.model.forward(real_data)
+
+        # Training the VAE
+        self.toggle_optimizer(optVAE)
+        optVAE.zero_grad()
+
+        errVAE = self.vae_loss(real_data, fake_data, mu, log_var)
+
+        self.manual_backward(errVAE)
+        optVAE.step()
+        self.untoggle_optimizer(optVAE)
+
+        # Training the Generator
+        self.toggle_optimizer(optG)
+        optG.zero_grad()
+
+        errG = self.generator_loss(real_labels, fake_data, real_data)
+        self.manual_backward(errG)
+        optG.step()
+        self.untoggle_optimizer(optG)
+
+        # Training the Discriminator
+        self.toggle_optimizer(optD)
+        optD.zero_grad()
+
+        errD_real, errD_fake = self.discriminator_loss(real_labels, fake_labels, real_data, fake_data)
+        errD = (errD_real + errD_fake)
+        self.manual_backward(errD)
+        optD.step()
+        self.untoggle_optimizer(optD)
+
+         # Log the losses
+        self.log("train_vae_loss_step", errVAE, prog_bar=True)
+        self.log("train_g_loss_step", errG, prog_bar=True)
+        self.log("train_d_loss_step", errD, prog_bar=True)
+  
+    def configure_optimizers(self):
+
+    # Use self.trainer.model.parameters() instead of self.parameters() to support FullyShared (Model paralleled) training
+        match self.optimizer.lower():
+            case "adam":
+                b1 = 0.777
+                b2 = 0.999
+
+                optG = torch.optim.Adam(
+                    self.model.generator.parameters(),
+                    lr=0.03,
+                    weight_decay=self.weight_decay,
+                    betas=(b1, b2),
+                )
+
+                optD = torch.optim.Adam(
+                    self.model.discriminator.parameters(),
+                    lr=0.01,
+                    weight_decay=self.weight_decay,
+                    betas=(b1, b2),
+                )
+
+                optVAE = torch.optim.Adam(
+                    self.model.encoder.parameters(),
+                    lr=0.01,
+                    weight_decay=self.weight_decay,
+                    betas=(b1, b2),
+                )
+            case "sgd":
+                lrG = 0.3  # Learning rate for the generator
+                lrD = 0.01  # Learning rate for the discriminator
+
+                optD = torch.optim.SGD(
+                    self.model.discriminator.parameters(), 
+                    lr=lrD)
+                optG = torch.optim.SGD(self.model.generator.parameters(),
+                                        lr=lrG)
+                
+                optVAE = torch.optim.SGD(self.model.encoder.parameters(),
+                                         lr = 0.01)
+            case _:
+                raise ValueError(f"Unsupported optimizer name {self.optimizer}")
+            
+        return [optG, optD, optVAE], []
+
+        
 
        
