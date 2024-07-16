@@ -12,5 +12,4 @@ task = "image_generation"
 num_workers = 0
 num_devices = 1
 accelerator = "cpu"
-
 project = "vae_mnist28x28_0/elbo_loss"
