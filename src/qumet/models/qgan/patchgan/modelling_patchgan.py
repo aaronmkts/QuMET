@@ -36,6 +36,7 @@ config = {
         "depth": 6,
         "q_delta": 1,
         "diff_method": "best",
+        "diff_method": "best",
         "n_generators": 4,
         "q_delta": 1
 
@@ -43,6 +44,8 @@ config = {
 }
 
 # fmt:on
+
+
 
 
 class Discriminator(nn.Module):
@@ -73,11 +76,13 @@ class PatchQuantumGenerator(nn.Module):
     """Quantum generator class for the patch method"""
 
     def __init__(self, config, task):
-        super().__init__()
-        
+        """
+        Args:
+            n_generators (int): Number of sub-generators to be used in the patch method.
+            q_delta (float, optional): Spread of the random distribution for parameter initialisation.
+        """
         name = "generator"
-        generator_config = config[name]
-
+        n_generators = config[name]["n_generators"]
         q_delta = config[name]["q_delta"]
 
         self.n_generators = generator_config["n_generators"]
