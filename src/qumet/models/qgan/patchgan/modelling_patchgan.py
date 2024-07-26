@@ -104,6 +104,7 @@ class PatchQuantumGenerator(nn.Module):
     def partial_measure(self,noise, q_layer):
         # Non-linear Transform
         probs = q_layer(noise)
+        probs = q_layer(noise)
         probsgiven0 = probs[: (2 ** (self.n_qubits - self.n_a_qubits))]
         probsgiven0 /= torch.sum(probs)
 
@@ -112,10 +113,12 @@ class PatchQuantumGenerator(nn.Module):
         return probsgiven
     
     def circuit(self, inputs, weights):
+    def circuit(self, inputs, weights):
         weights = weights.reshape(self.depth, self.n_qubits)
 
         # Initialise latent vectors
         for i in range(self.n_qubits):
+            qml.RY(inputs[i], wires=i)
             qml.RY(inputs[i], wires=i)
 
         # Repeated layer
@@ -138,17 +141,20 @@ class PatchQuantumGenerator(nn.Module):
         # Iterate over all sub-generators
 
         for q_layer in self.q_layers:
+        for q_layer in self.q_layers:
 
             # Create a Tensor to 'catch' a batch of the patches from a single sub-generator
             patches = torch.Tensor(0, patch_size)
             # for b in batch basically
             for elem in x:
                 q_out = self.partial_measure(elem, q_layer).float().unsqueeze(0)
+                q_out = self.partial_measure(elem, q_layer).float().unsqueeze(0)
                 patches = torch.cat((patches, q_out))
             # Each batch of patches is concatenated with each other to create a batch of images
             images = torch.cat((images, patches), 1)
             
         return images
+    
     
 
 class PatchGAN(nn.Module):

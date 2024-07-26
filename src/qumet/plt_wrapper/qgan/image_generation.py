@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 import math
+import time
+from scipy.linalg import sqrtm
 from ..base import WrapperBase, ValidationResult
 from abc import abstractmethod
 from line_profiler import profile
@@ -40,9 +42,12 @@ class QGANImageGenerationModelWrapper(WrapperBase, DataTransformationMixin):
         self.n_qubits = self.model.generator.n_qubits
         self.criterion = nn.BCELoss()
         self.validation_step_outputs = []
+        self.validation_step_outputs = []
         # Noise utils
         self.validation_z = self.generate_noise('uniform-angle', batch_size = 16)
 
+    def adversarial_loss(self, y_hat, y):
+        return F.binary_cross_entropy(y_hat, y)
     def adversarial_loss(self, y_hat, y):
         return F.binary_cross_entropy(y_hat, y)
         
