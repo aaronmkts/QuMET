@@ -1,15 +1,12 @@
 import lightning.pytorch as pl
-from lightning.pytorch.utilities.types import OptimizerLRScheduler
 import torch
-# from deepspeed.ops.adam import FusedAdam
-from torch.optim.lr_scheduler import CosineAnnealingLR
 import io
 import matplotlib.pyplot as plt
 from PIL import Image
 import torchvision
 # from torchmetrics.functional import accuracy
 from torchmetrics import Accuracy, MeanMetric
-
+from dataclasses import dataclass, field
 
 class WrapperBase(pl.LightningModule):
     def __init__(
@@ -52,3 +49,12 @@ class WrapperBase(pl.LightningModule):
         im = Image.open(buf)
         im = torchvision.transforms.ToTensor()(im)
         return im
+
+@dataclass
+class ValidationResult():
+    others: dict = field(default_factory=dict)
+    real_image: torch.Tensor = None
+    fake_image: torch.Tensor = None
+    recon_image: torch.Tensor = None
+    label: torch.Tensor = None
+    encode_latent: torch.Tensor = None

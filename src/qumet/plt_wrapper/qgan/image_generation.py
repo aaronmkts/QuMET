@@ -5,12 +5,13 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import numpy as np
 import math
-import collections
+import time
 from scipy.linalg import sqrtm
-from ..base import WrapperBase
+from ..base import WrapperBase, ValidationResult
 from abc import abstractmethod
 from line_profiler import profile
 import torch.nn.functional as F
+import torchvision 
 
 class QGANImageGenerationModelWrapper(WrapperBase):
     def __init__(
@@ -38,29 +39,23 @@ class QGANImageGenerationModelWrapper(WrapperBase):
         self.weight_decay = weight_decay
         self.n_qubits = self.model.generator.n_qubits
         self.criterion = nn.BCELoss()
+        self.validation_step_outputs = []
         # Noise utils
-        self.fixed_noise = self.generate_noise('uniform-angle', batch_size = 8)
+        self.validation_z = self.generate_noise('uniform-angle', batch_size = 16)
 
+    def adversarial_loss(self, y_hat, y):
+        return F.binary_cross_entropy(y_hat, y)
         
     @abstractmethod
     def training_step(self, batch):
         pass
-    
-        '''
+        
+    def validation_step(self, batch, batch_idx):
+        img, _ = batch
+        noise = torch.rand(img.size(0), self.n_qubits)
+        fake_imgs = self.model(noise)
+        return ValidationResult(real_image=img, fake_image=fake_imgs)
 
-    def validation_step(self, batch) -> None:
-        #calc fid
-        #calc jsd div 
-        #calc is
-        #calc mode score
-
-    def on_validation_epoch_end(self) -> None:
-        self.log("FID")
-        self.log('IS')
-        self.log('JSD')
-        self.logger.experiment.add_image("2D_Countour_Map")
-        '''
-    
     #NOISE FUNCTIONS
 
     def relu(self, x):
@@ -129,12 +124,12 @@ class PatchGANWrapper(QGANImageGenerationModelWrapper):
         super().__init__(model, dataset_info, learning_rate, 
                          weight_decay, epochs, optimizer)
 
-        self.fixed_noise = self.generate_noise('uniform-angle', 16)
+        self.validation_z = self.generate_noise('uniform-angle', 16)
 
-    
     def training_step(self, batch):
-        optG, optD = self.optimizers()
         
+        optG, optD = self.optimizers()
+       
         # data and real/fake labels
         train_data, _ = batch
         real_data = train_data.reshape(-1, self.image_size[0] * self.image_size[1])
@@ -157,7 +152,7 @@ class PatchGANWrapper(QGANImageGenerationModelWrapper):
         self.toggle_optimizer(optD)
 
         optD.zero_grad()
-        
+    
         outD_real = self.model.discriminator(real_data).view(-1)
         outD_fake = self.model.discriminator(fake_data.detach()).view(-1)
         errD_real = self.criterion(outD_real, real_labels)  # Discriminator real loss
@@ -182,9 +177,10 @@ class PatchGANWrapper(QGANImageGenerationModelWrapper):
 
         self.log("train_g_loss_step", errG, prog_bar=True)
         optG.step()
-
+  
         self.untoggle_optimizer(optG)
-
+            
+        
 class MosaiQGANWrapper(QGANImageGenerationModelWrapper):
     def __init__(self,
         model,
