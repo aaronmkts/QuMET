@@ -29,7 +29,7 @@ pi = math.pi
 config = {
     "discriminator": {"input_size": 8}, #Due to image resize, height/width is 8
     "generator": {
-        "device": "lightning.qubit",
+        "device": "default.qubit",
         "n_qubits": 5,
         "n_a_qubits": 1,
         "shots": 10000,
@@ -74,32 +74,31 @@ class PatchQuantumGenerator(nn.Module):
 
     def __init__(self, config, task):
         super().__init__()
-
+        
         name = "generator"
         generator_config = config[name]
 
-        n_generators = generator_config["n_generators"]
         q_delta = config[name]["q_delta"]
 
+        self.n_generators = generator_config["n_generators"]
         self.device = generator_config["device"]
         self.n_qubits = generator_config["n_qubits"]
         self.n_a_qubits = generator_config["n_a_qubits"]
         self.depth = generator_config["depth"]
         self.diff_method = generator_config["diff_method"]
-
-
         self.q_device = qml.device(self.device, wires= self.n_qubits)
-        self.q_weights = nn.ParameterList(
-            [
-                nn.Parameter(q_delta * torch.rand(self.depth * self.n_qubits), requires_grad=True)
-                for _ in range(n_generators)
-            ]
+        self._construct_quantum_layers()
+   
+    def _construct_quantum_layers(self):
+        qnode = qml.QNode(self.circuit, self.q_device, interface="torch", diff_method=self.diff_method)
+        weight_shapes = {"weights": (self.depth, self.n_qubits)}
+        self.q_layers = nn.ModuleList(
+            [TorchConnector(qnode, weight_shapes) for _ in range(self.n_generators)]
         )
-        self.qnode = qml.QNode(self.circuit, self.q_device, interface="torch", diff_method=self.diff_method)
 
-    def partial_measure(self,noise, weights):
+    def partial_measure(self,noise, q_layer):
         # Non-linear Transform
-        probs = self.qnode(noise, weights)
+        probs = q_layer(noise)
         probsgiven0 = probs[: (2 ** (self.n_qubits - self.n_a_qubits))]
         probsgiven0 /= torch.sum(probs)
 
@@ -107,12 +106,12 @@ class PatchQuantumGenerator(nn.Module):
         probsgiven = probsgiven0 / torch.max(probsgiven0)
         return probsgiven
     
-    def circuit(self, latent_vector, weights):
+    def circuit(self, inputs, weights):
         weights = weights.reshape(self.depth, self.n_qubits)
 
         # Initialise latent vectors
         for i in range(self.n_qubits):
-            qml.RY(latent_vector[i], wires=i)
+            qml.RY(inputs[i], wires=i)
 
         # Repeated layer
         for i in range(self.depth):
@@ -126,7 +125,6 @@ class PatchQuantumGenerator(nn.Module):
 
         return qml.probs(wires=list(range(self.n_qubits)))
     
-    
     def forward(self, x):
         # Size of each sub-generator output
         patch_size = 2 ** (self.n_qubits - self.n_a_qubits)
@@ -134,20 +132,19 @@ class PatchQuantumGenerator(nn.Module):
         images = torch.Tensor(x.size(0), 0)
         # Iterate over all sub-generators
 
-        for params in self.q_weights:
+        for q_layer in self.q_layers:
 
             # Create a Tensor to 'catch' a batch of the patches from a single sub-generator
             patches = torch.Tensor(0, patch_size)
             # for b in batch basically
             for elem in x:
-                q_out = self.partial_measure(elem, params).float().unsqueeze(0)
+                q_out = self.partial_measure(elem, q_layer).float().unsqueeze(0)
                 patches = torch.cat((patches, q_out))
             # Each batch of patches is concatenated with each other to create a batch of images
             images = torch.cat((images, patches), 1)
             
         return images
     
-
 
 class PatchGAN(nn.Module):
     def __init__(self, config, task):
@@ -166,7 +163,6 @@ class PatchGAN(nn.Module):
 # ---------------------------------------
 # PatchGAN
 # ---------------------------------------
-
 
 def _patchgan(config, task: str) -> PatchGAN:
 
