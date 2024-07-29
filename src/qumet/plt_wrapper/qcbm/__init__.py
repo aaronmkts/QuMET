@@ -1,0 +1,1 @@
+from .probs_gen import QCBMProbsGenModelWrapper

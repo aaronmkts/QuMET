@@ -16,28 +16,20 @@ import itertools
 from itertools import product
 from qumet.dataset import QuMETDataModule
 from qumet.models import get_model, get_model_info
-from qumet.dataset import get_dataset
+from qumet.dataset import get_dataset, get_dataset_info
 import torch.optim as optim
-from qumet.plt_wrapper import get_model_wrapper
-import pytorch_lightning as L
-import matplotlib.pyplot as plt
-from matplotlib import cm
+
 import numpy as np
-from scipy.stats import multivariate_normal
-import io
-import torchvision
-import tensorflow as tf
+
 import torch
-from qumet.dataset.manual.transforms.utils import MinMaxNormalizer, PITNormalizer
 import pennylane as qml
-from pennylane.transforms import insert
-from functools import partial
+
 
 
 def main():
 
     # Check if MPS device is available
-    device = torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
+    device = torch.device("cpu")
     print(f'Using device: {device}')
 
     class MMD:
@@ -55,7 +47,9 @@ def main():
         def __call__(self, px, py):
             pxy = px - py
             return self.k_expval(pxy, pxy)
-            
+
+
+
     class QCBM:
 
         def __init__(self, circ, mmd, py):
@@ -66,7 +60,7 @@ def main():
         def mmd_loss(self, params):
             px = self.circ(params)
             return self.mmd(px, self.py), px
-            
+
         def kl_divergence(self, px):
             # Avoid division by zero and handle log(0) cases
             qcbm_probs = px.clone().detach()
@@ -113,7 +107,7 @@ def main():
     probs[nums] = 1 / len(data)
     probs = torch.tensor(probs, dtype=torch.float64).to(device)  # Ensure probs is a Float tensor
 
-    bandwidth = np.array([0.25, 0.5, 1])
+    bandwidth = np.array([0.25])
     space = np.arange(2**n_qubits)
 
     mmd = MMD(bandwidth, space)
@@ -133,8 +127,6 @@ def main():
         print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {loss.item()}, KL Divergence: {kl_div.item()}')
 
 
-   
 
-    
 if __name__ == "__main__":
     main()

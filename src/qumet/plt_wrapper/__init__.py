@@ -5,6 +5,9 @@ from .qgan import (
     PatchGANWrapper,
     SSPQGANWrapper)
 
+from .qcbm import(
+QCBMProbsGenModelWrapper
+)
 from .vae import VAEWrapper
 
 
@@ -29,7 +32,14 @@ def get_model_wrapper(model_info, task: str):
                         return ValueError(f"A training wrapper is not supported for {model_info.name}")
                 case _:
                     raise ValueError(f"Task {task} is not supported for {model_info.name}")
-                
+
+        elif model_info.model_type.value == 'qcbm':
+            match task:
+                case 'probs_generation':
+                    return QCBMProbsGenModelWrapper
+                case _:
+                    raise ValueError(f"Task {task} is not supported for {model_info.name}")
+
         elif model_info.model_type.value == 'vae':
             match task:
                 case "image_generation":

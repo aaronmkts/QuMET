@@ -14,8 +14,8 @@ from qumet.dataset import QuMETDataModule
 from qumet.models.qgan.qgcd.configuration_qgcd import QGCDConfig
 import toml
 from qumet.models import get_model 
-from src.qumet.models.qgan.efficient_su2.modelling_efficient_su2 import Binary_Generator, Binary_Discriminator
-from src.qumet.models.qgan.efficient_su2.configuration_qgan_bitstring import QGCD_Binary_Config
+from qumet.models.qgan.efficient_su2.modelling_efficient_su2 import Binary_Generator, Binary_Discriminator
+from qumet.models.qgan.efficient_su2.configuration_qgan_bitstring import QGCD_Binary_Config
 
 def main():
     # model

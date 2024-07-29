@@ -13,7 +13,7 @@ config = {
         "enc_out_dim": 128,
     },
     "generator": {
-        "device": "lightning.qubit",
+        "device": "default.qubit",
         "n_qubits": 5,
         "n_a_qubits": 1,
         "shots": 10000,

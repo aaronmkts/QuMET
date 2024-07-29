@@ -1,5 +1,4 @@
 from ..utils import QumetModelInfo
-from os import PathLike
 
 from .efficient_su2 import get_qgcd_bitstring
 from .patchgan import get_patchgan

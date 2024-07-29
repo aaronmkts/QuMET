@@ -32,7 +32,7 @@ pca_dims = 40
 config = {
     "discriminator": {"input_size": pca_dims},
     "generator": {
-        "device": "lightning.qubit",
+        "device": "default.qubit",
         "n_qubits": 5,
         "n_a_qubits": 0,
         "shots": 10000,
@@ -83,7 +83,7 @@ n_a_qubits = generator_config["n_a_qubits"]
 depth = generator_config["depth"]
 
 
-dev = qml.device("lightning.qubit", wires=n_qubits)
+dev = qml.device("default.qubit", wires=n_qubits)
 
 ######################################################################
 # Next, we define the quantum circuit and measurement process described above.

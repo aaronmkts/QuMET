@@ -30,7 +30,7 @@ pi = math.pi
 config = {
     "discriminator": {"input_size": 8}, #Due to image resize, height/width is 8
     "generator": {
-        "device": "lightning.qubit",
+        "device": "default.qubit",
         "n_qubits": 5,
         "n_a_qubits": 1,
         "shots": 10000,

@@ -14,7 +14,7 @@ import itertools
     name="2d_grid_gaussian",
     dataset_source="manual",
     available_splits=("train", "validation"),
-    discrete_generation=True,
+    bitsring_generation=True,
     continuous_generation=True
 )
 class TwoDGridGaussianDataset(Dataset):
