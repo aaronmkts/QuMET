@@ -111,7 +111,7 @@ name = 'generator'
 
 n_qubits = config[name]["n_qubits"]
 wires = list(range(n_qubits))
-device = config[name]["device"]
+device = "default.qubit"#config[name]["device"]
 dev = qml.device(device, wires = n_qubits)
 depth = config[name]["depth"]
 

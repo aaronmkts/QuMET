@@ -9,6 +9,7 @@ class ModelType(Enum):
     """
 
     QGAN = "qgan"
+    QCBM = 'qcbm'
     VAE = "vae"
 
 

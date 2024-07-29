@@ -54,6 +54,7 @@ class QuMETDatasetInfo:
     probs_generation: bool = False
     bitsring_generation: bool = False
     image_generation: bool = False
+    continuous_generation: bool = False
 
     # classification fields
     num_classes: int = None
@@ -76,6 +77,7 @@ class QuMETDatasetInfo:
             "available_splits",
             "probs_generation",
             "bitsring_generation",
+            'continuous_generation',
             "image_generation",
             "num_classes",
             "image_size",
@@ -109,8 +111,9 @@ def add_dataset_info(
     name: str,
     dataset_source: DatasetSource,
     available_splits: tuple[DatasetSplit],
-    discrete_generation: bool = False,
+    bitsring_generation: bool = False,
     continuous_generation: bool = False,
+    probs_generation: bool =False,
     image_generation: bool = False,
     num_classes: int = None,
     image_size: tuple[int] = None,
@@ -137,8 +140,9 @@ def add_dataset_info(
             name=name,
             dataset_source=dataset_source,
             available_splits=available_splits,
-            probs_generation=discrete_generation,
-            bitsring_generation=continuous_generation,
+            probs_generation=probs_generation,
+            bitsring_generation=bitsring_generation,
+            continuous_generation=continuous_generation,
             image_generation=image_generation,
             num_classes=num_classes,
             image_size=image_size,
