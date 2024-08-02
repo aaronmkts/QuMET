@@ -3,7 +3,8 @@ from .qgan import (
     QGANBitstringGenerationModelWrapper,
     MosaiQGANWrapper,
     PatchGANWrapper,
-    SSPQGANWrapper)
+    SSPQGANWrapper,
+    PQWGANWrapper)
 
 from .qcbm import(
 QCBMProbsGenModelWrapper
@@ -28,6 +29,8 @@ def get_model_wrapper(model_info, task: str):
                         return MosaiQGANWrapper
                     elif model_info.name == 'sspqgan':
                         return SSPQGANWrapper
+                    elif model_info.name == 'pqwgan_qc':
+                        return PQWGANWrapper
                     else:
                         return ValueError(f"A training wrapper is not supported for {model_info.name}")
                 case _:
