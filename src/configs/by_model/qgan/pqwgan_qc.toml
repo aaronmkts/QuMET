@@ -2,10 +2,10 @@
 model = "pqwgan_qc"
 dataset = "mnist"
 # training
-training_optimizer = "sgd"
+training_optimizer = "adam"
 learning_rate = 1e-2
 max_epochs = 5
-batch_size = 8
+batch_size = 32
 
 # torch lightning
 task = "image_generation"
@@ -13,4 +13,4 @@ num_workers = 0
 num_devices = 1
 accelerator = "cpu"
 
-project = "mnist_training"
+project = "mnist_pqwgan_qc/0"
