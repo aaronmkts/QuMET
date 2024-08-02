@@ -1,5 +1,5 @@
 # basics
-model = "sspqgan"
+model = "apqgan"
 dataset = "mnist"
 # training
 training_optimizer = "sgd"
