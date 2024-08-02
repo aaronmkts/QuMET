@@ -61,34 +61,6 @@ class Discriminator(nn.Module):
         return self.model(x)
     
 
-
-#GENERATOR
-name = "generator"
-generator_config = config[name]
-
-device = generator_config["device"]
-n_qubits = generator_config["n_qubits"]
-n_a_qubits = generator_config["n_a_qubits"]
-depth = generator_config["depth"]
-
-
-dev = qml.device("default.qubit", wires=n_qubits)
-
-######################################################################
-# Next, we define the quantum circuit and measurement process described above.
-@qml.qnode(dev, interface="torch", diff_method="parameter-shift")
-def quantum_circuit(noise, weights):
-    weights = weights.reshape(depth, n_qubits)
-    for i in range(n_qubits):
-        qml.RY(noise[i], wires=i)
-        qml.RX(noise[i], wires=i)
-    for i in range(depth):
-        for y in range(n_qubits):
-            qml.RY(weights[i][y], wires=y)
-        for y in range(n_qubits - 1):
-            qml.CZ(wires=[y, y + 1])
-    return [qml.expval(qml.PauliX(i)) for i in range(n_qubits)]
-
 class MosaiQGenerator(nn.Module):
     def __init__(self, config, task):
         super().__init__()
