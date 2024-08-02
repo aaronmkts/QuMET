@@ -4,27 +4,32 @@ import torch
 import torch.nn as nn
 from logging import getLogger
 from typing import Dict
+from ...networks.utils import FeatureExtractor
+
 
 logger = getLogger(__name__)
 
 config = {
     "encoder": {
-        "z_dim": 64,
+        "z_dim": 8,
         "enc_out_dim": 128,
     },
     "generator": {
         "device": "default.qubit",
-        "n_qubits": 5,
+        "n_qubits": 8,
         "n_a_qubits": 1,
         "shots": 10000,
         "depth": 6,
         "q_delta": 1,
         "diff_method": "adjoint",
         "n_generators": 4,
-        "q_delta": 1
+        "q_delta": 1,
+        'patch_shape': (7, 7),
+        'image_shape': (1, 28, 28),
     },
     "discriminator": {
-        "image_shape": (1, 28, 28)
+        "image_shape": (1, 28, 28),
+        "return_features": True,
         }, 
 }
 
@@ -61,20 +66,17 @@ class Encoder(nn.Module):
     
 
 class QuantumGenerator(nn.Module):
-    def __init__(self,  config, image_shape, patch_shape):
+    def __init__(self,  config):
         super(QuantumGenerator, self).__init__()
         
         for key, value in config.items():
             setattr(self, key, value)
 
-    
         self.q_device = qml.device(self.device, wires= self.n_qubits)
         self.params = nn.ParameterList([nn.Parameter(torch.rand(self.depth, self.n_qubits, 3), 
                                                      requires_grad=True) for _ in range(self.n_generators)])
         self.qnode = qml.QNode(self.circuit, self.q_device, interface="torch")
 
-        self.image_shape = image_shape
-        self.patch_shape = patch_shape
         
     def partial_measure_and_postprocess(self, noise, weights):
         # Non-linear Transform
@@ -101,6 +103,7 @@ class QuantumGenerator(nn.Module):
         return qml.probs(wires=list(range(self.n_qubits)))
     
     def forward(self, x):
+            breakpoint()
             special_shape = bool(self.patch_shape[0]) and bool(self.patch_shape[1])
             patch_size = 2 ** (self.n_qubits - self.n_a_qubits)
             image_pixels = self.image_shape[2] ** 2
@@ -133,22 +136,42 @@ class QuantumGenerator(nn.Module):
 class Discriminator(nn.Module):
     def __init__(self, config):
         super(Discriminator, self).__init__()
+
         for key, value in config.items():
             setattr(self, key, value)
 
+        if self.return_features:
+            self.feature_extractor = FeatureExtractor()
+        else:
+            self.feature_extractor = lambda x: x
+
         self.discriminator = nn.Sequential(
             nn.Linear(int(np.prod(self.image_shape)), 512), nn.LeakyReLU(0.1),
-            nn.Linear(512, 256), nn.LeakyReLU(0.1),
+            nn.Linear(512, 256), self.feature_extractor(nn.LeakyReLU(0.2, inplace=True)),
             nn.Linear(256, 1),
             nn.Sigmoid()
         )
 
+    def forward(self, input):
+
+        if self.return_features:
+            self.feature_extractor.clean()
+            output = self.discriminator(input)
+            features = torch.cat(
+                [torch.ravel(x) for x in self.feature_extractor.features]
+            )
+            return output, features
+        else:
+            output = self.discriminator(input)
+            return output
+
     def forward(self, x):
         return self.discriminator(x)
     
-class SSPQGAN(nn.Module):
+class APQGAN(nn.Module):
     def __init__(self, config, task):
-        super(SSPQGAN, self).__init__()
+        super(APQGAN, self).__init__()
+
         encoder_config = config["encoder"]
         generator_config = config["generator"]  
         discriminator_config = config["discriminator"]
@@ -158,11 +181,15 @@ class SSPQGAN(nn.Module):
         self.generator = QuantumGenerator(generator_config)
         self.discriminator = Discriminator(discriminator_config)
 
-    def forward(self, x):
-        mu, log_var = self.encoder(x)
+    def forward(self,z):
+        output = self.generator(z)
+        return output
+    
+    def vae_forward(self, imgs):
+        mu, log_var = self.encoder(imgs)
         z = self.encoder.reparametrize(mu, log_var)
         fake_data = self.generator(z)
-        return mu, log_var, fake_data, z
+        return mu, log_var, z, fake_data
     
     def discriminate(self, x):
         return self.discriminator(x)
@@ -173,14 +200,14 @@ class SSPQGAN(nn.Module):
 # ---------------------------------------
 
 
-def _sspqgan(config, task: str) -> SSPQGAN:
+def _apqgan(config, task: str) -> APQGAN:
 
-    model = SSPQGAN(config, task)
+    model = APQGAN(config, task)
     return model
 
 
-def get_sspqgan(info: Dict) -> SSPQGAN:
+def get_apqgan(info: Dict) -> APQGAN:
 
     task = "info.generation"
     logger.info(f"The following {config} loaded for task into SSPQGAN")
-    return _sspqgan(config=config, task=task)
+    return _apqgan(config=config, task=task)
