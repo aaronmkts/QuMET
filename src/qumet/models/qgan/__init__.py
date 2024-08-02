@@ -25,7 +25,7 @@ QGAN_MODELS = {
         "get_model_fn_generation": get_mosaiq,
         "info": QumetModelInfo("mosaiq", model_type="qgan", task_type ="generation",  observable_sampling = True),
     },
-    "sspqgan":{
+    "apqgan":{
         "get_model_fn_generation": get_apqgan,
         "info": QumetModelInfo("sspqgan", model_type="qgan", task_type ="generation",  observable_sampling = True),
     },
