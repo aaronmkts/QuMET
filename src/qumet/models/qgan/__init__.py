@@ -7,6 +7,9 @@ from .mosaiq import get_mosaiq
 from .apqgan import get_apqgan
 from .pwqgan import get_pqwgan_qc
 
+from .apqgan import get_apqgan
+from .pwqgan import get_pqwgan_qc
+
 # fmt: off
 QGAN_MODELS = {
     "efficientsu2":{
@@ -25,7 +28,7 @@ QGAN_MODELS = {
         "get_model_fn_generation": get_mosaiq,
         "info": QumetModelInfo("mosaiq", model_type="qgan", task_type ="generation",  observable_sampling = True),
     },
-    "apqgan":{
+    "sspqgan":{
         "get_model_fn_generation": get_apqgan,
         "info": QumetModelInfo("sspqgan", model_type="qgan", task_type ="generation",  observable_sampling = True),
     },
