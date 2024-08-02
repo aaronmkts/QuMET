@@ -12,6 +12,8 @@ import torch.distributions as D
 import torch.nn.functional as F
 from ..utils import compute_gradient_penalty
 
+from ..utils import compute_gradient_penalty
+
 
 class QGANImageGenerationModelWrapper(WrapperBase, DataTransformationMixin):
     def __init__(
@@ -305,7 +307,7 @@ class PQWGANWrapper(QGANImageGenerationModelWrapper):
 
         errD = (errD_real + errD_fake) 
         self.log("train_d_loss_step", errD, prog_bar=True)
-        optD.step()
+        self.log("wasserstein_distance", wasserstein_distance, prog_bar=True)
 
         optG.zero_grad()
         outD_fake = self.model.discriminator(fake_data).view(-1)

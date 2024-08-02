@@ -12,21 +12,22 @@ from torch import Tensor
 logger = getLogger(__name__)
 pi = math.pi
 
+image_shape = (1, 28, 28)
 # fmt:0ff
 config = {
-    "discriminator": {"input_size": 784},
+    "discriminator": {"image_shape": image_shape},
     "generator": {
         "device": "default.qubit",
         "n_qubits": 7,
         "n_a_qubits": 1,
         "shots": 10000,
-        "depth": 1,
+        "depth": 6,
         "q_delta": 1,
         "diff_method": "best",
         "n_generators": 16,
         "q_delta": 1,
         'patch_shape': (7, 7),
-        'image_shape': (1, 28, 28),
+        'image_shape': image_shape,
     },
 }
 # fmt:on
@@ -37,10 +38,10 @@ class Discriminator(nn.Module):
     def __init__(self, config, task):
         super().__init__()
         name = "discriminator"
-        self.input_size = config[name]["input_size"]
+        self.image_shape = config[name]["image_shape"]
 
         self.model = nn.Sequential(
-            nn.Linear(self.input_size, 512),
+            nn.Linear(int(np.prod(self.image_shape)), 512),
             nn.LeakyReLU(0.2),
             nn.Linear(512, 256),
             nn.LeakyReLU(0.2),
@@ -50,8 +51,7 @@ class Discriminator(nn.Module):
     def forward(self, x):
         x = x.view(x.shape[0], -1)
         x = self.model(x)
-        return self.model(x)
-    
+        return x
 
 class PWQGenerator(nn.Module):
     """Quantum generator class for the patch method"""
