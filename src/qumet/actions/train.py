@@ -4,7 +4,7 @@ from pathlib import Path
 from qumet.plt_wrapper import get_model_wrapper
 from qumet.tools.checkpoint_load import load_model
 from qumet.tools.progress_bar import progress_bar
-from qumet.tools.callbacks import ImageSampler
+from qumet.tools.callbacks import SampleImagesCallback, FIDEvaluationCallback, ISEvaluationCallback
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks  import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
@@ -36,6 +36,7 @@ def train(
         # if save_path is None, the model will not be saved
         if not os.path.isdir(save_path):
             os.makedirs(save_path)
+        ''' 
         checkpoint_callback = ModelCheckpoint(
             save_top_k=1,
             monitor="val_kl_epoch",
@@ -44,20 +45,24 @@ def train(
             dirpath=save_path,
             save_last=True,
         )
-        
+        '''
         # tb_logger = TensorBoardLogger(save_dir=save_path, name="logs")
         lr_monitor_callback = LearningRateMonitor(logging_interval="step")
         
         # Conditionally initialize ImageSampler based on model type
-        if model_info.name == 'vae':
-            image_sampler = ImageSampler()
+        if model_info.model_type.value == 'qgan':
+            image_sampler = SampleImagesCallback()
+            fid_metric = FIDEvaluationCallback()
+            is_metric = ISEvaluationCallback()
         else:
             image_sampler = None
         
         callbacks = [
-            checkpoint_callback,
+            #ßcheckpoint_callback,
             lr_monitor_callback,
             image_sampler,
+            #fid_metric,
+            #is_metric
             # progress_bar()
         ]
         plt_trainer_args["callbacks"] = [cb for cb in callbacks if cb is not None]

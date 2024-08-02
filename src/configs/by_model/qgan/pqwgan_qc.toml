@@ -1,12 +1,11 @@
 # basics
-model = "patchgan"
+model = "pqwgan_qc"
 dataset = "mnist"
-
 # training
 training_optimizer = "sgd"
 learning_rate = 1e-2
-max_epochs = 20
-batch_size = 32
+max_epochs = 5
+batch_size = 8
 
 # torch lightning
 task = "image_generation"
@@ -14,4 +13,4 @@ num_workers = 0
 num_devices = 1
 accelerator = "cpu"
 
-project = "patchgan_mnist_testing"
+project = "mnist_training"
