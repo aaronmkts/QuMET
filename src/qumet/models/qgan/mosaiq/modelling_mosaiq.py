@@ -5,22 +5,15 @@ Code Adapted from https://github.com/SilverEngineered/MosaiQ/blob/main/mosaiq.py
 
 # Library imports
 import math
-import random
-import numpy as np
 from torch import Tensor
 from logging import getLogger
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 from functools import partial
-import matplotlib.pyplot as plt
-from typing import Optional as _Optional
 # Pytorch & Pennylane imports
 import torch
 import torch.nn as nn
 import pennylane as qml
 from pennylane.qnn import TorchLayer as TorchConnector
-from pennylane import broadcast
-from pennylane.wires import Wires
-
 
 
 logger = getLogger(__name__)
@@ -28,29 +21,24 @@ pi = math.pi
 
 # fmt:0ff
 pca_dims = 40
-
+image_size = 5
 config = {
     "discriminator": {"input_size": pca_dims},
     "generator": {
-        "device": "lightning.qubit",
+        "device": "default.qubit",
         "n_qubits": 5,
         "n_a_qubits": 0,
         "shots": 10000,
         "depth": 6,
         "q_delta": 1,
-        "diff_method": "adjoint",
+        "diff_method": "best",
         "n_generators": 8,
-        "q_delta": 1
-
+        "q_delta": 1,
+        "pcs_dims": pca_dims
     },
 }
-ordering = []
-for i in range(8):
-    k = 4* i
-    l = [i, 39-k, 38-k, 37-k, 36-k]
-    ordering.append(l)
+# fmt:on
 
-image_size = 5
 #DISCRIMINATOR
 
 class Discriminator(nn.Module):
@@ -72,66 +60,63 @@ class Discriminator(nn.Module):
         return self.model(x)
     
 
-
-#GENERATOR
-name = "generator"
-generator_config = config[name]
-
-device = generator_config["device"]
-n_qubits = generator_config["n_qubits"]
-n_a_qubits = generator_config["n_a_qubits"]
-depth = generator_config["depth"]
-
-
-dev = qml.device("lightning.qubit", wires=n_qubits)
-
-######################################################################
-# Next, we define the quantum circuit and measurement process described above.
-@qml.qnode(dev, interface="torch", diff_method="parameter-shift")
-def quantum_circuit(noise, weights):
-    weights = weights.reshape(depth, n_qubits)
-    for i in range(n_qubits):
-        qml.RY(noise[i], wires=i)
-        qml.RX(noise[i], wires=i)
-    for i in range(depth):
-        for y in range(n_qubits):
-            qml.RY(weights[i][y], wires=y)
-        for y in range(n_qubits - 1):
-            qml.CZ(wires=[y, y + 1])
-    return [qml.expval(qml.PauliX(i)) for i in range(n_qubits)]
-
 class MosaiQGenerator(nn.Module):
     def __init__(self, config, task):
-        
-        """
-        Args:
-            n_generators (int): Number of sub-generators to be used in the patch method.
-            q_delta (float, optional): Spread of the random distribution for parameter initialisation.
-        """
-
-        name = "generator"
-        n_generators = config[name]["n_generators"]
-        q_delta = config[name]["q_delta"]
-        self.n_qubits = config[name]["n_qubits"]
         super().__init__()
+        
+        name = "generator"
+        generator_config = config[name]
 
-        self.q_params = nn.ParameterList(
-            [
-                nn.Parameter(q_delta * torch.rand(depth, n_qubits), requires_grad=True)
-                for _ in range(n_generators)
-            ]
+        q_delta = config[name]["q_delta"]
+
+        self.n_generators = generator_config["n_generators"]
+        self.device = generator_config["device"]
+        self.n_qubits = generator_config["n_qubits"]
+        self.n_a_qubits = generator_config["n_a_qubits"]
+        self.depth = generator_config["depth"]
+        self.diff_method = generator_config["diff_method"]
+        self.q_device = qml.device(self.device, wires= self.n_qubits)
+        self._construct_quantum_layers()
+   
+    def _construct_quantum_layers(self):
+        qnode = qml.QNode(self.circuit, self.q_device, interface="torch", diff_method=self.diff_method)
+        weight_shapes = {"weights": (self.depth, self.n_qubits)}
+        self.q_layers = nn.ModuleList(
+            [TorchConnector(qnode, weight_shapes) for _ in range(self.n_generators)]
         )
 
-        self.n_generators = n_generators
+    def circuit(self, inputs, weights):
+        weights = weights.reshape(self.depth, self.n_qubits)
+        for i in range(self.n_qubits):
+            qml.RY(inputs[i], wires=i)
+            qml.RX(inputs[i], wires=i)
+        for i in range(self.depth):
+            for y in range(self.n_qubits):
+                qml.RY(weights[i][y], wires=y)
+            for y in range(self.n_qubits - 1):
+                qml.CZ(wires=[y, y + 1])
+        return [qml.expval(qml.PauliX(i)) for i in range(self.n_qubits)]
+    
+    def feature_redistribution(self):
+        ordering = []
+        for i in range(8):
+            k = 4* i
+            l = [i, 39-k, 38-k, 37-k, 36-k]
+            ordering.append(l)
+        return ordering
 
-    def forward(self, x, batch_size):
+    def forward(self, x):
+        batch_size = x.size(0)
         images = []
+
         patch_size = image_size
+        ordering = self.feature_redistribution()
         images = torch.Tensor(x.size(0), 0)
-        for params in self.q_params:
+        for q_layer in self.q_layers:
             patches = torch.Tensor(0, patch_size)
             for elem in x:
-                f = quantum_circuit(elem, params)
+                f = q_layer(elem)
+                f = tuple(f)
                 f = torch.stack(f)
                 q_out = f.float().unsqueeze(0)
                 patches = torch.cat((patches, q_out))
@@ -141,8 +126,6 @@ class MosaiQGenerator(nn.Module):
             patches = patches.reshape(batch_size, patch_size)
             images = torch.cat((images, patches), 1)
         return images
-    
-
 
 class MosaiQ(nn.Module):
     def __init__(self, config, task):
