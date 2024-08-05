@@ -50,29 +50,28 @@ class QCBMProbsGenModelWrapper(WrapperBase):
         bandwidth = np.array([0.25])
         space = np.arange(2 ** self.n_qubits)
         self.criterion = MMD(bandwidth, space)
-        self.noise = 1e-8
-        self.automatic_optimization = False
+        
 
-    def training_step(self, batch, batch_idx):
-        optG = self.optimizers()
-        probs = batch
+    def training_step(self, batch):
+     
+        py = batch.reshape(-1,)
 
-        # optG = torch.optim.Adam([self.model.generator.weights], lr=0.1)
-        self.toggle_optimizer(optG)
+        loss, px = self.model(py)
+    
+        kl_div = self.model.generator.kl_divergence(px, py)
 
-        optG.zero_grad()
-        px = self.model.forward()
-        loss = self.criterion(px, probs)
-        loss.backward()
-        optG.step()
-        kl_div = self.model.generator.kl_divergence(px, probs)
-        self.untoggle_optimizer(optG)
+        self.log("mmd_loss", loss, prog_bar=True)
+        self.log('val_kl_epoch', kl_div,  prog_bar=True)
 
-
-        self.log("mmd_loss", loss, on_epoch=True, prog_bar=True)
-        self.log('kl_divergence', kl_div, on_epoch=True, prog_bar=True)
         return loss
-
+    
     def configure_optimizers(self):
-        self.optimizer = torch.optim.Adam([self.model.generator.weights], lr=0.1)
-        return self.optimizer
+        match self.optimizer.lower():
+            case "adam":
+                b1, b2, = 0.777, 0.999
+
+                optG = torch.optim.Adam(self.model.generator.parameters(), 
+                                        lr=self.learning_rate, 
+                                        weight_decay=self.weight_decay,
+                                        betas=(b1, b2))
+        return [optG]
