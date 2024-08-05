@@ -9,27 +9,30 @@ from ...networks.utils import FeatureExtractor
 
 logger = getLogger(__name__)
 
+image_shape = (1, 28, 28) 
+
 config = {
     "encoder": {
-        "z_dim": 8,
+        "z_dim": 7,
         "enc_out_dim": 128,
+        "image_shape": image_shape,
     },
     "generator": {
         "device": "default.qubit",
-        "n_qubits": 8,
+        "n_qubits": 7,
         "n_a_qubits": 1,
         "shots": 10000,
         "depth": 6,
         "q_delta": 1,
-        "diff_method": "adjoint",
-        "n_generators": 4,
+        "diff_method": "best",
+        "n_generators": 16,
         "q_delta": 1,
         'patch_shape': (7, 7),
-        'image_shape': (1, 28, 28),
+        'image_shape': image_shape,
     },
     "discriminator": {
-        "image_shape": (1, 28, 28),
-        "return_features": True,
+        "image_shape": image_shape,
+        "return_features": False,
         }, 
 }
 
@@ -43,17 +46,16 @@ class Encoder(nn.Module):
 
         # Encoder
         self.encoder = nn.Sequential(
-            nn.Conv2d(1, 64, kernel_size=3, stride=2, padding=1), nn.LeakyReLU(), #1x28x28 -> 64x14x14.
-            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1), nn.BatchNorm2d(128), nn.ReLU(), #64x14x14 to 128x7x7
-            nn.Flatten(),
-            nn.Linear(6272, 1024), nn.BatchNorm1d(1024), nn.LeakyReLU(),
-            nn.Linear(1024, self.enc_out_dim)
+            nn.Linear(int(np.prod(self.image_shape)), 512), nn.LeakyReLU(), 
+            nn.Linear(512, 256), nn.LeakyReLU(0.2),
+            nn.Linear(256, self.enc_out_dim), nn.LeakyReLU(0.2, inplace=True)
         )
 
         self.hidden2mu = nn.Linear(self.enc_out_dim, self.z_dim)
         self.hidden2log_var = nn.Linear(self.enc_out_dim, self.z_dim)
 
     def forward(self, x):
+        x = x.view(x.shape[0], -1)
         hidden = self.encoder(x)
         mu, log_var = self.hidden2mu(hidden), self.hidden2log_var(hidden)
 
@@ -103,7 +105,7 @@ class QuantumGenerator(nn.Module):
         return qml.probs(wires=list(range(self.n_qubits)))
     
     def forward(self, x):
-            breakpoint()
+            
             special_shape = bool(self.patch_shape[0]) and bool(self.patch_shape[1])
             patch_size = 2 ** (self.n_qubits - self.n_a_qubits)
             image_pixels = self.image_shape[2] ** 2
@@ -153,6 +155,7 @@ class Discriminator(nn.Module):
         )
 
     def forward(self, input):
+        input = input.view(input.shape[0], -1)
 
         if self.return_features:
             self.feature_extractor.clean()
@@ -164,9 +167,6 @@ class Discriminator(nn.Module):
         else:
             output = self.discriminator(input)
             return output
-
-    def forward(self, x):
-        return self.discriminator(x)
     
 class APQGAN(nn.Module):
     def __init__(self, config, task):
@@ -188,8 +188,8 @@ class APQGAN(nn.Module):
     def vae_forward(self, imgs):
         mu, log_var = self.encoder(imgs)
         z = self.encoder.reparametrize(mu, log_var)
-        fake_data = self.generator(z)
-        return mu, log_var, z, fake_data
+        recon_images = self.generator(z)
+        return mu, log_var, z, recon_images
     
     def discriminate(self, x):
         return self.discriminator(x)
