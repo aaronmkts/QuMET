@@ -27,6 +27,10 @@ import pennylane as qml
 
 
 def main():
+    # Seed the random number generators for reproducibility
+    seed = 89
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
     # Check if MPS device is available
     device = torch.device("cpu")
@@ -48,27 +52,9 @@ def main():
             pxy = px - py
             return self.k_expval(pxy, pxy)
 
-
-
-    class QCBM:
-
-        def __init__(self, circ, mmd, py):
-            self.circ = circ
-            self.mmd = mmd
-            self.py = torch.tensor(py, dtype=torch.float64).to(device)  # target distribution π(x)
-
-        def mmd_loss(self, params):
-            px = self.circ(params)
-            return self.mmd(px, self.py), px
-
-        def kl_divergence(self, px):
-            # Avoid division by zero and handle log(0) cases
-            qcbm_probs = px.clone().detach()
-            target_probs = self.py
-            kl_div = -torch.sum(target_probs * torch.nan_to_num(torch.log(qcbm_probs / target_probs)))
-            return kl_div
-
-    def get_bars_and_stripes(n):
+    n = 3
+    n_qubits = n**2
+    def get_bars_and_stripes(n): #correct
         bitstrings = [list(np.binary_repr(i, n))[::-1] for i in range(2**n)]
         bitstrings = np.array(bitstrings, dtype=int)
 
@@ -81,22 +67,7 @@ def main():
         bars = np.repeat(bars, n, 1)
         bars = bars.reshape(2**n, n * n)
         return np.vstack((stripes[0 : stripes.shape[0] - 1], bars[1 : bars.shape[0]]))
-
-    n = 3
-    n_qubits = n**2
-    dev = qml.device("default.qubit", wires=n_qubits)
-    n_layers = 6
-    wshape = qml.StronglyEntanglingLayers.shape(n_layers=n_layers, n_wires=n_qubits)
-    weights = np.random.random(size=wshape)
-    weights = torch.tensor(weights, requires_grad=True, dtype=torch.float64).to(device)
-
-    @qml.qnode(dev, interface='torch')
-    def circuit(weights):
-        qml.StronglyEntanglingLayers(
-            weights=weights, ranges=[1] * n_layers, wires=range(n_qubits)
-        )
-        return qml.probs()
-
+    
     data = get_bars_and_stripes(n)
     bitstrings = []
     nums = []
@@ -111,14 +82,52 @@ def main():
     space = np.arange(2**n_qubits)
 
     mmd = MMD(bandwidth, space)
-    qcbm = QCBM(circuit, mmd, probs)
 
-    optimizer = optim.Adam([weights], lr=0.1)
+
+
+
+    class QCBM:
+
+        def __init__(self, circ, mmd, py):
+            self.circ = circ
+            self.mmd = mmd
+            self.py = py.clone().detach()
+
+        def mmd_loss(self, params):
+          
+            px = self.circ(params)
+            return self.mmd(px, self.py), px
+
+        def kl_divergence(self, px):
+            # Avoid division by zero and handle log(0) cases
+            qcbm_probs = px.clone().detach()
+            target_probs = self.py
+            kl_div = -torch.sum(target_probs * torch.nan_to_num(torch.log(qcbm_probs / target_probs)))
+            return kl_div
+    
+    dev = qml.device("default.qubit", wires=n_qubits)
+    n_layers = 6
+    wshape = qml.StronglyEntanglingLayers.shape(n_layers=n_layers, n_wires=n_qubits)
+    weights = np.random.random(size=wshape)
+    weights = torch.tensor(weights, requires_grad=True, dtype=torch.float64).to(device)
+
+    @qml.qnode(dev, interface='torch', diff_method= 'backprop')
+    def circuit(weights):
+        qml.StronglyEntanglingLayers(
+            weights=weights, ranges=[1] * n_layers, wires=range(n_qubits)
+        )
+        return qml.probs()
+
+    
+    qcbm = QCBM(circuit, mmd, probs)
+    b1 , b2 = 0.777, 0.999
+    optimizer = optim.Adam([weights], lr=0.1,  betas=(b1, b2))
 
     # Training loop
     num_epochs = 100
     for epoch in range(num_epochs):
         optimizer.zero_grad()
+
         loss, px = qcbm.mmd_loss(weights)
         loss.backward()
         optimizer.step()
