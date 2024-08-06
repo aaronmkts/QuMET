@@ -646,8 +646,7 @@ class QuMETCLI:
         
         dataset_info = get_dataset_info(self.args.dataset)
         model_info = models.get_model_info(self.args.model)
-        discretise = True if 'discrete' in self.args.task else False
-        
+        discretise = True if 'discrete' or 'probs' in self.args.task else False
         self.logger.info(f"Initialising dataset {self.args.dataset!r}...")
         data_module = QuMETDataModule(
             name=self.args.dataset,
