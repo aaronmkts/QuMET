@@ -12,7 +12,7 @@ logger = getLogger(__name__)
 config = {
     "generator": {
         "device": "default.qubit",
-        "n_qubits": 9,
+        "n_qubits": 8,
         "shots": 1000,
         "depth": 6,
         "diff_method": "backprop",
