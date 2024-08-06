@@ -55,10 +55,11 @@ class QCBMProbsGenModelWrapper(WrapperBase):
     def training_step(self, batch):
      
         py = batch.reshape(-1,)
+        
+        px = self.model()
+        loss = self.criterion(px, py)
 
-        loss, px = self.model(py)
-    
-        kl_div = self.model.generator.kl_divergence(px, py)
+        kl_div = self.entropy_val(py.unsqueeze(0), px.unsqueeze(0)).detach()
 
         self.log("mmd_loss", loss, prog_bar=True)
         self.log('val_kl_epoch', kl_div,  prog_bar=True)
