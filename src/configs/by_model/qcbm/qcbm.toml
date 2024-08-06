@@ -7,8 +7,8 @@ n_qubits = 9
 training_optimizer = "adam"
 learning_rate = 1e-1
 max_epochs = 100
-batch_size = 1
-seed  = 9001
+batch_size = 10
+seed  = 0
 # torch lightning
 task = "probs_generation"
 num_workers = 0
