@@ -47,6 +47,7 @@ class BarsAndStripesDataset(Dataset):
 
         target_probs = np.zeros(2 ** self.n_qubits)
         target_probs[nums] = 1 / len(data)
+        target_probs = torch.tensor(target_probs , dtype=torch.float64).unsqueeze(0)
         return target_probs
 
     def prepare_data(self) -> None:
@@ -60,4 +61,4 @@ class BarsAndStripesDataset(Dataset):
 
     def __getitem__(self, index):
         
-        return torch.tensor(self.data[index, ...], dtype=torch.float64)
+        return self.data[index, ...]
