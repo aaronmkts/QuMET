@@ -1,6 +1,6 @@
 from typing import Dict
 from pennylane.qnn import TorchLayer as TorchConnector
-import numpy as np
+from pennylane import numpy as np
 import torch.jit
 import torch.nn as nn
 import pennylane as qml
@@ -16,33 +16,9 @@ config = {
         "shots": 1000,
         "depth": 6,
         "diff_method": "backprop",
-
     },
 }
-seed = 89
-np.random.seed(seed)
-torch.manual_seed(seed)
 
-class MMD:
-
-    def __init__(self, scales, space):
-        gammas = 1 / (2 * (scales ** 2))
-        sq_dists = np.abs(space[:, None] - space[None, :]) ** 2
-        self.K = sum(np.exp(-gamma * sq_dists) for gamma in gammas) / len(scales)
-        self.K = torch.tensor(self.K, dtype=torch.float64)
-        self.scales = scales
-
-    def k_expval(self, px, py):
-        return torch.matmul(px, torch.matmul(self.K, py))
-
-    def __call__(self, px, py):
-        pxy = px - py
-        return self.k_expval(pxy, pxy)
-
-
-bandwidth = np.array([0.25])
-space = np.arange(2**9)
-mmd = MMD(bandwidth, space)
 
 class QCBMGenerator(nn.Module):
     def __init__(self, config, task):
@@ -56,30 +32,31 @@ class QCBMGenerator(nn.Module):
         self.device = generator_config["device"]
         self.shots = generator_config["shots"]
         self.diff_method = generator_config["diff_method"]
-        
-        self.q_device = qml.device(self.device, wires=self.n_qubits)
-        self._construct_quantum_layer()
+        self.q_layer = self._construct_quantum_layer()
 
     def _construct_quantum_layer(self):
-        qnode = qml.QNode(self.circuit, self.q_device, interface="torch", diff_method=self.diff_method)
-        weight_shapes = {"weights": (self.depth, self.n_qubits, 3)}
 
-        self.q_layer = TorchConnector(qnode, weight_shapes)
+        wshape = qml.StronglyEntanglingLayers.shape(n_layers=self.depth, n_wires=self.n_qubits)
+        weights = np.random.random(size=wshape)
+        self.weights = nn.Parameter(torch.tensor(weights, requires_grad=True, dtype=torch.float64))
 
-    def circuit(self, inputs, weights):
+        self.q_device = qml.device(self.device, wires=self.n_qubits)
+        @qml.qnode(self.q_device, interface='torch', diff_method=self.diff_method)  
+        def circuit(weights):
 
-        qml.StronglyEntanglingLayers(
-            weights=weights, ranges=[1] * self.depth, wires=range(self.n_qubits)
-        )
+            qml.StronglyEntanglingLayers(
+                weights=weights, ranges=[1] * self.depth, wires=range(self.n_qubits)
+            )
+            return qml.probs()
 
-        return qml.probs()
+        return circuit
 
+    def forward(self):
 
-    def forward(self, x):
-        dummy_input = torch.tensor([])
-        prob_distribution = self.q_layer(dummy_input)
-        mmd_loss = mmd(prob_distribution, x)
-        return mmd_loss, prob_distribution
+        circuit = self.q_layer
+        prob_distribution = circuit(self.weights)
+
+        return prob_distribution
 
     def kl_divergence(self, px, py):
         qcbm_probs = px.clone().detach()
@@ -93,9 +70,9 @@ class QCBM(nn.Module):
         super().__init__()
         # networks
         self.generator = QCBMGenerator(config, task)
-
-    def forward(self, x):
-        return self.generator(x)
+        
+    def forward(self):
+        return self.generator()
 
 
 # ---------------------------------------
@@ -105,6 +82,7 @@ class QCBM(nn.Module):
 
 def _qcbm(config, task: str) -> QCBM:
     model = QCBM(config, task)
+
     return model
 
 
