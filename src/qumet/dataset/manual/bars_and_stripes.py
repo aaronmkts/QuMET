@@ -14,8 +14,7 @@ from qumet.dataset.utils import add_dataset_info
 class BarsAndStripesDataset(Dataset):
     def __init__(self, split="train", normaliser = None, discretisation = None, n_qubits=9) -> None:
         super().__init__()
-        self.data = None
-
+        
         self.n_samples = int(sqrt(n_qubits))
         self.n_qubits = n_qubits
 
