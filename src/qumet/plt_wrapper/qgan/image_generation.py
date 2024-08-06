@@ -382,7 +382,7 @@ class SSPQGANWrapper(QGANImageGenerationModelWrapper):
 
         # reconstruction weight in discriminator feature space, first tune this parameter if performace is unsatifactory.
         self.recon_weight = 1e-2
-        self.beta = 1
+        self.beta = 1e-2
         self.lambda_gp = 10
         self.n_critic = 5
 
@@ -547,7 +547,7 @@ class SSPQGANWrapper(QGANImageGenerationModelWrapper):
                     recon_image=recon_imgs, label=labels, encode_latent=z)
   
     def configure_optimizers(self):
-        lrE = 0.003  # Learning rate for the encoder
+        lrE = 0.0005  # Learning rate for the encoder
         lrG = 0.01  # Learning rate for the generator
         lrD = 0.0002  # Learning rate for the discriminator
     
@@ -571,10 +571,12 @@ class SSPQGANWrapper(QGANImageGenerationModelWrapper):
                     betas=(b1, b2),
                 )
 
-                optD = torch.optim.SGD(
-                    self.model.discriminator.parameters(), 
-                    lr=lrD)
-                
+                optD = torch.optim.Adam(
+                    self.model.discriminator.parameters(),
+                    lr=lrD,
+                    weight_decay=self.weight_decay,
+                    betas=(b1, b2)
+                )
             case "sgd":
 
                 optE = torch.optim.SGD(
