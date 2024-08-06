@@ -28,7 +28,7 @@ import pennylane as qml
 
 def main():
     # Seed the random number generators for reproducibility
-    seed = 89
+    seed = 0
     np.random.seed(seed)
     torch.manual_seed(seed)
 
@@ -83,7 +83,7 @@ def main():
 
     mmd = MMD(bandwidth, space)
 
-
+  
 
 
     class QCBM:
@@ -105,12 +105,17 @@ def main():
             kl_div = -torch.sum(target_probs * torch.nan_to_num(torch.log(qcbm_probs / target_probs)))
             return kl_div
     
-    dev = qml.device("default.qubit", wires=n_qubits)
-    n_layers = 6
-    wshape = qml.StronglyEntanglingLayers.shape(n_layers=n_layers, n_wires=n_qubits)
-    weights = np.random.random(size=wshape)
-    weights = torch.tensor(weights, requires_grad=True, dtype=torch.float64).to(device)
+    
 
+  
+    n_layers = 6
+    
+    wshape = qml.StronglyEntanglingLayers.shape(n_layers=n_layers, n_wires=n_qubits)
+    
+    weights = np.random.random(size=wshape)
+    
+    weights = torch.tensor(weights, requires_grad=True, dtype=torch.float64)
+    dev = qml.device("default.qubit", wires=n_qubits)
     @qml.qnode(dev, interface='torch', diff_method= 'backprop')
     def circuit(weights):
         qml.StronglyEntanglingLayers(
@@ -122,12 +127,13 @@ def main():
     qcbm = QCBM(circuit, mmd, probs)
     b1 , b2 = 0.777, 0.999
     optimizer = optim.Adam([weights], lr=0.1,  betas=(b1, b2))
-
+    
     # Training loop
+    
     num_epochs = 100
     for epoch in range(num_epochs):
         optimizer.zero_grad()
-
+        print(np.random.get_state()[1][0])
         loss, px = qcbm.mmd_loss(weights)
         loss.backward()
         optimizer.step()
