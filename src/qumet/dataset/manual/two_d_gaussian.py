@@ -15,6 +15,7 @@ import torch
     dataset_source="manual",
     available_splits=("train", "validation"),
     bitsring_generation=True,
+    probs_generation=True,
     continuous_generation=True
 )
 class TwoDGaussianDataset(Dataset):
@@ -34,14 +35,13 @@ class TwoDGaussianDataset(Dataset):
         self.normaliser = normaliser
         self.reverse_lookup = normaliser.reverse_lookup if normaliser else None
         self.n_dim = 2
-        self.n_samples = 2560 * 5
+        self.n_samples = 50000
         self.discretisation = discretisation(n_qubits, n_dim=2) if discretisation else None
-
+        
         if split == "train":
-            self.data, _ = self._generate_samples()
+            self.data, self.distribution = self._generate_samples()
         elif split == "validation":
-            _, prob_data = self._generate_samples()
-            self.data = np.array([prob_data] * self.n_samples)
+            self.data, self.distribution = self._generate_samples()
         else:
             raise RuntimeError(
                 f"split must be `train` or `validation`, but got {split}"
@@ -51,7 +51,7 @@ class TwoDGaussianDataset(Dataset):
         """Generate 2D Gaussian"""
         # Parameters
 
-        std = 0.05  # Standard deviation of the Gaussians
+        std = 0.1  # Standard deviation of the Gaussians
         mean = np.array([0, 0])
 
         # Covariance matrix for each Gaussian (assuming isotropic Gaussians)
@@ -66,13 +66,15 @@ class TwoDGaussianDataset(Dataset):
         data = self.normaliser.fit_transform(all_samples) if self.normaliser else all_samples
 
         if self.discretisation:
+            
             data, distribution = self._discretise_samples(data)
+    
             return data, distribution
         return data
 
     def _discretise_samples(self, data):
 
-        num_discrete_values = int(2 ** (self.n_qubits / self.n_dim))  # discretisation per dimension
+        num_discrete_values = 2 ** (self.n_qubits // self.n_dim)  # discretisation per dimension
         nns = tuple(num_discrete_values for _ in range(self.n_dim))  # siply (n,n) for 2 d and (n,n,n) for 3d data
         nns_nq = nns + tuple((self.n_qubits,))  # (n,n, n_qubits) 8 by 8 grid with qubits appended
 
@@ -83,18 +85,18 @@ class TwoDGaussianDataset(Dataset):
 
         coordinates = np.floor(data * num_discrete_values).astype(int)
         train_dataset = np.array([inverse_bins[tuple(coord)] for coord in coordinates])
-
+        
         distribution = np.zeros(nns)
         for xy in coordinates:
             indices = tuple(xy[ii] for ii in range(self.n_dim))
             distribution[indices] += 1
         distribution /= np.sum(distribution)
         distribution = np.array(distribution).reshape((num_discrete_values ** 2))
-
+        distribution = torch.tensor(distribution, dtype=torch.float64).unsqueeze(0)
         return train_dataset, distribution
 
     def __len__(self):
-        return len(self.data)
+        return len(self.distribution)
 
     def prepare_data(self) -> None:
         pass
@@ -103,7 +105,5 @@ class TwoDGaussianDataset(Dataset):
         pass
 
     def __getitem__(self, index):
-
-        data_i = torch.tensor(self.data[index, ...], dtype=torch.float32)
-
-        return data_i
+        
+        return self.distribution[index, ...]
