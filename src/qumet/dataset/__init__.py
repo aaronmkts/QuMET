@@ -108,7 +108,7 @@ class QuMETDataModule(pl.LightningDataModule):
         self.pred_dataset = None
         self.dataset_info = get_dataset_info(name)
 
-        self.batch_size = pow(2, n_qubits) if self.dataset_info.probs_generation else batch_size
+        self.batch_size = 1 if self.dataset_info.probs_generation else batch_size
  
     def prepare_data(self) -> None:
         train_dataset = get_dataset(
@@ -217,7 +217,7 @@ class QuMETDataModule(pl.LightningDataModule):
         return DataLoader(
             self.train_dataset,
             batch_size= self.batch_size,
-            shuffle= False,
+            shuffle= True,
             num_workers=self.num_workers,
         )
 
