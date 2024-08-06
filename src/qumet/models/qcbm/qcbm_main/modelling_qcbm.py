@@ -58,12 +58,6 @@ class QCBMGenerator(nn.Module):
 
         return prob_distribution
 
-    def kl_divergence(self, px, py):
-        qcbm_probs = px.clone().detach()
-        target_probs = py
-        kl_div = -torch.sum(target_probs * torch.nan_to_num(torch.log(qcbm_probs / target_probs)))
-        return kl_div
-
 
 class QCBM(nn.Module):
     def __init__(self, config, task):
