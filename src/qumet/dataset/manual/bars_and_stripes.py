@@ -20,6 +20,10 @@ class BarsAndStripesDataset(Dataset):
 
         if split in ['train', "validation"]:
             self.data = self._generate_samples()
+        else:
+            raise RuntimeError(
+                f"split must be `train` or `validation`, but got {split}"
+            )
 
     def _generate_samples(self):
         n = self.n_samples
