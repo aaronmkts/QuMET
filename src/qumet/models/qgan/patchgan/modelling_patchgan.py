@@ -36,6 +36,7 @@ config = {
         "depth": 6,
         "q_delta": 1,
         "diff_method": "best",
+        "diff_method": "best",
         "n_generators": 4,
         "q_delta": 1
 
@@ -43,6 +44,8 @@ config = {
 }
 
 # fmt:on
+
+
 
 
 class Discriminator(nn.Module):
@@ -73,11 +76,13 @@ class PatchQuantumGenerator(nn.Module):
     """Quantum generator class for the patch method"""
 
     def __init__(self, config, task):
-        super().__init__()
-        
+        """
+        Args:
+            n_generators (int): Number of sub-generators to be used in the patch method.
+            q_delta (float, optional): Spread of the random distribution for parameter initialisation.
+        """
         name = "generator"
-        generator_config = config[name]
-
+        n_generators = config[name]["n_generators"]
         q_delta = config[name]["q_delta"]
 
         self.n_generators = generator_config["n_generators"]
@@ -99,6 +104,7 @@ class PatchQuantumGenerator(nn.Module):
     def partial_measure(self,noise, q_layer):
         # Non-linear Transform
         probs = q_layer(noise)
+        probs = q_layer(noise)
         probsgiven0 = probs[: (2 ** (self.n_qubits - self.n_a_qubits))]
         probsgiven0 /= torch.sum(probs)
 
@@ -107,10 +113,12 @@ class PatchQuantumGenerator(nn.Module):
         return probsgiven
     
     def circuit(self, inputs, weights):
+    def circuit(self, inputs, weights):
         weights = weights.reshape(self.depth, self.n_qubits)
 
         # Initialise latent vectors
         for i in range(self.n_qubits):
+            qml.RY(inputs[i], wires=i)
             qml.RY(inputs[i], wires=i)
 
         # Repeated layer
@@ -133,17 +141,20 @@ class PatchQuantumGenerator(nn.Module):
         # Iterate over all sub-generators
 
         for q_layer in self.q_layers:
+        for q_layer in self.q_layers:
 
             # Create a Tensor to 'catch' a batch of the patches from a single sub-generator
             patches = torch.Tensor(0, patch_size)
             # for b in batch basically
             for elem in x:
                 q_out = self.partial_measure(elem, q_layer).float().unsqueeze(0)
+                q_out = self.partial_measure(elem, q_layer).float().unsqueeze(0)
                 patches = torch.cat((patches, q_out))
             # Each batch of patches is concatenated with each other to create a batch of images
             images = torch.cat((images, patches), 1)
             
         return images
+    
     
 
 class PatchGAN(nn.Module):

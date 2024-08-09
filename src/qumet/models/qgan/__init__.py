@@ -7,6 +7,9 @@ from .mosaiq import get_mosaiq
 from .apqgan import get_apqgan
 from .pwqgan import get_pqwgan_qc
 
+from .apqgan import get_apqgan
+from .pwqgan import get_pqwgan_qc
+
 # fmt: off
 QGAN_MODELS = {
     "efficientsu2":{
