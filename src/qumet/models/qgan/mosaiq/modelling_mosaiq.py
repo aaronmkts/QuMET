@@ -26,7 +26,6 @@ config = {
     "discriminator": {"input_size": pca_dims},
     "generator": {
         "device": "default.qubit",
-        "device": "default.qubit",
         "n_qubits": 5,
         "n_a_qubits": 0,
         "shots": 10000,
