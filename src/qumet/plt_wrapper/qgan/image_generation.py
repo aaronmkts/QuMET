@@ -12,9 +12,6 @@ import torch.distributions as D
 import torch.nn.functional as F
 from ..utils import compute_gradient_penalty
 
-from ..utils import compute_gradient_penalty
-
-
 class QGANImageGenerationModelWrapper(WrapperBase, DataTransformationMixin):
     def __init__(
         self,
