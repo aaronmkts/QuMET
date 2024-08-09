@@ -371,7 +371,7 @@ class PQWGANWrapper(QGANImageGenerationModelWrapper):
             self.untoggle_optimizer(optG) 
 
 
-class SSPQGANWrapper(QGANImageGenerationModelWrapper):
+class APQGANWrapper(QGANImageGenerationModelWrapper):
     def __init__(self,
         model,
         dataset_info,
