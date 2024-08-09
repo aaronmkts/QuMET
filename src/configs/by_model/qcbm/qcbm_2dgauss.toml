@@ -1,0 +1,18 @@
+# basics
+model = "qcbm"
+dataset = "2d_gaussian"
+transform = "minmax"
+# training
+n_qubits = 8
+training_optimizer = "adam"
+learning_rate = 1e-1
+max_epochs = 150
+batch_size = 1
+seed  = 885
+# torch lightning
+task = "probs_generation"
+num_workers = 0
+num_devices = 1
+accelerator = "cpu"
+
+project = "qcbm/2d_gaussian"

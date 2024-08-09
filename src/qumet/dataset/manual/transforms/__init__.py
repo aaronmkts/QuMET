@@ -1,3 +1,4 @@
+from .bars_and_stripes import get_bars_and_stripes_transform
 from .two_d_gaussian import get_two_d_gaussian_transform
 from .two_d_grid_gaussian import get_two_d_grid_gaussian_transform
 from .two_d_ring_gaussian import get_two_d_ring_gaussian_transform
@@ -13,6 +14,8 @@ def get_manual_dataset_transform(name: str, transform: str, discretise: bool, mo
         transform (callable): transform function
     """
     match name.lower():
+        case 'bars_and_stripes':
+            return get_bars_and_stripes_transform(transform, discretise, model_name)
         case "2d_gaussian":
             return get_two_d_gaussian_transform(transform, discretise, model_name)
         case "2d_grid_gaussian":

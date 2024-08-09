@@ -152,8 +152,7 @@ class QuMETCLI:
         parser = self._setup_parser()
         
         args = parser.parse_intermixed_args(argv)
-        # Housekeeping
-        pl.seed_everything(args.seed)
+      
         if args.to_debug:
             sys.excepthook = self._excepthook
             self.logger.setLevel(logging.DEBUG)
@@ -187,7 +186,9 @@ class QuMETCLI:
         # NOTE: The project name is set later on (if no configuration is provided), so
         # the merged argument table may show None, but this is not the case.
         self.args = post_parse_load_config(args, CLI_DEFAULTS)
-        
+       
+        # Housekeeping
+        pl.seed_everything(self.args.seed)
 
         # Sanity check
         if not self.args.model or not self.args.dataset:
@@ -199,13 +200,14 @@ class QuMETCLI:
             self.dataset_info,
             self.model_info,
         ) = self._setup_model_and_dataset()
+        
         self.output_dir, self.output_dir_sw = self._setup_folders()
         self.visualizer = self._setup_visualizer()
 
         if self.args.no_warnings:
             # Disable all warnings
             warnings.simplefilter("ignore")
-
+   
     def run(self):
         run_action_fn = None
         match self.args.action:
@@ -641,16 +643,10 @@ class QuMETCLI:
         # name, when called, the model instance function creates and returns an instance
         # of a specified model.
         # NOTE: See main/qumet/models/__init__.py for more information
+        
         dataset_info = get_dataset_info(self.args.dataset)
         model_info = models.get_model_info(self.args.model)
-        discretise = True if 'discrete' in self.args.task else False
-        
-        model = models.get_model(
-            name=self.args.model,
-            task=self.args.task,
-            dataset_info=dataset_info,
-        )
-
+        discretise = True if 'discrete' or 'probs' in self.args.task else False
         self.logger.info(f"Initialising dataset {self.args.dataset!r}...")
         data_module = QuMETDataModule(
             name=self.args.dataset,
@@ -660,6 +656,12 @@ class QuMETCLI:
             n_qubits=self.args.n_qubits,
             num_workers=self.args.num_workers,
             model_name=self.args.model,
+        )
+
+        model = models.get_model(
+            name=self.args.model,
+            task=self.args.task,
+            dataset_info=dataset_info,
         )
 
         return model, data_module, dataset_info, model_info

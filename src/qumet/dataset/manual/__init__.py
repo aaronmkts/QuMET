@@ -1,5 +1,7 @@
 import os
 from pathlib import Path
+
+from .bars_and_stripes import BarsAndStripesDataset
 from .transforms import get_manual_dataset_transform
 from .two_d_gaussian import TwoDGaussianDataset
 from .two_d_grid_gaussian import TwoDGridGaussianDataset
@@ -32,6 +34,8 @@ def get_manual_dataset(name: str, split: str, transform: str, discretise: bool,
     normaliser, discretisation = get_manual_dataset_transform(name, transform, discretise, model_name)
 
     match name:
+        case 'bars_and_stripes':
+            dataset_cls = BarsAndStripesDataset
         case "2d_gaussian":
             dataset_cls = TwoDGaussianDataset
         case "2d_grid_gaussian":
@@ -67,6 +71,7 @@ def get_manual_dataset(name: str, split: str, transform: str, discretise: bool,
 
 
 MANUAL_DATASET_MAPPING = {
+    "bars_and_stripes": BarsAndStripesDataset,
     "2d_gaussian": TwoDGaussianDataset,
     "2d_grid_gaussian": TwoDGridGaussianDataset,
     "2d_ring_gaussian": TwoDRingGaussianDataset,
