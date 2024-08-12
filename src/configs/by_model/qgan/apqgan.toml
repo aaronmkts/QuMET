@@ -13,4 +13,4 @@ num_workers = 0
 num_devices = 1
 accelerator = "cpu"
 
-project = "apqgan/wasserstein"
+project = "apqgan/mnist_0/gaussian_prior/gamma_0.0001"
