@@ -6,12 +6,13 @@ import torch.nn as nn
 import pennylane as qml
 from torch import Tensor
 from logging import getLogger
+from qumet.models.networks import add_noise_to_circuit
 
 logger = getLogger(__name__)
 
 config = {
     "generator": {
-        "device": "default.qubit",
+        "device": "default.mixed",
         "n_qubits": 8,
         "shots": 1000,
         "depth": 6,
@@ -35,24 +36,22 @@ class QCBMGenerator(nn.Module):
         self.q_layer = self._construct_quantum_layer()
 
     def _construct_quantum_layer(self):
-
         wshape = qml.StronglyEntanglingLayers.shape(n_layers=self.depth, n_wires=self.n_qubits)
         weights = np.random.random(size=wshape)
         self.weights = nn.Parameter(torch.tensor(weights, requires_grad=True, dtype=torch.float64))
 
         self.q_device = qml.device(self.device, wires=self.n_qubits)
-        @qml.qnode(self.q_device, interface='torch', diff_method=self.diff_method)  
-        def circuit(weights):
 
+        @qml.qnode(self.q_device, interface='torch', diff_method=self.diff_method)
+        def circuit(weights):
             qml.StronglyEntanglingLayers(
                 weights=weights, ranges=[1] * self.depth, wires=range(self.n_qubits)
             )
             return qml.probs()
 
-        return circuit
+        return add_noise_to_circuit(circuit=circuit, noise_dict={qml.PhaseDamping: qml.Rot}, prob=0.1)
 
     def forward(self):
-
         circuit = self.q_layer
         prob_distribution = circuit(self.weights)
 
@@ -64,7 +63,7 @@ class QCBM(nn.Module):
         super().__init__()
         # networks
         self.generator = QCBMGenerator(config, task)
-        
+
     def forward(self):
         return self.generator()
 
