@@ -5,7 +5,7 @@ import torch.nn as nn
 from logging import getLogger
 from typing import Dict
 from ...networks.utils import FeatureExtractor
-
+from pennylane.qnn import TorchLayer as TorchConnector
 
 logger = getLogger(__name__)
 
@@ -41,14 +41,18 @@ class Encoder(nn.Module):
     def __init__(self, config):
         super(Encoder, self).__init__()
         
-        for key, value in config.items():
-            setattr(self, key, value)
+        name = "encoder"
+        encoder_config = config[name]
+
+        self.image_shape = encoder_config["image_shape"]
+        self.enc_out_dim = encoder_config["enc_out_dim"]
+        self.z_dim = encoder_config["z_dim"]
 
         # Encoder
         self.encoder = nn.Sequential(
-            nn.Linear(int(np.prod(self.image_shape)), 512), nn.LeakyReLU(), 
+            nn.Linear(int(np.prod(self.image_shape)), 512), nn.LeakyReLU(0.2), 
             nn.Linear(512, 256), nn.LeakyReLU(0.2),
-            nn.Linear(256, self.enc_out_dim), nn.LeakyReLU(0.2, inplace=True)
+            nn.Linear(256, self.enc_out_dim), nn.LeakyReLU(0.2)
         )
 
         self.hidden2mu = nn.Linear(self.enc_out_dim, self.z_dim)
@@ -70,30 +74,42 @@ class Encoder(nn.Module):
 class QuantumGenerator(nn.Module):
     def __init__(self,  config):
         super(QuantumGenerator, self).__init__()
-        
-        for key, value in config.items():
-            setattr(self, key, value)
+        name = "generator"
+        generator_config = config[name]
 
+        q_delta = config[name]["q_delta"]
+
+        self.n_generators = generator_config["n_generators"]
+        self.device = generator_config["device"]
+        self.n_qubits = generator_config["n_qubits"]
+        self.n_a_qubits = generator_config["n_a_qubits"]
+        self.depth = generator_config["depth"]
+        self.diff_method = generator_config["diff_method"]
+        self.patch_shape = generator_config["patch_shape"]
+        self.image_shape = generator_config["image_shape"]
         self.q_device = qml.device(self.device, wires= self.n_qubits)
-        self.params = nn.ParameterList([nn.Parameter(torch.rand(self.depth, self.n_qubits, 3), 
-                                                     requires_grad=True) for _ in range(self.n_generators)])
-        self.qnode = qml.QNode(self.circuit, self.q_device, interface="torch")
+        self._construct_quantum_layers()
+   
+    def _construct_quantum_layers(self):
+        qnode = qml.QNode(self.circuit, self.q_device, interface="torch", diff_method=self.diff_method)
+        weight_shapes = {"weights": (self.depth, self.n_qubits, 3)}
+        self.q_layers = nn.ModuleList(
+            [TorchConnector(qnode, weight_shapes) for _ in range(self.n_generators)]
+        )
 
+    def partial_trace_and_postprocess(self, noise, q_layer):
+        probs = q_layer(noise)
+        probsgiven0 = probs[:2**(self.n_qubits - self.n_a_qubits)]
+        probsgiven0 /= torch.sum(probs)
         
-    def partial_measure_and_postprocess(self, noise, weights):
-        # Non-linear Transform
-        probs = self.qnode(noise, weights)
-        post_measurement_probs = probs[: (2 ** (self.n_qubits - self.n_a_qubits))]
-        post_measurement_probs /= torch.sum(probs)
-
         # Post-Processing
+        probsgiven = probsgiven0 / torch.max(probsgiven0)
+        return probsgiven
+    
+    def circuit(self, inputs, weights):
 
-        post_processed_patch = ((post_measurement_probs / torch.max(post_measurement_probs)) - 0.5) * 2
-        return post_processed_patch
-
-    def circuit(self, latent_vector, weights):
         for i in range(self.n_qubits):
-            qml.RY(latent_vector[i], wires=i)
+            qml.RY(inputs[i], wires=i)
         
         for i in range(self.depth):
             for j in range(self.n_qubits):
@@ -105,85 +121,68 @@ class QuantumGenerator(nn.Module):
         return qml.probs(wires=list(range(self.n_qubits)))
     
     def forward(self, x):
-            
-            special_shape = bool(self.patch_shape[0]) and bool(self.patch_shape[1])
-            patch_size = 2 ** (self.n_qubits - self.n_a_qubits)
-            image_pixels = self.image_shape[2] ** 2
-            pixels_per_patch = image_pixels // self.n_generators
-            if special_shape and self.patch_shape[0] * self.patch_shape[1] != pixels_per_patch:
-                raise ValueError("patch shape and patch size dont match!")
-            output_images = torch.Tensor(x.size(0), 0)
+        special_shape = bool(self.patch_shape[0]) and bool(self.patch_shape[1])
+        patch_size = 2 ** (self.n_qubits - self.n_a_qubits )
+        image_pixels = self.image_shape[2] ** 2
+        pixels_per_patch = image_pixels // self.n_generators
+        if special_shape and self.patch_shape[0] * self.patch_shape[1] != pixels_per_patch:
+            raise ValueError("patch shape and patch size dont match!")
+        output_images = torch.Tensor(x.size(0), 0)
 
-            for sub_generator_param in self.params:
-                patches = torch.Tensor(0, pixels_per_patch)
-                for item in x:
-                    sub_generator_out = self.partial_measure_and_postprocess(item, sub_generator_param).float().unsqueeze(0)
-                    if pixels_per_patch < patch_size:
-                        sub_generator_out = sub_generator_out[:,:pixels_per_patch]
-                    patches = torch.cat((patches, sub_generator_out))
-                output_images = torch.cat((output_images, patches), 1)
+        for q_layer in self.q_layers:
+            patches = torch.Tensor(0, pixels_per_patch)
+            for item in x:
+                sub_generator_out = self.partial_trace_and_postprocess(item, q_layer).float().unsqueeze(0)
+                if pixels_per_patch < patch_size:
+                    sub_generator_out = sub_generator_out[:,:pixels_per_patch]
+                patches = torch.cat((patches, sub_generator_out))
+            output_images = torch.cat((output_images, patches), 1)
 
-            if special_shape:
-                final_out = torch.zeros(x.size(0), *self.image_shape)
-                for i,img in enumerate(output_images):
-                    for patches_done, j in enumerate(range(0, img.shape[0], pixels_per_patch)):
-                        patch = torch.reshape(img[j:j+pixels_per_patch], self.patch_shape)
-                        starting_h = ((patches_done * self.patch_shape[1]) // self.image_shape[2]) * self.patch_shape[0]
-                        starting_w = (patches_done * self.patch_shape[1]) % self.image_shape[2]
-                        final_out[i, 0, starting_h:starting_h+self.patch_shape[0], starting_w:starting_w+self.patch_shape[1]] = patch
-            else:
-                final_out = output_images.view(output_images.shape[0], *self.image_shape)
-            return final_out
+        if special_shape:
+            final_out = torch.zeros(x.size(0), *self.image_shape)
+            for i,img in enumerate(output_images):
+                for patches_done, j in enumerate(range(0, img.shape[0], pixels_per_patch)):
+                    patch = torch.reshape(img[j:j+pixels_per_patch], self.patch_shape)
+                    starting_h = ((patches_done * self.patch_shape[1]) // self.image_shape[2]) * self.patch_shape[0]
+                    starting_w = (patches_done * self.patch_shape[1]) % self.image_shape[2]
+                    final_out[i, 0, starting_h:starting_h+self.patch_shape[0], starting_w:starting_w+self.patch_shape[1]] = patch
+        else:
+            final_out = output_images.view(output_images.shape[0], *self.image_shape)
+        return final_out
+    
 
 class Discriminator(nn.Module):
     def __init__(self, config):
-        super(Discriminator, self).__init__()
+        super().__init__()
+        name = "discriminator"
+        self.image_shape = config[name]["image_shape"]
 
-        for key, value in config.items():
-            setattr(self, key, value)
-
-        if self.return_features:
-            self.feature_extractor = FeatureExtractor()
-        else:
-            self.feature_extractor = lambda x: x
-
-        self.discriminator = nn.Sequential(
-            nn.Linear(int(np.prod(self.image_shape)), 512), nn.LeakyReLU(0.1),
-            nn.Linear(512, 256), self.feature_extractor(nn.LeakyReLU(0.2, inplace=True)),
+        self.model = nn.Sequential(
+            nn.Linear(int(np.prod(self.image_shape)), 512),
+            nn.LeakyReLU(0.2),
+            nn.Linear(512, 256),
+            nn.LeakyReLU(0.2),
             nn.Linear(256, 1),
-            nn.Sigmoid()
         )
 
-    def forward(self, input):
-        input = input.view(input.shape[0], -1)
-
-        if self.return_features:
-            self.feature_extractor.clean()
-            output = self.discriminator(input)
-            features = torch.cat(
-                [torch.ravel(x) for x in self.feature_extractor.features]
-            )
-            return output, features
-        else:
-            output = self.discriminator(input)
-            return output
+    def forward(self, x):
+        x = x.view(x.shape[0], -1)
+        x = self.model(x)
+        return x
     
 class APQGAN(nn.Module):
     def __init__(self, config, task):
         super(APQGAN, self).__init__()
 
-        encoder_config = config["encoder"]
-        generator_config = config["generator"]  
-        discriminator_config = config["discriminator"]
-
-
-        self.encoder = Encoder(encoder_config)
-        self.generator = QuantumGenerator(generator_config)
-        self.discriminator = Discriminator(discriminator_config)
+        self.encoder = Encoder(config)
+        self.generator = QuantumGenerator(config)
+        self.discriminator = Discriminator(config)
 
     def forward(self,z):
-        output = self.generator(z)
-        return output
+        with torch.no_grad():
+            imgs_batch = self.generator(z)
+            imgs = imgs_batch.view(-1, 1, 28, 28)
+        return imgs
     
     def vae_forward(self, imgs):
         mu, log_var = self.encoder(imgs)

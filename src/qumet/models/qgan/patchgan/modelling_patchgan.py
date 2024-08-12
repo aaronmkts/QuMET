@@ -82,9 +82,7 @@ class PatchQuantumGenerator(nn.Module):
             q_delta (float, optional): Spread of the random distribution for parameter initialisation.
         """
         name = "generator"
-        n_generators = config[name]["n_generators"]
-        q_delta = config[name]["q_delta"]
-
+        generator_config = config[name]
         self.n_generators = generator_config["n_generators"]
         self.device = generator_config["device"]
         self.n_qubits = generator_config["n_qubits"]
@@ -111,8 +109,7 @@ class PatchQuantumGenerator(nn.Module):
         # Post-Processing
         probsgiven = probsgiven0 / torch.max(probsgiven0)
         return probsgiven
-    
-    def circuit(self, inputs, weights):
+
     def circuit(self, inputs, weights):
         weights = weights.reshape(self.depth, self.n_qubits)
 
@@ -140,7 +137,6 @@ class PatchQuantumGenerator(nn.Module):
         images = torch.Tensor(x.size(0), 0)
         # Iterate over all sub-generators
 
-        for q_layer in self.q_layers:
         for q_layer in self.q_layers:
 
             # Create a Tensor to 'catch' a batch of the patches from a single sub-generator

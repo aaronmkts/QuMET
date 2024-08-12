@@ -13,4 +13,4 @@ num_workers = 0
 num_devices = 1
 accelerator = "cpu"
 
-project = "mnist_pqwgan_qc/0"
+project = "pqwgan_qc/mnist_0/uniform_prior"

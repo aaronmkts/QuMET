@@ -3,7 +3,7 @@ from .qgan import (
     QGANBitstringGenerationModelWrapper,
     MosaiQGANWrapper,
     PatchGANWrapper,
-    SSPQGANWrapper,
+    APQGANWrapper,
     PQWGANWrapper)
 
 from .qcbm import(
@@ -15,7 +15,6 @@ from .vae import VAEWrapper
 def get_model_wrapper(model_info, task: str):
 
     if model_info.is_generation_model:
-        
         if model_info.model_type.value == 'qgan':
             match task:
                 case "discrete_generation":
@@ -27,8 +26,8 @@ def get_model_wrapper(model_info, task: str):
                         return PatchGANWrapper
                     elif model_info.name =='mosaiq':
                         return MosaiQGANWrapper
-                    elif model_info.name == 'sspqgan':
-                        return SSPQGANWrapper
+                    elif model_info.name == 'apqgan':
+                        return APQGANWrapper
                     elif model_info.name == 'pqwgan_qc':
                         return PQWGANWrapper
                     else:
