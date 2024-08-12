@@ -383,15 +383,16 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
                          weight_decay, epochs, optimizer)
 
         # reconstruction weight in discriminator feature space, first tune this parameter if performace is unsatifactory.
-        self.recon_weight = 1e-2
-        self.beta = 1e-2
+        self.recon_weight = 0
+        self.beta = 0
         self.lambda_gp = 10
         self.n_critic = 5
 
     def normal_kld(self, mu, log_var):
-        prior_loss = 1 + log_var - mu.pow(2) - log_var.exp()
-        kl_divergence = (-0.5 * torch.sum(prior_loss)) / torch.numel(mu.data)
+        # Compute the variance from the log variance
 
+        prior_loss = 1 + log_var - mu.pow(2) - log_var.exp()
+        kl_divergence = torch.mean(-0.5 * torch.sum(prior_loss, dim = 1), dim = 0)
 
         return kl_divergence
         
@@ -399,29 +400,31 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
     def training_step(self, batch, batch_idx):
 
         critic = self.model.discriminator
+        optE, optG, optD = self.optimizers()
 
-        optE, optG,  optD = self.optimizers()
-        
-        # Data and real/fake labels
+        # data and real/fake labels
+        real_data, _ = batch
 
-        real_imgs, _ = batch
-        batch_size = real_imgs.size(0)
+        batch_size = real_data.size(0)
 
-        mu, log_var, z, recon_imgs = self.model.vae_forward(real_imgs) 
+        # Generate fake-data using noise input
+        mu, log_var, z, fake_data = self.model.vae_forward(real_data)
+
         # Training the discriminator
         self.toggle_optimizer(optD)
         optD.zero_grad()
         
+     
         # Real and fake images
-        real_validity, fake_validity = critic(real_imgs), critic(recon_imgs.detach()) # detach here?
+        real_validity, fake_validity = critic(real_data), critic(fake_data.detach()) # detach here?
 
         # # Adversarial loss
-        gradient_penalty = compute_gradient_penalty(critic, real_imgs, recon_imgs)
+        gradient_penalty = compute_gradient_penalty(critic, real_data, fake_data)
         errD = -torch.mean(real_validity) + torch.mean(fake_validity) + self.lambda_gp * gradient_penalty
 
         wasserstein_distance = torch.mean(real_validity) - torch.mean(fake_validity)
 
-        self.manual_backward(errD, retain_graph=True)
+        self.manual_backward(errD)
         optD.step()
 
         self.log("train_d_loss_step", errD, prog_bar=True)
@@ -432,118 +435,45 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
 
         if batch_idx % (self.n_critic) == 0:
             self.toggle_optimizer(optG)
-            optG.zero_grad()
-            mu, log_var, z, recon_imgs = self.model.vae_forward(real_imgs)
-            # Loss measures generator's ability to fool the discriminator,Train on fake images
-            recon_loss = nn.MSELoss()(recon_imgs, real_imgs)
-            fake_validity = critic(recon_imgs)
 
-            errG = -torch.mean(fake_validity) +self.recon_weight * recon_loss
+            mu, log_var, z, fake_data = self.model.vae_forward(real_data)
+            # Loss measures generator's ability to fool the discriminator,Train on fake images
+            recon_loss = F.mse_loss(fake_data, real_data)
+
+            fake_validity = critic(fake_data)
+            errG = -torch.mean(fake_validity) + self.recon_weight * recon_loss
         
-            self.manual_backward(errG , retain_graph=True)
+            self.manual_backward(errG)
             optG.step()
             self.log("train_g_loss_step", errG, prog_bar=True)
   
             self.untoggle_optimizer(optG) 
-
+        
         # Train the encoder
         self.toggle_optimizer(optE)
         optE.zero_grad()
         
          # Recompute recon_imgs for the encoder
-        mu, log_var, z, recon_imgs = self.model.vae_forward(real_imgs)
+        mu, log_var, z, recon_imgs = self.model.vae_forward(real_data)
 
-        recon_loss = nn.MSELoss()(recon_imgs, real_imgs)
+        recon_loss = F.mse_loss(recon_imgs, real_data)
         prior_loss = self.normal_kld(mu, log_var)
 
-        errE = prior_loss + self.beta * recon_loss
+        errE = prior_loss + recon_loss
         self.manual_backward(errE)
         optE.step()
 
         self.log('prior_loss', prior_loss)
-        self.log('recon_loss_E', recon_loss)
-        self.log('errE', errE, prog_bar=True)
+        self.log('e_loss', errE, prog_bar=True)
 
         self.untoggle_optimizer(optE)
-
-        ''' 
-
-
-    def training_step(self, batch, batch_idx):
-        optE, optG, optD = self.optimizers()
-
-        # Data and real/fake labels
-        real_imgs, _ = batch
-        batch_size = real_imgs.size(0)
-
-        real_labels = torch.full((batch_size,), 1.0, dtype=torch.float).type_as(real_imgs)
-        fake_labels = torch.full((batch_size,), 0.0, dtype=torch.float).type_as(real_imgs)
-
-        mu, log_var, z, recon_imgs = self.model.vae_forward(real_imgs)
-
-        # Train the discriminator
-        self.toggle_optimizer(optD)
-        optD.zero_grad()
-
-        outD_real = self.model.discriminator(real_imgs).view(-1)
-        outD_recon = self.model.discriminator(recon_imgs.detach()).view(-1)  # Detach here
-        errD_real = self.criterion(outD_real, real_labels)  # Discriminator real loss
-        errD_recon = self.criterion(outD_recon, fake_labels)  # Discriminator fake loss
-
-        errD = errD_real + errD_recon
-
-        self.manual_backward(errD, retain_graph=True)
-        optD.step()
-        self.untoggle_optimizer(optD)
-
-        self.log('errD', errD, prog_bar=True)
-
-        # Train the generator
-        self.toggle_optimizer(optG)
-        optG.zero_grad()
-
-        outD_real = self.model.discriminator(real_imgs).view(-1)
-        outD_recon = self.model.discriminator(recon_imgs).view(-1)
-        errD_real = self.criterion(outD_real, real_labels)  # Discriminator real loss
-        errD_recon = self.criterion(outD_recon, fake_labels)  # Discriminator fake loss
-
-        errD = errD_real + errD_recon
-        errG_gan = -errD
-
-        recon_loss = nn.MSELoss()(recon_imgs, real_imgs)
-
-        errG = errG_gan + self.recon_weight * recon_loss
-        self.manual_backward(errG, retain_graph=True)
-        optG.step()
-        self.untoggle_optimizer(optG)
-
-        self.log('errG', errG, prog_bar=True)
-        self.log('recon_loss_G', recon_loss)
-
-        # Train the encoder
-        self.toggle_optimizer(optE)
-        optE.zero_grad()
-
-        prior_loss = self.normal_kld(mu, log_var)
-
-        errE = prior_loss + self.beta * recon_loss
-        self.manual_backward(errE)
-        optE.step()
-
-        self.log('prior_loss', prior_loss)
-        self.log('recon_loss_E', recon_loss)
-        self.log('errE', errE, prog_bar=True)
-
-        self.untoggle_optimizer(optE)
-
-        ''' 
 
     def validation_step(self, batch, batch_idx):
         imgs, labels = batch
         N = imgs.size(0)
         mu, log_var, z, recon_imgs = self.model.vae_forward(imgs) 
         val_mse = F.mse_loss(imgs, recon_imgs)
-        self.log("val_log/van_mse", val_mse)
+        self.log("val_log/val_mse", val_mse)
 
         return ValidationResult(real_image=imgs, fake_image=recon_imgs, 
                     recon_image=recon_imgs, label=labels, encode_latent=z)
