@@ -151,6 +151,7 @@ def _subroutine(q_weights_i, wires):
 
 
 @qml.qnode(dev, interface='torch')
+@add_noise_to_circuit(noise_dict={qml.PhaseFlip: qml.RX, qml.AmplitudeDamping: qml.RY }, prob=0.01)
 def circuit(weights, mode):
     """Builds the circuit to be fed to the connector as a QML node"""
 
@@ -222,12 +223,10 @@ class EfficientSU2(nn.Module):
         q_weights_0 = self.q_params[0]
 
         if mode == 'train':
-            circ_ = add_noise_to_circuit(circuit=circuit, noise_dict={qml.PhaseDamping: qml.RX, qml.PhaseDamping: qml.RY }, prob=0.01)
-            result = circ_(q_weights_0, mode, shots = shots)
+            result = circuit(q_weights_0, mode, shots = shots)
             result = result.type(torch.float32)
         elif mode == 'evaluate':
-            circ_ = add_noise_to_circuit(circuit=circuit, noise_dict={qml.PhaseDamping: qml.RX, qml.PhaseDamping: qml.RY }, prob=0.01)
-            result = circ_(q_weights_0, mode, shots = shots)
+            result = circuit(q_weights_0, mode, shots = shots)
         return result
 
 class QGCD_EfficientSU2(nn.Module):

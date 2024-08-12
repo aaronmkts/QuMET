@@ -43,13 +43,14 @@ class QCBMGenerator(nn.Module):
         self.q_device = qml.device(self.device, wires=self.n_qubits)
 
         @qml.qnode(self.q_device, interface='torch', diff_method=self.diff_method)
+        @add_noise_to_circuit(noise_dict={qml.PhaseFlip: qml.Rot}, prob=0.01)
         def circuit(weights):
             qml.StronglyEntanglingLayers(
                 weights=weights, ranges=[1] * self.depth, wires=range(self.n_qubits)
             )
             return qml.probs()
 
-        return add_noise_to_circuit(circuit=circuit, noise_dict={qml.PhaseDamping: qml.Rot}, prob=0.1)
+        return circuit
 
     def forward(self):
         circuit = self.q_layer
