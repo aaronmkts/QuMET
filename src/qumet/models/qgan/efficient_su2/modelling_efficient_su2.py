@@ -22,6 +22,7 @@ import torch.overrides
 from torch.nn.init import calculate_gain, _calculate_correct_fan
 from copy import deepcopy
 from itertools import chain
+from qumet.models.networks import add_noise_to_circuit
 
 logger = getLogger(__name__)
 pi = math.pi
@@ -111,7 +112,7 @@ name = 'generator'
 
 n_qubits = config[name]["n_qubits"]
 wires = list(range(n_qubits))
-device = "default.qubit"#config[name]["device"]
+device = "default.mixed"#config[name]["device"]
 dev = qml.device(device, wires = n_qubits)
 depth = config[name]["depth"]
 
@@ -150,6 +151,7 @@ def _subroutine(q_weights_i, wires):
 
 
 @qml.qnode(dev, interface='torch')
+@add_noise_to_circuit(noise_dict={qml.PhaseFlip: qml.RX, qml.AmplitudeDamping: qml.RY }, prob=0.01)
 def circuit(weights, mode):
     """Builds the circuit to be fed to the connector as a QML node"""
 
