@@ -6,7 +6,7 @@ from .qgcd_probs import get_qgcd_probs
 from .mosaiq import get_mosaiq
 from .apqgan import get_apqgan
 from .pwqgan import get_pqwgan_qc
-
+from .su2 import get_su2
 
 # fmt: off
 QGAN_MODELS = {
@@ -33,8 +33,11 @@ QGAN_MODELS = {
     "pqwgan_qc":{
         "get_model_fn_generation": get_pqwgan_qc,
         "info": QumetModelInfo("pqwgan_qc", model_type="qgan", task_type ="generation",  observable_sampling = True),
+    },
+    "su2":{
+        "get_model_fn_generation": get_su2,
+        "info": QumetModelInfo("su2", model_type="qgan", task_type ="generation",  bitstring_sampling= True), 
     }
-
 }
 
 
@@ -64,9 +67,9 @@ def get_qgan_model(
     if name not in QGAN_MODELS:
         raise ValueError(f"QGAN model {name} is not supported")
     model_info: QumetModelInfo = QGAN_MODELS[name]["info"]
-
+    
     match task:
-        case "discrete_generation":
+        case "probs_generation":
             assert (
                 model_info.bitstring_sampling
             ), f"Task {task} is not supported for {name}"
