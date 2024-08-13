@@ -1,20 +1,20 @@
 # basics
-model = "qgcd_probs"
-dataset = "2d_gaussian_b"
-
+model = "su2"
+dataset = "2d_gaussian"
+transform = "minmax"
 # training
 training_optimizer = "adam"
-learning_rate = 1e-2
-max_epochs = 500
-batch_size = 1024
-num_qubits = 10
+learning_rate = 0.1
+max_epochs = 100
+batch_size = 1
+n_qubits = 8
 
 # torch lightning
 task = "probs_generation"
 num_workers = 0
 num_devices = 1
-accelerator = "auto"
-project = "su2/ring/10/depth3/metric"
+accelerator = "cpu"
+project = "su2"
 log_every_n_steps=1
 # load
 #load_name = "../qumet_output/qgcd_probs_generation_2d_gaussian_2024-02-29/software/training_ckpts/last.ckpt"
