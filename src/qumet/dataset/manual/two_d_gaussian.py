@@ -30,7 +30,7 @@ class TwoDGaussianDataset(Dataset):
             discretisation: Discretization function.
             n_qubits (int): Number of qubits for discretization.
         """
-
+        
         self.n_qubits = n_qubits
         self.normaliser = normaliser
         self.reverse_lookup = normaliser.reverse_lookup if normaliser else None
@@ -92,7 +92,7 @@ class TwoDGaussianDataset(Dataset):
             distribution[indices] += 1
         distribution /= np.sum(distribution)
         distribution = np.array(distribution).reshape((num_discrete_values ** 2))
-        distribution = torch.tensor(distribution, dtype=torch.float64).unsqueeze(0)
+        distribution = torch.tensor(distribution, dtype=torch.float32).unsqueeze(0)
         return train_dataset, distribution
 
     def __len__(self):

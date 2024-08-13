@@ -15,6 +15,7 @@ np.random.seed(SEED)
     name="2d_gaussian_b",
     dataset_source="manual",
     available_splits=("train", "validation"),
+    probs_generation= True
 )
 class TwoDGaussianDatasetB(Dataset):
     def __init__(self, split="train", n_qubits=16) -> None:
@@ -26,7 +27,7 @@ class TwoDGaussianDatasetB(Dataset):
         self.size = 2 * 2560
 
         if split == "train":
-            self.data, _ = self._generate_samples()
+            self.data, self.coords = self._generate_samples()
         elif split == "validation":
             _, prob_data = self._generate_samples()
             self.data = np.array([prob_data] * self.size)
@@ -50,13 +51,7 @@ class TwoDGaussianDatasetB(Dataset):
         samples = rv.pdf(grid_elements)
         prob_data = samples / np.sum(samples)
 
-        index_list = list(range(num_samples))
-        sampled_integers = np.random.choice(
-            index_list, size=self.size, p=prob_data
-        )
-        grid_bitstrings = np.array(list(map(self._int_to_binary, sampled_integers)))
-        
-        return grid_bitstrings, prob_data
+        return prob_data, grid_elements
 
     def _visualise(self, samples):
 
@@ -70,19 +65,6 @@ class TwoDGaussianDatasetB(Dataset):
         fig.colorbar(surf, shrink=0.5, aspect=5)
         plt.show()
 
-    def _int_to_binary(self, integer):
-
-        resolution = self.n_qubits
-        integer = torch.tensor([integer])
-        mask = 2 ** torch.arange(resolution - 1, -1, -1)
-        binary = integer.bitwise_and(mask).ne(0).float()
-
-        return binary
-    def _binary_to_int(self, bit_list):
-            output = 0
-            for bit in bit_list:
-                output = output * 2 + bit
-            return int(output)
     def __len__(self):
         return self.size
 
@@ -95,5 +77,6 @@ class TwoDGaussianDatasetB(Dataset):
     def __getitem__(self, index):
 
         data_i = torch.tensor(self.data[index, ...], dtype=torch.float32)
+        coords_i = torch.tensor(self.coords[index, ...], dtype=torch.float32)
 
-        return data_i
+        return data_i, coords_i

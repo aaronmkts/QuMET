@@ -1,10 +1,12 @@
 from .qgan import (
     QGANDiscreteGenModelWrapper,
-    QGANBitstringGenerationModelWrapper,
+    QGANProbsGenModelWrapper,
+    QGANGenerationModelWrapper,
     MosaiQGANWrapper,
     PatchGANWrapper,
     APQGANWrapper,
-    PQWGANWrapper)
+    PQWGANWrapper
+    )
 
 from .qcbm import(
 QCBMProbsGenModelWrapper
@@ -17,10 +19,12 @@ def get_model_wrapper(model_info, task: str):
     if model_info.is_generation_model:
         if model_info.model_type.value == 'qgan':
             match task:
+                case "probs_generation":
+                    return QGANProbsGenModelWrapper
                 case "discrete_generation":
                     return QGANDiscreteGenModelWrapper
                 case "continous_generation":
-                    return NotImplementedError
+                    return QGANGenerationModelWrapper
                 case "image_generation":
                     if model_info.name == 'patchgan':
                         return PatchGANWrapper
