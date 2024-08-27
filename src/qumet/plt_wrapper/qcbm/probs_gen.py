@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torchmetrics import KLDivergence
 import numpy as np
-from ..base import WrapperBase
+from ..base import WrapperBase, ValidationResult
 
 
 
@@ -65,6 +65,16 @@ class QCBMProbsGenModelWrapper(WrapperBase):
         self.log('val_kl_epoch', kl_div,  prog_bar=True)
 
         return loss
+    
+    def validation_step(self, batch):
+        py = batch.reshape(-1,)
+        px = self.model()
+        
+
+
+        return ValidationResult(real_distribution= py, fake_distribution= px)
+
+   
     
     def configure_optimizers(self):
         match self.optimizer.lower():
