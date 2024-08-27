@@ -28,7 +28,7 @@ import pennylane as qml
 
 def main():
     # Seed the random number generators for reproducibility
-    seed = 0
+    seed = 42
     np.random.seed(seed)
     torch.manual_seed(seed)
 
@@ -129,7 +129,8 @@ def main():
     optimizer = optim.Adam([weights], lr=0.1,  betas=(b1, b2))
     
     # Training loop
-    
+    history = []
+    divs = []   
     num_epochs = 100
     for epoch in range(num_epochs):
         optimizer.zero_grad()
@@ -141,7 +142,49 @@ def main():
 
         print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {loss.item()}, KL Divergence: {kl_div.item()}')
 
+        history.append(loss.item())
+        divs.append(kl_div.item())
+
+    fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+
+    ax[0].plot(history)
+    ax[0].set_xlabel("Iteration", fontsize=16)
+    ax[0].set_ylabel("MMD Loss", fontsize=16)
+    ax[0].tick_params(axis='both', labelsize=16)
+
+    ax[1].plot(divs, color="green")
+    ax[1].set_xlabel("Iteration", fontsize=16)
+    ax[1].set_ylabel("KL Divergence", fontsize=16)
+    ax[1].tick_params(axis='both', labelsize=16)
 
 
+    def circuit(weights):
+        qml.StronglyEntanglingLayers(
+            weights=weights, ranges=[1] * n_layers, wires=range(n_qubits)
+        )
+        return qml.sample()
+
+
+    for N in [2000, 20000]:
+        dev = qml.device("default.qubit", wires=n_qubits, shots=N)
+        circ = qml.QNode(circuit, device=dev)
+        preds = circ(weights)
+
+        mask = np.any(
+            np.all(np.array(preds[:, None]) == data, axis=2), axis=1)  # Check for row-wise equality
+        chi = np.sum(mask) / N
+        print(f"χ for N = {N}: {chi:.4f}")
+
+    plt.figure(figsize=(8, 8))
+    j = 1
+    for i, m in zip(preds[:64], mask[:64]):
+        ax = plt.subplot(8, 8, j)
+        j += 1
+        plt.imshow(np.reshape(i, (n, n)), cmap="gray", vmin=0, vmax=1)
+        if ~m:
+            plt.setp(ax.spines.values(), color="red", linewidth=1.5)
+        plt.xticks([])
+        plt.yticks([])
+    plt.show()
 if __name__ == "__main__":
     main()
