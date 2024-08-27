@@ -6,7 +6,7 @@ from logging import getLogger
 from typing import Dict
 from ...networks.utils import FeatureExtractor
 from pennylane.qnn import TorchLayer as TorchConnector
-
+from qw_map import arctan
 logger = getLogger(__name__)
 
 image_shape = (1, 28, 28) 
@@ -22,7 +22,7 @@ config = {
         "n_qubits": 7,
         "n_a_qubits": 1,
         "shots": 10000,
-        "depth": 6,
+        "depth": 10,
         "q_delta": 1,
         "diff_method": "best",
         "n_generators": 16,
@@ -32,7 +32,7 @@ config = {
     },
     "discriminator": {
         "image_shape": image_shape,
-        "return_features": False,
+        "return_features": True,
         }, 
 }
 
@@ -47,20 +47,58 @@ class Encoder(nn.Module):
         self.image_shape = encoder_config["image_shape"]
         self.enc_out_dim = encoder_config["enc_out_dim"]
         self.z_dim = encoder_config["z_dim"]
-
+        '''
         # Encoder
         self.encoder = nn.Sequential(
-            nn.Linear(int(np.prod(self.image_shape)), 512), nn.LeakyReLU(0.2), 
-            nn.Linear(512, 256), nn.LeakyReLU(0.2),
-            nn.Linear(256, self.enc_out_dim), nn.LeakyReLU(0.2)
+            nn.Linear(int(np.prod(self.image_shape)), 512), nn.LeakyReLU(0.1), 
+            nn.Linear(512, 256), nn.LeakyReLU(0.1),
+            nn.Linear(256, self.enc_out_dim), nn.LeakyReLU(0.1)
+        )
+
+        self.hidden2mu = nn.Linear(self.enc_out_dim, self.z_dim)
+        self.hidden2log_var = nn.Linear(self.enc_out_dim, self.z_dim)
+        '''
+
+
+        # Convolutional layers to progressively reduce the spatial dimensions
+        self.encoder = nn.Sequential(
+            nn.Conv2d(in_channels=self.image_shape[0], out_channels=32, kernel_size=4, stride=2, padding=1),
+            nn.ReLU(),
+
+            nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),
+            nn.ReLU(),
+
+            nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1),
+            nn.ReLU()
+        )
+
+
+        # Calculate the output dimension after convolutional layers
+        conv_out_dim = self._get_conv_out_dim()
+
+
+        # Fully connected layer to map to the latent space
+        self.fc = nn.Sequential(
+            nn.Linear(conv_out_dim, self.enc_out_dim),
+            nn.LeakyReLU(0.1)
         )
 
         self.hidden2mu = nn.Linear(self.enc_out_dim, self.z_dim)
         self.hidden2log_var = nn.Linear(self.enc_out_dim, self.z_dim)
 
+    def _get_conv_out_dim(self):
+        # Calculate the flattened output size after the final convolutional layer
+        with torch.no_grad():
+            dummy_input = torch.zeros(1, *self.image_shape)
+            output = self.encoder(dummy_input)
+        return int(np.prod(output.size()))
+
+
     def forward(self, x):
-        x = x.view(x.shape[0], -1)
-        hidden = self.encoder(x)
+        x = x.view(-1, *self.image_shape)
+        conv_out = self.encoder(x)
+        conv_out = conv_out.view(conv_out.size(0), -1)
+        hidden = self.fc(conv_out)
         mu, log_var = self.hidden2mu(hidden), self.hidden2log_var(hidden)
 
         return mu, log_var
@@ -151,25 +189,126 @@ class QuantumGenerator(nn.Module):
         return final_out
     
 
+    ''' 
+
+class Discriminator(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        name = "discriminator"
+        self.image_shape = config[name]["image_shape"]
+        self.return_features = config[name]["return_features"]
+        if self.return_features:
+            self.feature_extractor = FeatureExtractor()
+        else:
+            self.feature_extractor = lambda x: x
+
+
+        
+
+        self.model = nn.Sequential(
+            nn.Conv2d(in_channels=self.image_shape[0], out_channels=32, kernel_size=4, stride=2, padding=1),
+            nn.ReLU(),
+
+            nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),
+            nn.ReLU(),
+
+            nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1),
+            nn.ReLU(),
+
+        )
+
+         # Calculate the output dimension after convolutional layers
+        conv_out_dim = self._get_conv_out_dim()
+
+
+        # Fully connected layer to map to the latent space
+        self.fc = nn.Sequential(
+            nn.Linear(conv_out_dim, 128),
+            nn.LeakyReLU(0.1),
+
+            nn.Linear(128, 7),
+            self.feature_extractor(nn.Tanh()),
+
+            nn.Linear(7, 1),
+        )
+        
+
+    def _get_conv_out_dim(self):
+        # Calculate the flattened output size after the final convolutional layer
+        with torch.no_grad():
+            dummy_input = torch.zeros(1, *self.image_shape)
+            output = self.model(dummy_input)
+        return int(np.prod(output.size()))
+
+
+    def forward(self, input):
+        N = input.shape[0]
+
+        if self.return_features:
+            self.feature_extractor.clean()
+            x = input.view(-1, *self.image_shape)
+            conv_out = self.model(x)
+            conv_out = conv_out.view(conv_out.size(0), -1)
+            output = self.fc(conv_out)
+            features =torch.tensor(0)# self.feature_extractor.features[0]
+           # features = torch.cat(
+           #     [torch.ravel(x) for x in self.feature_extractor.features]
+           # )
+
+            return output, features
+        
+        else:
+            x = input.view(N, -1)
+            output = self.model(x)
+            return output
+    '''
+    
+
+
+
+   
 class Discriminator(nn.Module):
     def __init__(self, config):
         super().__init__()
         name = "discriminator"
         self.image_shape = config[name]["image_shape"]
 
+        self.return_features = config[name]["return_features"]
+        if self.return_features:
+            self.feature_extractor = FeatureExtractor()
+        else:
+            self.feature_extractor = lambda x: x
+
+
         self.model = nn.Sequential(
             nn.Linear(int(np.prod(self.image_shape)), 512),
             nn.LeakyReLU(0.2),
             nn.Linear(512, 256),
             nn.LeakyReLU(0.2),
-            nn.Linear(256, 1),
+            nn.Linear(256, 7),
+            self.feature_extractor(nn.ReLU()),
+            nn.Linear(7, 1),
         )
 
-    def forward(self, x):
-        x = x.view(x.shape[0], -1)
-        x = self.model(x)
-        return x
-    
+    def forward(self, input):
+        N = input.shape[0]
+
+        if self.return_features:
+            self.feature_extractor.clean()
+            x = input.view(N, -1)
+            output = self.model(x)
+            features = self.feature_extractor.features[0]
+           # features = torch.cat(
+           #     [torch.ravel(x) for x in self.feature_extractor.features]
+           # )
+            return output, features
+        
+        else:
+            x = input.view(N, -1)
+            output = self.model(x)
+            return output
+
+   
 class APQGAN(nn.Module):
     def __init__(self, config, task):
         super(APQGAN, self).__init__()
@@ -179,16 +318,16 @@ class APQGAN(nn.Module):
         self.discriminator = Discriminator(config)
 
     def forward(self,z):
-        with torch.no_grad():
-            imgs_batch = self.generator(z)
-            imgs = imgs_batch.view(-1, 1, 28, 28)
+        
+        imgs = self.generator(z)
+    
         return imgs
     
     def vae_forward(self, imgs):
         mu, log_var = self.encoder(imgs)
         z = self.encoder.reparametrize(mu, log_var)
-        recon_images = self.generator(z)
-        return mu, log_var, z, recon_images
+        
+        return mu, log_var, z
     
     def discriminate(self, x):
         return self.discriminator(x)
