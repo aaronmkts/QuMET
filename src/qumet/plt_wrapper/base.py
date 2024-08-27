@@ -58,3 +58,5 @@ class ValidationResult():
     recon_image: torch.Tensor = None
     label: torch.Tensor = None
     encode_latent: torch.Tensor = None
+    real_distribution: torch.Tensor = None
+    fake_distribution: torch.Tensor = None
