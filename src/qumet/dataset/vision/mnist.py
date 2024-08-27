@@ -21,10 +21,11 @@ class MNISTQuMET(datasets.MNIST, DataTransformationMixin):
         super().__init__(root, train=train, transform=transform, download=download)
 
         self.model_name = model_name
-
         filter_labels = [0]
+        n_samples = 2000
         if filter_labels:
             self.filter_labels(filter_labels)
+            self.n_samples_(n_samples)
         
         if self.model_name == 'mosaiq':
             self.fit_pca(n_components = 40)

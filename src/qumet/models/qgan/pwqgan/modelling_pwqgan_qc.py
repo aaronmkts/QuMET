@@ -8,7 +8,7 @@ from logging import getLogger
 from pennylane.qnn import TorchLayer as TorchConnector
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 from torch import Tensor
-
+from qw_map import arctan
 logger = getLogger(__name__)
 pi = math.pi
 
@@ -21,7 +21,7 @@ config = {
         "n_qubits": 7,
         "n_a_qubits": 1,
         "shots": 10000,
-        "depth": 6,
+        "depth": 10,
         "q_delta": 1,
         "diff_method": "best",
         "n_generators": 16,
@@ -45,8 +45,12 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2),
             nn.Linear(512, 256),
             nn.LeakyReLU(0.2),
-            nn.Linear(256, 1),
+            nn.Linear(256, 7),
+            nn.ReLU(),
+            nn.Linear(7, 1),
         )
+
+        
 
     def forward(self, x):
         x = x.view(x.shape[0], -1)

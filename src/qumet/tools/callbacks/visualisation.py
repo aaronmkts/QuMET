@@ -1,3 +1,5 @@
+
+from lightning import LightningModule, Trainer
 import numpy as np
 from lightning.pytorch.callbacks import Callback
 from pathlib import Path
@@ -36,3 +38,44 @@ class SampleImagesCallback(Callback):
 def get_grid_images(imgs, model, nimgs=64, nrow=8):
     grid = torchvision.utils.make_grid(imgs[:nimgs], normalize=True, nrow=nrow, pad_value=1)
     return grid
+
+
+class BarsStripesCallback(Callback):
+    def __init__(self, every_n_epochs=99):
+        self.every_n_epochs = every_n_epochs
+
+    def on_validation_batch_end(self, trainer: Trainer, pl_module: LightningModule,  outputs: ValidationResult, batch, batch_idx) -> None:
+        if trainer.current_epoch % self.every_n_epochs == 0:
+            plotBars(outputs.real_distribution, outputs.fake_distribution)
+
+
+
+def plotBars(real_dist, fake_dist):
+    size = np.log2(len(real_dist))
+    plt.figure(figsize=(12, 5))
+
+    plt.bar(
+        np.arange(2**size), real_dist, width=2.0, label=r"$\pi(x)$", alpha=0.4, color="tab:blue"
+    )
+
+    plt.bar(
+        np.arange(2**size),
+        fake_dist,
+        width=2.0,
+        label=r"$p_\theta(x)$",
+        alpha=0.9,
+        color="tab:green",
+    )
+
+    # Hide x-ticks
+    plt.xticks([], fontsize=16)
+    plt.xlabel("Samples", fontsize=16)
+    plt.ylabel("Prob. Distribution", fontsize=16)
+
+    # Set y-tick fontsize
+    plt.yticks(fontsize=16)
+
+    plt.legend(loc="upper right", fontsize=16)
+    plt.subplots_adjust(bottom=0.3)
+    plt.show()
+

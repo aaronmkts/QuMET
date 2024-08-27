@@ -4,7 +4,7 @@ from pathlib import Path
 from qumet.plt_wrapper import get_model_wrapper
 from qumet.tools.checkpoint_load import load_model
 from qumet.tools.progress_bar import progress_bar
-from qumet.tools.callbacks import SampleImagesCallback, FIDEvaluationCallback, ISEvaluationCallback
+from qumet.tools.callbacks import SampleImagesCallback, FIDEvaluationCallback, ISEvaluationCallback, BarsStripesCallback
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks  import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger

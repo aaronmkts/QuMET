@@ -3,6 +3,7 @@ from sklearn.decomposition import PCA
 from torchvision import transforms as tv_transforms
 import torch 
 import torch.nn as nn
+from random import choices
 
 def scale_data(data, scale=None, dtype=np.float32):
     
@@ -20,7 +21,7 @@ def filter_by_labels(dataset, labels: list):
     """
     X_data = dataset.data
     Y_data = dataset.targets
-
+    
     # Create a mask for the desired labels
     mask = np.isin(Y_data, labels)
     
@@ -29,6 +30,24 @@ def filter_by_labels(dataset, labels: list):
     dataset.targets = Y_data[mask]
 
     return dataset
+
+def n_samples(dataset, samples: int):
+    """
+    Filters the dataset to only include specified labels.
+    """
+
+    X_data = dataset.data
+    Y_data = dataset.targets
+
+
+    rnd_indices = choices(list(range(len(X_data))), k=samples)
+    
+    # Filter the data and targets
+    dataset.data = X_data[rnd_indices]
+    dataset.targets = Y_data[rnd_indices]
+
+    return dataset
+
 
 def svd_flip(u, v):
     # columns of u, rows of v
