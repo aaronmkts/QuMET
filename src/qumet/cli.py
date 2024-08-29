@@ -66,14 +66,36 @@ VERSION = "00.00.0"
 
 
 # Constants ----------------------------------------------------------------------------
-LOGO = f"""
-    QuMET (qmt): QuMET's Command Line Interface
-                VERSION {VERSION}
+LOGO = f"""                           
+                                                                                          
+                  ....:::::....                                                           
+               ..-#%%######%%%+:.                                  
+             ..=%%*:       .-#%%%:.                               
+             :#%%-.          .=%%%+.                                 
+            :%%%-.            .=%%%=.      ..                       
+           .#%%*.              .+%%%-....-#%#..                   
+           :%%%+                .%%%+::::+%%%:::::::::::                     
+           -%%%+                .%%%+.    .*.                                             
+           -%%%+.               .%%%=.    .*.                                             
+           .%%%#-               :%%%-     .*.                                             
+            -%%%*.             .%%%+:......=......:                                       
+             -%%%*.           .#%%+.-.=%%+  .=*%=.=                                       
+             .:*%%%+:       .=%%#:  -. =%+   .-%=.=                                       
+               .:=%%%%#****#%#=.    -. +%=   .:%= =                                       
+                  ...:::-%%%%#-.    -. *%=   .-%= =                                       
+                          .=%%%%%-  -. *%+   .-%= =                                       
+                             .=#%%%%#-.-%%#+##=%#+=                                       
+                                .:+######+-.......=                                       
+                                    ...............                                       
+                                                                                          
+                                                
+            QuMET (qmt): QuMET's Command Line Interface
+                        VERSION {VERSION}
 
-          Maintained by the QuCLIP Lab
+                       Maintained by QuCLIP
 
-     For comprehensive information on usage,
-            please refer to the docs.
+            For comprehensive information on usage,
+                    please refer to the docs.
 """
 TASKS = ["discrete_generation", "continuous_generaton", "image_generation"]
 TRANSFORM = ['minmax', 'pit', 'pca']
@@ -634,7 +656,7 @@ class QuMETCLI:
 
         parser.set_defaults(**CLI_DEFAULTS)
         return parser
-
+                          
     def _setup_model_and_dataset(self):
 
         self.logger.info(f"Initialising model {self.args.model!r}...")
