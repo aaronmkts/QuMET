@@ -5,7 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import os
 from pennylane.qnn import TorchLayer as TorchConnector
-
+from numpy.random import random
+from scipy.linalg import sqrtm
 os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
 
 
@@ -116,44 +117,37 @@ class PWQGenerator(nn.Module):
         
 if __name__ == "__main__":
 
-    def center(coord, n):
-        return np.array(coord) / n + 0.5 / n
-
-    def compute_discretization(n_qubits, n_dim):
-        format_string = "{:0" + str(n_qubits) + "b}"
-        n = 2 ** (n_qubits // n_dim)
-        dict_bins = {}
-        from itertools import product
-
-        
-        for k, coordinates in enumerate(product(range(n), repeat=n_dim)):
-            dict_bins.update({
-                format_string.format(k): [coordinates, center(coordinates, n)]
-            })
-        return dict_bins
+    import numpy
+    from numpy import cov
+    from numpy import trace
+    from numpy import iscomplexobj
+    from numpy.random import random
+    from scipy.linalg import sqrtm
     
-
-    x = compute_discretization(8, 2)
-    breakpoint()
-
-     '''
-
-    df = SummaryReader(log_dir, pivot=True, extra_columns={'dir_name'})
-    df = df.scalars
-
-    gauss = df[df['dir_name'] == 'final_result/gaussian_prior/2000_samples/software/tensorboard/lightning_logs/version_0']
-    uniform = df[df['dir_name'] == 'final_result/uniform_prior/2000_samples/software/tensorboard/lightning_logs/version_0']
+    # calculate frechet inception distance
+    def calculate_fid(act1, act2):
+        # calculate mean and covariance statistics
+        mu1, sigma1 = act1.mean(axis=0), cov(act1, rowvar=False)
+        mu2, sigma2 = act2.mean(axis=0), cov(act2, rowvar=False)
+        # calculate sum squared difference between means
+        ssdiff = numpy.sum((mu1 - mu2)**2.0)
+        # calculate sqrt of product between cov
+        covmean = sqrtm(sigma1.dot(sigma2))
+        # check and correct imaginary numbers from sqrt
+        if iscomplexobj(covmean):
+            covmean = covmean.real
+        # calculate score
+        fid = ssdiff + trace(sigma1 + sigma2 - 2.0 * covmean)
+        return fid
     
-    plt.scatter(gauss['step'], gauss['val_log/val_mse_reduction'])
-    plt.scatter(uniform['step'], uniform['val_log/val_mse_reduction'])
-
-    # Set custom font size for x and y ticks
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
-  
-    plt.xlabel('Iterations' , fontsize=16)
-    plt.ylabel('Wasserstein Distance', fontsize=16)
-    plt.legend(['Gaussian', 'Uniform'])
-
-    plt.show()
-    breakpoint()
+    # define two collections of activations
+    act1 = random(10*2048)
+    act1 = act1.reshape((10,2048))
+    act2 = random(10*2048)
+    act2 = act2.reshape((10,2048))
+    # fid between act1 and act1
+    fid = calculate_fid(act1, act1)
+    print('FID (same): %.3f' % fid)
+    # fid between act1 and act2
+    fid = calculate_fid(act1, act2)
+    print('FID (different): %.3f' % fid)
