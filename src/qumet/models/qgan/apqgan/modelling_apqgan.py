@@ -22,17 +22,17 @@ config = {
         "n_qubits": 7,
         "n_a_qubits": 1,
         "shots": 10000,
-        "depth": 10,
+        "depth": 12,
         "q_delta": 1,
         "diff_method": "best",
-        "n_generators": 16,
+        "n_generators": 14,
         "q_delta": 1,
-        'patch_shape': (7, 7),
+        'patch_shape': (2, 28),
         'image_shape': image_shape,
     },
     "discriminator": {
         "image_shape": image_shape,
-        "return_features": True,
+        "return_features": False,
         }, 
 }
 
@@ -47,29 +47,18 @@ class Encoder(nn.Module):
         self.image_shape = encoder_config["image_shape"]
         self.enc_out_dim = encoder_config["enc_out_dim"]
         self.z_dim = encoder_config["z_dim"]
-        '''
-        # Encoder
-        self.encoder = nn.Sequential(
-            nn.Linear(int(np.prod(self.image_shape)), 512), nn.LeakyReLU(0.1), 
-            nn.Linear(512, 256), nn.LeakyReLU(0.1),
-            nn.Linear(256, self.enc_out_dim), nn.LeakyReLU(0.1)
-        )
-
-        self.hidden2mu = nn.Linear(self.enc_out_dim, self.z_dim)
-        self.hidden2log_var = nn.Linear(self.enc_out_dim, self.z_dim)
-        '''
 
 
         # Convolutional layers to progressively reduce the spatial dimensions
         self.encoder = nn.Sequential(
             nn.Conv2d(in_channels=self.image_shape[0], out_channels=32, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
+            nn.LeakyReLU(),
 
             nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
+            nn.LeakyReLU(),
 
             nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1),
-            nn.ReLU()
+            nn.LeakyReLU()
         )
 
 
@@ -85,6 +74,18 @@ class Encoder(nn.Module):
 
         self.hidden2mu = nn.Linear(self.enc_out_dim, self.z_dim)
         self.hidden2log_var = nn.Linear(self.enc_out_dim, self.z_dim)
+
+             # Apply LeCun initialization
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+                # LeCun initialization
+                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='leaky_relu')
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+
 
     def _get_conv_out_dim(self):
         # Calculate the flattened output size after the final convolutional layer
@@ -155,6 +156,8 @@ class QuantumGenerator(nn.Module):
 
             for j in range(self.n_qubits-1):
                 qml.CNOT(wires=[j, j+1])
+                
+            qml.CNOT(wires=[self.n_qubits-1, 0])
         
         return qml.probs(wires=list(range(self.n_qubits)))
     
@@ -285,10 +288,20 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2),
             nn.Linear(512, 256),
             nn.LeakyReLU(0.2),
-            nn.Linear(256, 7),
-            self.feature_extractor(nn.ReLU()),
-            nn.Linear(7, 1),
+            nn.Linear(256, 1),
         )
+
+             # Apply LeCun initialization
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        for m in self.model:
+            if isinstance(m, nn.Linear):
+                # LeCun initialization
+                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='leaky_relu')
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+
 
     def forward(self, input):
         N = input.shape[0]
