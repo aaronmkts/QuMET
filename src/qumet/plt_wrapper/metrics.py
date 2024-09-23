@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 import pickle as pkl
 
 
+
 class NDB:
     def __init__(
         self,
@@ -312,28 +313,3 @@ class NDB:
 
         p_pos = p > 0
         return np.sum(p[p_pos] * np.log(p[p_pos] / q[p_pos]))
-
-
-""" 
-if __name__ == "__main__":
-    dim=100
-    k=50
-    n_train = k*100
-    n_test = k*10
-
-    train_samples = np.random.uniform(size=[n_train, dim]) # Shape: (10000, 100)
-
-    ndb = NDB(training_data=train_samples, number_of_bins=k, whitening=True)
-    
-    test_samples = np.random.uniform(high=1.0, size=[n_test, dim])
-    ndb.evaluate(test_samples, model_label='Test')
-
-    test_samples = np.random.uniform(high=0.9, size=[n_test, dim])
-    ndb.evaluate(test_samples, model_label='Good')
-
-    test_samples = np.random.uniform(high=0.75, size=[n_test, dim])
-    ndb.evaluate(test_samples, model_label='Bad')
-
-    ndb.plot_results(models_to_plot=['Test', 'Good', 'Bad'])
-
-    """
