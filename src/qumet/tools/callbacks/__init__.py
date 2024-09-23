@@ -1,2 +1,2 @@
 from .visualisation import SampleImagesCallback, BarsStripesCallback
-from .evaluation import FIDEvaluationCallback, ISEvaluationCallback
+from .evaluation import FIDEvaluationCallback, ISEvaluationCallback, GMMEvaluationCallback
