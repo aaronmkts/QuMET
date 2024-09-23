@@ -4,7 +4,7 @@ from pathlib import Path
 from qumet.plt_wrapper import get_model_wrapper
 from qumet.tools.checkpoint_load import load_model
 from qumet.tools.progress_bar import progress_bar
-from qumet.tools.callbacks import SampleImagesCallback, FIDEvaluationCallback, ISEvaluationCallback, BarsStripesCallback
+from qumet.tools.callbacks import SampleImagesCallback, FIDEvaluationCallback, ISEvaluationCallback, BarsStripesCallback, GMMEvaluationCallback
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks  import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
@@ -36,16 +36,16 @@ def train(
         # if save_path is None, the model will not be saved
         if not os.path.isdir(save_path):
             os.makedirs(save_path)
-        ''' 
+        
         checkpoint_callback = ModelCheckpoint(
             save_top_k=1,
-            monitor="val_kl_epoch",
+            monitor="val_log/val_mse_reduction",
             mode="min",
             filename="best",
             dirpath=save_path,
             save_last=True,
         )
-        '''
+        
         # tb_logger = TensorBoardLogger(save_dir=save_path, name="logs")
         lr_monitor_callback = LearningRateMonitor(logging_interval="step")
         
@@ -58,9 +58,10 @@ def train(
             image_sampler = None
         
         callbacks = [
-            #ßcheckpoint_callback,
+            checkpoint_callback,
             lr_monitor_callback,
             image_sampler,
+            #GMMEvaluationCallback(),
             #fid_metric,
             #is_metric
             # progress_bar()
@@ -102,8 +103,8 @@ def train(
         optimizer=optimizer,
     )
     
-    trainer = pl.Trainer(**plt_trainer_args, deterministic= True)
-    
+    trainer = pl.Trainer(**plt_trainer_args, deterministic= True, num_sanity_val_steps=0)
+    trainer.validate(model=pl_model, datamodule=data_module)
     trainer.fit(
         pl_model,
         datamodule=data_module,
