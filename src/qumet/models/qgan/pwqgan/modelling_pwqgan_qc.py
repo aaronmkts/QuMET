@@ -21,12 +21,12 @@ config = {
         "n_qubits": 7,
         "n_a_qubits": 1,
         "shots": 10000,
-        "depth": 10,
+        "depth": 12,
         "q_delta": 1,
         "diff_method": "best",
-        "n_generators": 16,
+        "n_generators": 14,
         "q_delta": 1,
-        'patch_shape': (7, 7),
+        'patch_shape': (2, 28),
         'image_shape': image_shape,
     },
 }
@@ -45,12 +45,19 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2),
             nn.Linear(512, 256),
             nn.LeakyReLU(0.2),
-            nn.Linear(256, 7),
-            nn.ReLU(),
-            nn.Linear(7, 1),
+            nn.Linear(256, 1),
         )
 
-        
+        # Apply LeCun initialization
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        for m in self.model:
+            if isinstance(m, nn.Linear):
+                # LeCun initialization
+                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='leaky_relu')
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
 
     def forward(self, x):
         x = x.view(x.shape[0], -1)
@@ -79,6 +86,13 @@ class PWQGenerator(nn.Module):
         self.q_device = qml.device(self.device, wires= self.n_qubits)
         self._construct_quantum_layers()
    
+        # Adding a convolutional layer for sharpening
+        self.conv_layer = nn.Sequential(
+        nn.Conv2d(in_channels=1, out_channels=1, kernel_size=3, padding=1, stride=1),
+        nn.LayerNorm([1, 28, 28]),  # Normalize across channels and spatial dimensions
+        nn.ReLU(),  # Non-linear activation for better contrast
+        )
+
     def _construct_quantum_layers(self):
         qnode = qml.QNode(self.circuit, self.q_device, interface="torch", diff_method=self.diff_method)
         weight_shapes = {"weights": (self.depth, self.n_qubits, 3)}
@@ -106,6 +120,8 @@ class PWQGenerator(nn.Module):
 
             for j in range(self.n_qubits-1):
                 qml.CNOT(wires=[j, j+1])
+
+            qml.CNOT(wires=[self.n_qubits-1, 0])
         
         return qml.probs(wires=list(range(self.n_qubits)))
     
@@ -114,6 +130,7 @@ class PWQGenerator(nn.Module):
         patch_size = 2 ** (self.n_qubits - self.n_a_qubits )
         image_pixels = self.image_shape[2] ** 2
         pixels_per_patch = image_pixels // self.n_generators
+
         if special_shape and self.patch_shape[0] * self.patch_shape[1] != pixels_per_patch:
             raise ValueError("patch shape and patch size dont match!")
         output_images = torch.Tensor(x.size(0), 0)
