@@ -1,10 +1,4 @@
 from .visualisation import GANImagesCallback
-from .evaluation import FIDEvaluationCallback, ISEvaluationCallback, NDB_JSD_EvaluationCallback, GMMEvaluationCallback
-# Import args from the configuration module where it is stored
-
-from .visualisation import GANImagesCallback
-from .evaluation import FIDEvaluationCallback, ISEvaluationCallback, NDB_JSD_EvaluationCallback, GMMEvaluationCallback
-from .visualisation import GANImagesCallback
 from .evaluation import (
     FIDEvaluationCallback,
     ISEvaluationCallback,
