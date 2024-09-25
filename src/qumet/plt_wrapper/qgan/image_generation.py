@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from scipy.linalg import sqrtm
 from sklearn.mixture import GaussianMixture
 from ..utils import compute_gradient_penalty
-from ..metrics import NDB
+from ..metrics import NDB_JSD_Metric
 
 class QGANImageGenerationModelWrapper(WrapperBase, DataTransformationMixin):
     def __init__(
@@ -291,10 +291,6 @@ class PQWGANWrapper(QGANImageGenerationModelWrapper):
         self.n_critic = 5
         self.validation_z = self.generate_noise('uniform', batch_size = 16)
 
-        self.real_images = []
-        self.fake_images = []
-        self.k = 20
-
     def training_step(self, batch, batch_idx):
         
         critic = self.model.discriminator
@@ -358,45 +354,9 @@ class PQWGANWrapper(QGANImageGenerationModelWrapper):
         recon_image = self.model(self.validation_z)
 
         val_mse_sum = F.mse_loss(img, fake_imgs, reduction='sum') / N
-        self.log("val_log/val_mse_reduction", val_mse_sum, on_epoch=True)
-
-        self.real_images.append(img)
-        self.fake_images.append(fake_imgs)
+        self.log("metrics/val_mse_reduction", val_mse_sum, on_epoch=True)
 
         return ValidationResult(real_image=img, fake_image=fake_imgs, recon_image=recon_image)
-    
-    def on_validation_epoch_end(self) -> None:
-
-        real_images = torch.cat(self.real_images, dim=0)
-        fake_images = torch.cat(self.fake_images, dim=0) 
-        
-        real_images = real_images.reshape(real_images.size(0), -1).numpy()
-        fake_images = fake_images.reshape(fake_images.size(0), -1).numpy()
-        
-        ndb_k30 = NDB(training_data=real_images, number_of_bins= 30, whitening=False, z_threshold=4)
-        ndb_k50 = NDB(training_data=real_images, number_of_bins= 50, whitening=False, z_threshold=4)
-
-        results = ndb_k50.evaluate(fake_images)
-        results_k30 = ndb_k30.evaluate(fake_images)
-
-        ndb_k50 = float(results["NDB"])/ndb_k50.number_of_bins
-        jsd_50 = float(results["JS"])
-
-        self.log('val_log/val_ndb_k50', ndb_k50, on_epoch=True)
-        self.log('val_log/val_jsd_k50', jsd_50, on_epoch=True)
-
-        ndb_k30 = float(results_k30["NDB"])/ndb_k30.number_of_bins
-        jsd_k30 = float(results_k30["JS"])
-
-        self.log('val_log/val_ndb_k30', ndb_k30, on_epoch=True)   
-        self.log('val_log/val_jsd_k30', jsd_k30, on_epoch=True)
-
-
-        self.real_images.clear()
-        self.fake_images.clear()
-
-       
-
 
 class APQGANWrapper(QGANImageGenerationModelWrapper):
     def __init__(self,
@@ -413,11 +373,6 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
         self.recon_weight = 5e-4
         self.lambda_gp = 10
         self.n_critic = 5
-
-        self.real_images = []
-        self.fake_images = []
-
-        self.k = 20
 
     def normal_kld(self, mu, log_var):
         # Compute the variance from the log variance
@@ -519,44 +474,9 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
 
         val_mse_sum = F.mse_loss(img, fake_imgs, reduction='sum') / N
 
-        self.log("val_log/val_mse_reduction", val_mse_sum, on_epoch=True)
-
-        self.real_images.append(img)
-        self.fake_images.append(fake_imgs)
+        self.log("metrics/val_mse_reduction", val_mse_sum, on_epoch=True)
     
         return ValidationResult(real_image=img, fake_image=fake_imgs, encode_latent=z)
-    
-    def on_validation_epoch_end(self) -> None:
-
-        real_images = torch.cat(self.real_images, dim=0)
-        fake_images = torch.cat(self.fake_images, dim=0) 
-
-        
-        real_images = real_images.reshape(real_images.size(0), -1).numpy()
-        fake_images = fake_images.reshape(fake_images.size(0), -1).numpy()
-        
-        #Calculate NDB score and JSD
-
-        ndb_k30 = NDB(training_data=real_images, number_of_bins= 30, whitening=False, z_threshold=4)
-        ndb_k50 = NDB(training_data=real_images, number_of_bins= 50, whitening=False, z_threshold=4)
-        
-        results_k50 = ndb_k50.evaluate(fake_images)
-        results_k30 = ndb_k30.evaluate(fake_images)
-
-        ndb_k50 = float(results_k50["NDB"])/ndb_k50.number_of_bins
-        jsd_50 = float(results_k50["JS"])
-
-        self.log('val_log/val_ndb_k50', ndb_k50, on_epoch=True)
-        self.log('val_log/val_jsd_k50', jsd_50, on_epoch=True)
-
-        ndb_k30 = float(results_k30["NDB"])/ndb_k30.number_of_bins
-        jsd_k30 = float(results_k30["JS"])
-
-        self.log('val_log/val_ndb_k30', ndb_k30, on_epoch=True)   
-        self.log('val_log/val_jsd_k30', jsd_k30, on_epoch=True)
-      
-        self.real_images.clear()
-        self.fake_images.clear()
 
   
     def configure_optimizers(self):
