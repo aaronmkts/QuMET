@@ -4,7 +4,7 @@ from pathlib import Path
 from qumet.plt_wrapper import get_model_wrapper
 from qumet.tools.checkpoint_load import load_model
 from qumet.tools.progress_bar import progress_bar
-from qumet.tools.callbacks import SampleImagesCallback, FIDEvaluationCallback, ISEvaluationCallback, BarsStripesCallback, GMMEvaluationCallback
+from qumet.tools.callbacks import select_callbacks
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks  import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
@@ -31,6 +31,8 @@ def train(
     visualizer,
     load_name,
     load_type,
+    metrics,
+    metric_init_args,
 ):
     if save_path is not None:
         # if save_path is None, the model will not be saved
@@ -39,35 +41,21 @@ def train(
         
         checkpoint_callback = ModelCheckpoint(
             save_top_k=1,
-            monitor="val_log/val_mse_reduction",
+            monitor="metrics/val_mse_reduction",
             mode="min",
             filename="best",
             dirpath=save_path,
             save_last=True,
         )
-        
-        # tb_logger = TensorBoardLogger(save_dir=save_path, name="logs")
+     
         lr_monitor_callback = LearningRateMonitor(logging_interval="step")
         
-        # Conditionally initialize ImageSampler based on model type
-        if model_info.model_type.value == 'qgan':
-            image_sampler = SampleImagesCallback()
-            fid_metric = FIDEvaluationCallback()
-            is_metric = ISEvaluationCallback()
-        else:
-            image_sampler = None
         
-        callbacks = [
-            checkpoint_callback,
-            lr_monitor_callback,
-            image_sampler,
-            #GMMEvaluationCallback(),
-            #fid_metric,
-            #is_metric
-            # progress_bar()
-        ]
+        callbacks = select_callbacks(model_info, dataset_info, task, metrics, metric_init_args)
+        callbacks.append(checkpoint_callback)
+        callbacks.append(lr_monitor_callback)
+
         plt_trainer_args["callbacks"] = [cb for cb in callbacks if cb is not None]
-        
         plt_trainer_args["logger"] = visualizer
 
     # plugin
@@ -76,17 +64,6 @@ def train(
     else:
         plugins = None
     plt_trainer_args["plugins"] = plugins
-
-    # Check optimizer
-    # if plt_trainer_args["strategy"] in ["deepspeed_stage_3"]:
-    #     assert optimizer in [
-    #         "FusedAdam",
-    #         "fused_adam",
-    #     ], "optimizer should be 'fused_adam' given --strategy={}".format(
-    #         plt_trainer_args["strategy"]
-    #     )
-    # elif plt_trainer_args["strategy"] in ["fsdp_custom"]:
-    #     plt_trainer_args["strategy"] = CustomFSDPStrategy()
     
     wrapper_cls = get_model_wrapper(model_info, task)
 
