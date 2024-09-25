@@ -208,7 +208,7 @@ class QuMETCLI:
         # NOTE: The project name is set later on (if no configuration is provided), so
         # the merged argument table may show None, but this is not the case.
         self.args = post_parse_load_config(args, CLI_DEFAULTS)
-       
+        
         # Housekeeping
         pl.seed_everything(self.args.seed)
 
@@ -295,10 +295,12 @@ class QuMETCLI:
             "visualizer": self.visualizer,
             "load_name": load_name,
             "load_type": self.args.load_type,
+            "metrics": self.args.metrics_to_use,
+            "metric_init_args": self.args.metric_init_args,
         }
 
         self.logger.info(f"##### WEIGHT DECAY ##### {self.args.weight_decay}")
-
+     
         train(**train_params)
         self.logger.info("Training is completed")
 
