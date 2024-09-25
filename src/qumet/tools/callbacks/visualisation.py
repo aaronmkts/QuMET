@@ -8,37 +8,50 @@ import matplotlib.pyplot as plt
 from torchvision.transforms import ToTensor
 from qumet.plt_wrapper.base import ValidationResult
 
-class SampleImagesCallback(Callback):
-    def __init__(self, batch_size=64, every_n_epochs=1):
+class GANImagesCallback(Callback):
+    def __init__(self, batch_size=64, every_n_epochs=1, nrow=8):
+        """
+        Args:
+            batch_size (int): Number of images to sample and display.
+            every_n_epochs (int): Frequency of image logging (in epochs).
+            nrow (int): Number of images per row in the grid.
+            save_images (bool): Whether to save the generated images to disk.
+        """
         self.batch_size = batch_size
         self.every_n_epochs = every_n_epochs
+        self.nrow = nrow
 
     def on_validation_batch_end(self, trainer, pl_module, outputs: ValidationResult, batch, batch_idx):
         if trainer.current_epoch % self.every_n_epochs == 0 and batch_idx == 0:
-            result_path = Path("results")
-            result_path.mkdir(parents=True, exist_ok=True)
-
-            real_grid = get_grid_images(outputs.real_image, pl_module)
+            # Real images
+            real_grid = get_grid_images(outputs.real_image, self.batch_size, self.nrow)
             trainer.logger.experiment.add_image("images/real", real_grid, global_step=trainer.current_epoch)
 
+            # Reconstructed images (if available)
             if outputs.recon_image is not None:
-                recon_grid = get_grid_images(outputs.recon_image, pl_module)
+                recon_grid = get_grid_images(outputs.recon_image, self.batch_size, self.nrow)
                 trainer.logger.experiment.add_image("images/recon", recon_grid, global_step=trainer.current_epoch)
 
+            # Fake images
             if outputs.fake_image is not None:
-                fake_grid = get_grid_images(outputs.fake_image, pl_module)
+                fake_grid = get_grid_images(outputs.fake_image, self.batch_size, self.nrow)
                 trainer.logger.experiment.add_image("images/sample", fake_grid, global_step=trainer.current_epoch)
-                #torchvision.utils.save_image(fake_grid, result_path / f"{trainer.current_epoch}.jpg")
 
-            for key in outputs.others:
-                if outputs.others[key] is not None:
-                    grid = get_grid_images(outputs.others[key], pl_module)
-                    trainer.logger.experiment.add_image(f"images/{key}", grid, global_step=trainer.current_epoch)
 
-def get_grid_images(imgs, model, nimgs=64, nrow=8):
+            # Additional custom outputs
+            if hasattr(outputs, "others") and outputs.others:
+                for key, img in outputs.others.items():
+                    if img is not None:
+                        grid = get_grid_images(img, self.batch_size, self.nrow)
+                        trainer.logger.experiment.add_image(f"images/{key}", grid, global_step=trainer.current_epoch)
+
+def get_grid_images(imgs, nimgs=64, nrow=8):
+    """Create a grid of images for visualization."""
     grid = torchvision.utils.make_grid(imgs[:nimgs], normalize=True, nrow=nrow, pad_value=1)
     return grid
 
+
+''' 
 
 class BarsStripesCallback(Callback):
     def __init__(self, every_n_epochs=99):
@@ -79,3 +92,63 @@ def plotBars(real_dist, fake_dist):
     plt.subplots_adjust(bottom=0.3)
     plt.show()
 
+
+
+
+
+
+class VAEImageSampler(Callback):
+    def __init__(self):
+        super().__init__()
+        self.img_size = None
+        self.num_preds = 16
+
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        INTERVAL = 50
+        if batch_idx % INTERVAL == 0:
+            # Z COMES FROM NORMAL(0, 1)
+            sample_shape = (self.num_preds, pl_module.model.z_dim)
+            p = torch.distributions.Normal(torch.zeros(sample_shape), torch.ones(sample_shape))
+            z = p.rsample()
+
+            # SAMPLE IMAGES
+            with torch.no_grad():
+                pred = pl_module.model.decoder(z.to(pl_module.device)).cpu()
+            # CONVERT IMAGES TO GRID
+            img = make_grid(pred).permute(1, 2, 0).numpy()
+
+            # PLOT IMAGES
+            trainer.logger.experiment.add_image(
+                'Sample Images',
+                torch.tensor(img).permute(2, 0, 1),
+                global_step=trainer.global_step
+            )
+
+class ImageSampler(Callback):
+    def __init__(self):
+        super().__init__()
+        self.img_size = None
+        self.num_preds = 16
+
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        INTERVAL = 50
+        if batch_idx % INTERVAL == 0:
+            # Z COMES FROM NORMAL(0, 1)
+            sample_shape = (self.num_preds, pl_module.model.z_dim)
+            p = torch.distributions.Normal(torch.zeros(sample_shape), torch.ones(sample_shape))
+            z = p.rsample()
+
+            # SAMPLE IMAGES
+            with torch.no_grad():
+                pred = pl_module.model.decoder(z.to(pl_module.device)).cpu()
+            # CONVERT IMAGES TO GRID
+            img = make_grid(pred).permute(1, 2, 0).numpy()
+
+            # PLOT IMAGES
+            trainer.logger.experiment.add_image(
+                'Sample Images',
+                torch.tensor(img).permute(2, 0, 1),
+                global_step=trainer.global_step
+            )
+
+'''

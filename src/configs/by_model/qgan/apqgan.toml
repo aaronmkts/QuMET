@@ -1,16 +1,36 @@
 # basics
 model = "apqgan"
 dataset = "mnist"
+
 # training
 training_optimizer = "adam"
 learning_rate = 1e-2
 max_epochs = 5
-batch_size = 32
+batch_size = 10
 
 # torch lightning
 task = "image_generation"
 num_workers = 0
 num_devices = 1
 accelerator = "cpu"
+project = 'rubbish'
 
-project = "apqgan/mnist_0/gaussian_prior/gamma_0.0001"
+# metrics configuration
+[metrics]
+use_metrics = ['NDB_JSD_EvaluationCallback', 'GMMEvaluationCallback']
+
+# Define initialization parameters for each metric
+
+[metrics.NDB_JSD_EvaluationCallback]
+every_n_epochs = 1
+number_of_bins=50
+significance_level=0.05
+z_threshold= "NA"
+whitening=false
+max_dims= "NA"
+
+[metrics.GMMEvaluationCallback]
+every_n_epochs = 1
+gmm_components = 50
+save_gmm = false
+gmm_save_path = 'egg'
