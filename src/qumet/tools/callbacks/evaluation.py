@@ -6,117 +6,266 @@ import lightning.pytorch as pl
 import torch
 from sklearn.mixture import GaussianMixture
 import torch.nn.functional as F
-from ...plt_wrapper.metrics import NDB
+from ...plt_wrapper.metrics import NDB_JSD_Metric
+from .visualisation import GANImagesCallback
 import torchvision
 import joblib
+
+# General GAN Callbacks
 class FIDEvaluationCallback(Callback):
-    def __init__(self, every_n_epochs=1):
+    def __init__(self, every_n_epochs=1, feature = 2048, reset_real_features=True, 
+                 normalize=True,input_img_size=(3, 299, 299)):
+        """
+        Args:
+            every_n_epochs (int): How often to compute the FID (in epochs).
+            normalize (bool): Whether to normalize the input images.
+        """
         self.every_n_epoch = every_n_epochs
+        self.feature = feature
+        self.reset_real_features = reset_real_features
+        self.normalize = normalize
+        self.input_img_size = input_img_size
+        self.fid = None
 
-    def on_validation_epoch_start(self, trainer, pl_module) -> None:
+    def setup_fid(self, pl_module):
+        """Initialize the FID metric on the current device."""
+        self.fid = FrechetInceptionDistance(feature=self.feature, normalize=self.normalize,
+                                            reset_real_features=self.reset_real_features, 
+                                            input_img_size = self.input_img_size).to(pl_module.device)
+
+    def convert_to_3channel(self, images):
+        """Convert grayscale images to 3-channel images."""
+        return images.repeat(1, 3, 1, 1)
+
+    def on_validation_epoch_start(self, trainer, pl_module):
+        """Set up the FID metric at the start of the validation epoch."""
         if trainer.current_epoch % self.every_n_epoch == 0:
-            self.fid = FrechetInceptionDistance(normalize=True).to(pl_module.device)
+            self.setup_fid(pl_module)
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs: ValidationResult, batch, batch_idx, dataloader_idx = 0):
+    def on_validation_batch_end(self, trainer, pl_module, outputs: ValidationResult, 
+                                batch, batch_idx, dataloader_idx=0):
+        """Update FID with real and fake images during validation."""
+        if trainer.current_epoch % self.every_n_epoch == 0 and outputs:
+            real_imgs, fake_imgs = outputs.real_image, outputs.fake_image
+            
+            if real_imgs is not None and fake_imgs is not None:
+                real_imgs_3channel = self.convert_to_3channel(real_imgs)
+                fake_imgs_3channel = self.convert_to_3channel(fake_imgs)
+                self.fid.update(real_imgs_3channel, real=True)
+                self.fid.update(fake_imgs_3channel, real=False)
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        """Log the FID score at the end of the validation epoch."""
         if trainer.current_epoch % self.every_n_epoch == 0:
-
-            real_imgs, fake_images = outputs.real_image, outputs.fake_image
-            # Convert grayscale images to three-channel images
-            real_imgs_3channel, fake_images_3channel = real_imgs.repeat(1, 3, 1, 1), fake_images.repeat(1, 3, 1, 1)
-            self.fid.update(real_imgs_3channel, real=True)
-            self.fid.update(fake_images_3channel, real=False)
-
-    def on_validation_epoch_end(self, trainer, pl_module: pl.LightningModule):
-        if trainer.current_epoch % self.every_n_epoch == 0:
-            pl_module.log("metrics/fid", self.fid.compute(), on_epoch=True)
-
-
+            if self.fid is not None:
+                fid_score = self.fid.compute()
+                pl_module.log("metrics/fid", fid_score, on_epoch=True)
+                self.fid.reset()  # Reset the metric for the next epoch
 
 class ISEvaluationCallback(Callback):
-    def __init__(self, every_n_epochs=1):
+    def __init__(self, every_n_epochs=1, feature = 'logits_unbiased', splits = 10, normalize=True):
+        """
+        Args:
+            every_n_epochs (int): How often to compute the IS (in epochs).
+            normalize (bool): Whether to normalize the input images.
+        """
         self.every_n_epoch = every_n_epochs
+        self.feature = feature
+        self.splits = splits
+        self.normalize = normalize
+        self.inception_score = None
 
-    def on_validation_epoch_start(self, trainer, pl_module) -> None:
+    def setup_inception_score(self, pl_module):
+        """Initialize the Inception Score metric on the current device."""
+        self.inception_score = InceptionScore(feature=self.feature, splits =self.splits, normalize=self.normalize).to(pl_module.device)
+
+    def convert_to_3channel(self, images):
+        """Convert grayscale images to 3-channel images."""
+        return images.repeat(1, 3, 1, 1)
+
+    def on_validation_epoch_start(self, trainer, pl_module):
+        """Set up the Inception Score metric at the start of the validation epoch."""
         if trainer.current_epoch % self.every_n_epoch == 0:
-            self.inception_score = InceptionScore(normalize=True).to(pl_module.device)
-
-    def on_validation_batch_end(self, trainer, pl_module, outputs: ValidationResult, batch, batch_idx, dataloader_idx = 0):
-        if trainer.current_epoch % self.every_n_epoch == 0:
-            fake_images = outputs.fake_image
-            # Convert grayscale images to three-channel images
-            fake_images_3channel = fake_images.repeat(1, 3, 1, 1)
-            self.inception_score.update(fake_images_3channel)
-
-    def on_validation_epoch_end(self, trainer, pl_module: pl.LightningModule):
-        if trainer.current_epoch % self.every_n_epoch == 0:
-            inception_mean = self.inception_score.compute()[0]
-            pl_module.log("metrics/is", inception_mean, on_epoch=True)  
-
-class GMMEvaluationCallback(Callback):
-    def __init__(self, every_n_epochs=1):
-        self.every_n_epoch = every_n_epochs
-        self.z_samples = []
-        self.real_images = []
+            self.setup_inception_score(pl_module)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs: ValidationResult, batch, batch_idx, dataloader_idx=0):
-        if trainer.current_epoch == trainer.max_epochs - 1:
+        """Update Inception Score with fake images during validation."""
+        if trainer.current_epoch % self.every_n_epoch == 0 and outputs:
+            fake_imgs = outputs.fake_image
+            
+            if fake_imgs is not None:
+                fake_imgs_3channel = self.convert_to_3channel(fake_imgs)
+                self.inception_score.update(fake_imgs_3channel)
 
+    def on_validation_epoch_end(self, trainer, pl_module):
+        """Log the Inception Score at the end of the validation epoch."""
+        if trainer.current_epoch % self.every_n_epoch == 0:
+            if self.inception_score is not None:
+                inception_mean = self.inception_score.compute()[0]  # Compute only the mean
+                pl_module.log("metrics/is", inception_mean, on_epoch=True)
+                self.inception_score.reset()  # Reset the metric for the next epoch
+
+
+class NDB_JSD_EvaluationCallback(Callback):
+    def __init__(self, number_of_bins=30, significance_level=0.05, z_threshold=None, whitening=False, max_dims=None, every_n_epochs=1):
+        """
+        Args:
+            number_of_bins (int): Number of bins for clustering.
+            significance_level (float): Significance level for hypothesis testing.
+            z_threshold (float): Z-score threshold for bin comparison.
+            whitening (bool): Whether to apply whitening to the samples.
+            max_dims (int): Maximum dimensions to use for binning.
+            every_n_epochs (int): Frequency of evaluation (in epochs).
+        """
+        self.every_n_epochs = every_n_epochs
+        self.ndb_jsd_metric = NDB_JSD_Metric(
+            number_of_bins=number_of_bins,
+            significance_level=significance_level,
+            z_threshold=z_threshold,
+            whitening=whitening,
+            max_dims=max_dims
+        )
+
+    def on_validation_epoch_start(self, trainer, pl_module):
+        """Reset the NDB metric state at the start of validation."""
+        if trainer.current_epoch % self.every_n_epochs == 0:
+            self.ndb_jsd_metric.reset()  # Reset the internal state before starting validation
+
+    def on_validation_batch_end(self, trainer, pl_module, outputs,
+                                 batch, batch_idx, dataloader_idx=0):
+        """Update the NDB metric with new batch data."""
+        if trainer.current_epoch % self.every_n_epochs == 0 and outputs is not None:
+            real_images, fake_images = outputs.real_image, outputs.fake_image
+            
+            # Update metric with real (training) images
+            self.ndb_jsd_metric.update(real_images, data_type='training')
+
+            # Update metric with generated (fake) images
+            self.ndb_jsd_metric.update(fake_images, data_type='generated')
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        """Compute and log NDB and JSD metrics at the end of the validation epoch."""
+        if trainer.current_epoch % self.every_n_epochs == 0:
+            # Compute NDB and JSD metrics
+            metrics = self.ndb_jsd_metric.compute()
+            ndb_value = metrics['NDB']
+            jsd_value = metrics['JS']
+
+            # Log the metrics
+            pl_module.log("metrics/ndb", ndb_value, on_epoch=True)
+            pl_module.log("metrics/jsd", jsd_value, on_epoch=True)
+
+# VAE-QWGAN Callback
+class GMMEvaluationCallback(Callback):
+    def __init__(
+        self,
+        every_n_epochs=1,
+        gmm_components=40,
+        save_gmm=False,
+        gmm_save_path='gmm_model.pkl',
+        ndb_jsd_args=None,
+        gan_images_args=None
+    ):
+        """
+        Args:
+            every_n_epochs (int): Run the callback every N epochs.
+            gmm_components (int): Number of components for the GMM.
+            save_gmm (bool): Whether to save the GMM model after fitting.
+            gmm_save_path (str): The file path to save the GMM model.
+            ndb_jsd_args (dict): Initialization arguments for NDB_JSD_EvaluationCallback.
+            gan_images_args (dict): Initialization arguments for GANImagesCallback.
+        """
+        self.every_n_epochs = every_n_epochs
+        self.gmm_components = gmm_components
+        self.save_gmm = save_gmm
+        self.gmm_save_path = gmm_save_path
+        self.z_samples = []
+        self.real_images = []
+        
+        # Initialize the existing callbacks with provided arguments
+        if ndb_jsd_args is None:
+            ndb_jsd_args = {}
+        if gan_images_args is None:
+            gan_images_args = {}
+       
+        self.ndb_jsd_callback = NDB_JSD_EvaluationCallback(**ndb_jsd_args)
+        self.gan_images_callback = GANImagesCallback(**gan_images_args)
+
+    def on_validation_epoch_start(self, trainer, pl_module):
+        """Reset internal states and callbacks at the start of the validation epoch."""
+        if trainer.current_epoch % self.every_n_epochs == 0:
+            self.z_samples = []
+            self.real_images = []
+            self.ndb_jsd_callback.on_validation_epoch_start(trainer, pl_module)
+
+    def on_validation_batch_end(self, trainer, pl_module, outputs: ValidationResult, batch, batch_idx):
+        """Accumulate latent variables and real images during validation."""
+        if trainer.current_epoch % self.every_n_epochs == 0:
             z = outputs.encode_latent
             real_images = outputs.real_image
-
             self.z_samples.append(z)
             self.real_images.append(real_images)
-            
 
-    def on_validation_epoch_end(self, trainer, pl_module: pl.LightningModule):
-        if trainer.current_epoch == trainer.max_epochs - 1:
+    def on_validation_epoch_end(self, trainer, pl_module):
+        """Fit GMM, generate images, and utilize existing callbacks with prefixed logging."""
+        if trainer.current_epoch % self.every_n_epochs == 0:
+            # Concatenate accumulated data
             real_images = torch.cat(self.real_images, dim=0)
-            z_samples = torch.cat(self.z_samples, dim=0).numpy()
+            z_samples = torch.cat(self.z_samples, dim=0).cpu().numpy()
 
-            #DATA Instance Prior, Gaussion Mixture Model 
+            # Fit GMM to the latent variables
             N = z_samples.shape[0]
-            gmm = GaussianMixture(n_components=50, random_state=9).fit(z_samples)
-            joblib.dump(gmm, 'gmm_model_seed9_mnist.pkl')
+            gmm = GaussianMixture(n_components=self.gmm_components, random_state=9).fit(z_samples)
             disp_prior, _ = gmm.sample(N)
-            disp_prior = torch.tensor(disp_prior, dtype= torch.float32).to(pl_module.device)
+            disp_prior = torch.tensor(disp_prior, dtype=torch.float32).to(pl_module.device)
             fake_images = pl_module.model(disp_prior)
 
+            # Save GMM model if save_gmm is True, Only save GMM on the last epoch
+            if self.save_gmm and trainer.current_epoch == (trainer.max_epochs - 1):
+                joblib.dump(gmm, self.gmm_save_path)
+                print(f"GMM model saved at {self.gmm_save_path}")
+
             # MSE Evaluation
-
             val_mse_disp = F.mse_loss(real_images, fake_images, reduction='sum') / N
-            pl_module.log("val_log/val_mse_disp", val_mse_disp, on_epoch=True)
+            pl_module.log("gmm/metrics/val_mse", val_mse_disp, on_epoch=True)
 
-            # JSD, NDB Evaluation
-            real_images_flat = real_images.reshape(real_images.size(0), -1).numpy()
-            fake_images_flat = fake_images.reshape(fake_images.size(0), -1).numpy()
+            # Prepare outputs to mimic the structure expected by the callbacks
+            outputs = ValidationResult(
+                real_image=real_images,
+                fake_image=fake_images,
+                recon_image=None  # or set if applicable
+            )
 
-            ndb_k30 = NDB(training_data=real_images_flat, number_of_bins= 30, whitening=False, z_threshold=4)
-            ndb_k50 = NDB(training_data=real_images_flat, number_of_bins= 50, whitening=False, z_threshold=4)
+            # Wrap pl_module.log to add a prefix to metric names
+            original_log_method = pl_module.log
 
-            results_k50 = ndb_k50.evaluate(fake_images_flat)
-            results_k30 = ndb_k30.evaluate(fake_images_flat)
+            def prefixed_log(name, *args, **kwargs):
+                prefixed_name = f"gmm_metrics/{name}"
+                original_log_method(prefixed_name, *args, **kwargs)
 
-            ndb_k50 = float(results_k50["NDB"])/ndb_k50.number_of_bins
-            jsd_50 = float(results_k50["JS"])
+            pl_module.log = prefixed_log
 
-            pl_module.log('val_log/val_ndb_k50_disp', ndb_k50, on_epoch=True)
-            pl_module.log('val_log/val_jsd_k50_disp', jsd_50, on_epoch=True)
+            # Wrap trainer.logger.experiment.add_image to add a prefix to image tags
+            original_add_image = trainer.logger.experiment.add_image
 
-            ndb_k30 = float(results_k30["NDB"])/ndb_k30.number_of_bins
-            jsd_k30 = float(results_k30["JS"])
+            def prefixed_add_image(tag, img_tensor, global_step=None, *args, **kwargs):
+                prefixed_tag = f"gmm/{tag}"
+                original_add_image(prefixed_tag, img_tensor, global_step, *args, **kwargs)
 
-            pl_module.log('val_log/val_ndb_k30_disp', ndb_k30, on_epoch=True)   
-            pl_module.log('val_log/val_jsd_k30_disp', jsd_k30, on_epoch=True)
-            print('GMM eval complete', 'NDB 30:', ndb_k30, 'JSD 30:', jsd_k30, 'NDB 50:', ndb_k50, 'JSD 50:', jsd_50, 'MSE:', val_mse_disp)
-            # Log fake images for visualization 
+            trainer.logger.experiment.add_image = prefixed_add_image
 
-            fake_grid = get_grid_images(fake_images, pl_module)
-            trainer.logger.experiment.add_image("images/disp_prior", fake_grid, global_step=trainer.current_epoch)
-          
-            self.real_images.clear()
-            self.z_samples.clear()
-           
+            try:
+                # Use the existing NDB/JSD callback
+                self.ndb_jsd_callback.on_validation_batch_end(
+                    trainer, pl_module, outputs, batch=None, batch_idx=0
+                )
+                self.ndb_jsd_callback.on_validation_epoch_end(trainer, pl_module)
 
-def get_grid_images(imgs, model, nimgs=8, nrow=8):
-    grid = torchvision.utils.make_grid(imgs[:nimgs], normalize=True, nrow=nrow, pad_value=1)
-    return grid
+                # Use the existing GANImagesCallback
+                self.gan_images_callback.on_validation_batch_end(
+                    trainer, pl_module, outputs, batch=None, batch_idx=0
+                )
+            finally:
+                # Restore the original methods
+                pl_module.log = original_log_method
+                trainer.logger.experiment.add_image = original_add_image

@@ -56,7 +56,6 @@ def save_config(config, config_path):
     with open(config_path, "w") as f:
         toml.dump(config, f)
 
-
 def post_parse_load_config(args, defaults):
     """
     Load and merge arguments from a toml configuration file. If the configuration key
@@ -96,6 +95,33 @@ def post_parse_load_config(args, defaults):
             else:
                 table.append([k, default_gray, "", getattr(args, k), getattr(args, k)])
 
+    # Default values for metrics in case the [metrics] section is not present
+    args.metrics_to_use = []
+    args.metric_init_args = {}
+
+    # Handle metrics from the config file, if present
+    if config and "metrics" in config:
+        metrics_section = config.get("metrics", {})
+        # Load the list of metrics to use
+        args.metrics_to_use = metrics_section.get("use_metrics", [])
+        # Load initialization arguments for each metric
+        for key, value in metrics_section.items():
+            if key == 'use_metrics':
+                continue  # Skip the use_metrics list itself
+            args.metric_init_args[key] = value
+
+        # Now handle nested metrics for GMMEvaluationCallback
+        if 'GMMEvaluationCallback' in args.metrics_to_use:
+            gmm_metric_args = args.metric_init_args.get('GMMEvaluationCallback', {})
+            # For nested NDB_JSD_EvaluationCallback
+            ndb_jsd_nested_args = gmm_metric_args.get('NDB_JSD_EvaluationCallback', None)
+            if ndb_jsd_nested_args is None:
+                # No nested configuration provided, use global one if available
+                ndb_jsd_global_args = args.metric_init_args.get('NDB_JSD_EvaluationCallback', {})
+                gmm_metric_args['NDB_JSD_EvaluationCallback'] = ndb_jsd_global_args
+            # Else, nested configuration exists, already in gmm_metric_args
+            args.metric_init_args['GMMEvaluationCallback'] = gmm_metric_args
+
     if not config:
         fields.remove("Config. File")
         table = [
@@ -118,4 +144,5 @@ def post_parse_load_config(args, defaults):
             disable_numparse=True,
         )
     )
+    
     return args
