@@ -10,8 +10,10 @@ Welcome to QuMET's documentation!
    :maxdepth: 1
    :caption: Documentation:
 
-   module/documentation/getting_started
+   modules/documentation/getting_started
 
 .. toctree::
    :maxdepth: 2
    :caption: QuMET API
+
+   modules/api/qumet.actions
