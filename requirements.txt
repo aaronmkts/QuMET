@@ -29,10 +29,13 @@ matplotlib
 partial
 PennyLane
 PennyLane-Lightning
-pennylane-catalyst
 Pillow
 pytorch-lightning
 torchmetrics
 tqdm
 typing_extensions
 timm
+qw_map
+line_profiler
+jax
+torch-fidelity
