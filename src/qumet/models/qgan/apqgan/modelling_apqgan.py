@@ -6,7 +6,7 @@ from logging import getLogger
 from typing import Dict
 from ...networks.utils import FeatureExtractor
 from pennylane.qnn import TorchLayer as TorchConnector
-from qw_map import arctan
+
 logger = getLogger(__name__)
 
 image_shape = (1, 28, 28) 
@@ -191,83 +191,6 @@ class QuantumGenerator(nn.Module):
             final_out = output_images.view(output_images.shape[0], *self.image_shape)
         return final_out
     
-
-    ''' 
-
-class Discriminator(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        name = "discriminator"
-        self.image_shape = config[name]["image_shape"]
-        self.return_features = config[name]["return_features"]
-        if self.return_features:
-            self.feature_extractor = FeatureExtractor()
-        else:
-            self.feature_extractor = lambda x: x
-
-
-        
-
-        self.model = nn.Sequential(
-            nn.Conv2d(in_channels=self.image_shape[0], out_channels=32, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
-
-            nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
-
-            nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
-
-        )
-
-         # Calculate the output dimension after convolutional layers
-        conv_out_dim = self._get_conv_out_dim()
-
-
-        # Fully connected layer to map to the latent space
-        self.fc = nn.Sequential(
-            nn.Linear(conv_out_dim, 128),
-            nn.LeakyReLU(0.1),
-
-            nn.Linear(128, 7),
-            self.feature_extractor(nn.Tanh()),
-
-            nn.Linear(7, 1),
-        )
-        
-
-    def _get_conv_out_dim(self):
-        # Calculate the flattened output size after the final convolutional layer
-        with torch.no_grad():
-            dummy_input = torch.zeros(1, *self.image_shape)
-            output = self.model(dummy_input)
-        return int(np.prod(output.size()))
-
-
-    def forward(self, input):
-        N = input.shape[0]
-
-        if self.return_features:
-            self.feature_extractor.clean()
-            x = input.view(-1, *self.image_shape)
-            conv_out = self.model(x)
-            conv_out = conv_out.view(conv_out.size(0), -1)
-            output = self.fc(conv_out)
-            features =torch.tensor(0)# self.feature_extractor.features[0]
-           # features = torch.cat(
-           #     [torch.ravel(x) for x in self.feature_extractor.features]
-           # )
-
-            return output, features
-        
-        else:
-            x = input.view(N, -1)
-            output = self.model(x)
-            return output
-    '''
-    
-
-
 
    
 class Discriminator(nn.Module):

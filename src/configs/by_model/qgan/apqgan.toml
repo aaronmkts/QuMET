@@ -1,12 +1,14 @@
 # basics
 model = "apqgan"
 dataset = "mnist"
+n_samples = 100 
 
 # training
 training_optimizer = "adam"
 learning_rate = 1e-2
-max_epochs = 5
-batch_size = 10
+max_epochs = 10
+batch_size = 16
+seed = 42
 
 # torch lightning
 task = "image_generation"
@@ -17,20 +19,19 @@ project = 'rubbish'
 
 # metrics configuration
 [metrics]
-use_metrics = ['NDB_JSD_EvaluationCallback', 'GMMEvaluationCallback']
+use_metrics = ['GANImagesCallback']
 
 # Define initialization parameters for each metric
 
 [metrics.NDB_JSD_EvaluationCallback]
 every_n_epochs = 1
-number_of_bins=50
-significance_level=0.05
-z_threshold= "NA"
+number_of_bins = 50
+z_threshold= 4
 whitening=false
 max_dims= "NA"
 
-[metrics.GMMEvaluationCallback]
-every_n_epochs = 1
-gmm_components = 50
-save_gmm = false
-gmm_save_path = 'egg'
+[metrics.FIDEvaluationCallback]
+every_n_epochs = 2
+feature = 64
+reset_real_features = false
+normalize = true

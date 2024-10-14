@@ -25,6 +25,8 @@ class WrapperBase(pl.LightningModule):
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.epochs = epochs
         self.optimizer = optimizer
+        self.dataset_info = dataset_info   
+        
 
     def forward(self, x):
         raise NotImplementedError()

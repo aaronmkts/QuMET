@@ -6,13 +6,8 @@ from ..base import WrapperBase, ValidationResult
 from abc import abstractmethod
 import torch.nn.functional as F
 from ...dataset.vision.transforms import DataTransformationMixin 
-import itertools
-import torch.distributions as D
 import torch.nn.functional as F
-from scipy.linalg import sqrtm
-from sklearn.mixture import GaussianMixture
 from ..utils import compute_gradient_penalty
-from ..metrics import NDB_JSD_Metric
 
 class QGANImageGenerationModelWrapper(WrapperBase, DataTransformationMixin):
     def __init__(
@@ -47,14 +42,13 @@ class QGANImageGenerationModelWrapper(WrapperBase, DataTransformationMixin):
 
     def adversarial_loss(self, y_hat, y):
         return F.binary_cross_entropy(y_hat, y)
-    def adversarial_loss(self, y_hat, y):
-        return F.binary_cross_entropy(y_hat, y)
-        
+
     @abstractmethod
     def training_step(self, batch):
         pass
         
     def validation_step(self, batch, batch_idx):
+        
         img, _ = batch
         noise = torch.randn(img.size(0), self.n_qubits)
         fake_imgs = self.model(noise)
