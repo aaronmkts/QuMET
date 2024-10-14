@@ -85,13 +85,6 @@ class PWQGenerator(nn.Module):
         self.image_shape = generator_config["image_shape"]
         self.q_device = qml.device(self.device, wires= self.n_qubits)
         self._construct_quantum_layers()
-   
-        # Adding a convolutional layer for sharpening
-        self.conv_layer = nn.Sequential(
-        nn.Conv2d(in_channels=1, out_channels=1, kernel_size=3, padding=1, stride=1),
-        nn.LayerNorm([1, 28, 28]),  # Normalize across channels and spatial dimensions
-        nn.ReLU(),  # Non-linear activation for better contrast
-        )
 
     def _construct_quantum_layers(self):
         qnode = qml.QNode(self.circuit, self.q_device, interface="torch", diff_method=self.diff_method)

@@ -17,6 +17,12 @@ from .qcbm import(
     get_qcbm_model,
     get_qcbm_model_info,
 )
+
+from .qgap import(
+    is_gap_model,
+    get_gap_model,
+    get_gap_model_info,
+)
 from .utils import QumetModelInfo, ModelType
 
 
@@ -29,6 +35,9 @@ def get_model_info(name: str) -> QumetModelInfo:
 
     elif is_vae_model(name):
         info = get_vae_model_info(name)
+
+    elif is_gap_model(name):
+        info = get_gap_model_info(name)
 
     else:
         raise ValueError(f"Model {name} not found")
@@ -56,6 +65,8 @@ def get_model(
             model = get_qcbm_model(**model_kwargs)
         case ModelType.VAE:
             model = get_vae_model(**model_kwargs)
+        case ModelType.GAP:
+            model = get_gap_model(**model_kwargs)
         case _:
             raise ValueError(f"Model type {model_info.model_type} not supported")
     return model
