@@ -10,7 +10,7 @@ from .cifar import get_cifar_dataset, Cifar10QuMET
 from .transforms import get_vision_dataset_transform
 
 
-def get_vision_dataset(name: str, path: os.PathLike, split: str, model_name: str, transform: str):
+def get_vision_dataset(name: str, path: os.PathLike, split: str, n_samples:int, model_name: str, transform: str):
     """
     Args:
         name (str): name of the dataset
@@ -34,11 +34,11 @@ def get_vision_dataset(name: str, path: os.PathLike, split: str, model_name: str
 
     match name:
         case "mnist":
-            dataset = get_mnist_dataset(name, path, train, transform, model_name)
+            dataset = get_mnist_dataset(name, path, train, n_samples, transform, model_name)
         case "fashion_mnist":
-            dataset = get_fashion_mnist_dataset(name, path, train, transform, model_name)
+            dataset = get_fashion_mnist_dataset(name, path, train, n_samples, transform, model_name)
         case "cifar":
-            dataset = get_cifar_dataset(name, path, train, transform, model_name)
+            dataset = get_cifar_dataset(name, path, train, transform, n_samples, model_name)
 
     return dataset
 

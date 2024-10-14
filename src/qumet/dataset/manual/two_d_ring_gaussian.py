@@ -19,13 +19,13 @@ pi = math.pi
     continuous_generation=True
 )
 class TwoDRingGaussianDataset(Dataset):
-    def __init__(self, split="train", normaliser = None, discretisation = None, n_qubits=6) -> None:
+    def __init__(self, split="train", normaliser = None, discretisation = None, n_qubits=6, n_samples = 10000) -> None:
         super().__init__()
         self.n_qubits = n_qubits
         self.normaliser = normaliser
         self.reverse_lookup = normaliser.reverse_lookup if normaliser else None
         self.n_dim = 2
-        self.n_samples = 2560 * 5
+        self.n_samples = n_samples
         self.discretisation = discretisation(n_qubits, n_dim=2) if discretisation else None
 
 
@@ -62,7 +62,7 @@ class TwoDRingGaussianDataset(Dataset):
         all_samples = np.vstack(samples)
 
         data = self.normaliser.fit_transform(all_samples)
-        breakpoint()
+ 
         if self.discretisation:
             data, distribution = self._discretise_samples(data)
             return data, distribution

@@ -12,7 +12,7 @@ from .bitstrings import (
     TwoDRingGaussianDatasetB)
 
 def get_manual_dataset(name: str, split: str, transform: str, discretise: bool,
-                       model_name: str, n_qubits: int):
+                       model_name: str, n_qubits: int, n_samples: int):
 
     """
     Args:
@@ -66,7 +66,7 @@ def get_manual_dataset(name: str, split: str, transform: str, discretise: bool,
     if ori_split == "pred" and dataset_cls.info.pred_split_available:
         split = "test"
 
-    dataset = dataset_cls(split, normaliser, discretisation, n_qubits)
+    dataset = dataset_cls(split, normaliser, discretisation, n_qubits, n_samples)
     return dataset
 
 
