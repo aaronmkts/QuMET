@@ -32,6 +32,7 @@ def get_dataset(
     split: bool,
     transform: str,
     discretise: bool,
+    n_samples: int,
     n_qubits: int,
     num_workers: int = os.cpu_count(),
     model_name: str = None,
@@ -59,12 +60,12 @@ def get_dataset(
     if name in MANUAL_DATASET_MAPPING:
 
         dataset = get_manual_dataset(name = name, split = split, transform = transform,
-                                      discretise = discretise, n_qubits = n_qubits, 
+                                      discretise = discretise, n_samples = n_samples, n_qubits = n_qubits, 
                                       model_name = model_name)
         
     elif name in VISION_DATASET_MAPPING:
         path = DATASET_CACHE_DIR / name
-        dataset = get_vision_dataset(name, path, split, model_name, transform)
+        dataset = get_vision_dataset(name, path, split, n_samples, model_name, transform)
     else:
         raise ValueError(f"Dataset {name} is not supported")
     return dataset
@@ -89,6 +90,7 @@ class QuMETDataModule(pl.LightningDataModule):
         batch_size: int,
         transform: str, 
         discretise: bool,
+        n_samples: int,
         n_qubits: int,
         num_workers: int,
         model_name: str = None,
@@ -97,6 +99,7 @@ class QuMETDataModule(pl.LightningDataModule):
       
         self.name = name
         self.num_workers = num_workers
+        self.n_samples = n_samples
         self.n_qubits = n_qubits
         self.transform = transform
         self.discretise = discretise
@@ -115,6 +118,7 @@ class QuMETDataModule(pl.LightningDataModule):
             self.name,
             split="train",
             num_workers=self.num_workers,
+            n_samples=self.n_samples,
             n_qubits=self.n_qubits,
             transform = self.transform,
             discretise = self.discretise,
@@ -124,6 +128,7 @@ class QuMETDataModule(pl.LightningDataModule):
             self.name,
             split="validation",
             num_workers=self.num_workers,
+            n_samples=self.n_samples,
             n_qubits=self.n_qubits,
             transform = self.transform,
             discretise = self.discretise,
@@ -133,6 +138,7 @@ class QuMETDataModule(pl.LightningDataModule):
             self.name,
             split="test",
             num_workers=self.num_workers,
+            n_samples = self.n_samples,
             n_qubits=self.n_qubits,
             transform = self.transform,
             discretise = self.discretise,
@@ -142,6 +148,7 @@ class QuMETDataModule(pl.LightningDataModule):
             self.name,
             split="pred",
             num_workers=self.num_workers,
+            n_samples=self.n_samples,
             n_qubits=self.n_qubits,
             transform = self.transform,
             discretise = self.discretise,
@@ -162,6 +169,7 @@ class QuMETDataModule(pl.LightningDataModule):
                 self.name,
                 split="train",
                 num_workers=self.num_workers,
+                n_samples=self.n_samples,
                 n_qubits=self.n_qubits,
                 transform = self.transform,
                 discretise = self.discretise,
@@ -174,6 +182,7 @@ class QuMETDataModule(pl.LightningDataModule):
                 self.name,
                 split="validation",
                 num_workers=self.num_workers,
+                n_samples=self.n_samples,
                 n_qubits=self.n_qubits,
                 transform = self.transform,
                 discretise = self.discretise,
@@ -186,6 +195,7 @@ class QuMETDataModule(pl.LightningDataModule):
                 self.name,
                 split="test",
                 num_workers=self.num_workers,
+                n_samples=self.n_samples,
                 n_qubits=self.n_qubits,
                 transform = self.transform,
                 discretise = self.discretise,
@@ -198,6 +208,7 @@ class QuMETDataModule(pl.LightningDataModule):
                 self.name,
                 split="pred",
                 num_workers=self.num_workers,
+                n_samples=self.n_samples,
                 n_qubits=self.n_qubits,
                 transform = self.transform,
                 discretise = self.discretise,
