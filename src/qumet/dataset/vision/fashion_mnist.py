@@ -13,14 +13,28 @@ from PIL import Image
     image_size=(1, 28, 28),
 )
 class Fashion_MNISTQuMET(datasets.FashionMNIST, DataTransformationMixin):
+    """
+    Labels:
+    0 - T-shirt/top
+    1 - Trouser
+    2 - Pullover
+    3 - Dress
+    4 - Coat
+    5 - Sandal
+    6 - Shirt
+    7 - Sneaker
+    8 - Bag
+    9 - Ankle boot
+    """
+    
     def __init__(
         self, root: os.PathLike, train: bool, transform: callable, download: bool, model_name: str
     ) -> None:
         super().__init__(root, train=train, transform=transform, download=download)
 
         self.model_name = model_name
-        filter_labels = [0]
-        n_samples = 2000
+        filter_labels = [0,1,6]
+        n_samples = 2400
         if filter_labels:
         
             self.filter_labels(filter_labels)
