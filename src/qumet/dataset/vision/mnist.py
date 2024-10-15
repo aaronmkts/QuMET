@@ -16,7 +16,7 @@ from PIL import Image
 )
 class MNISTQuMET(datasets.MNIST, DataTransformationMixin):
     def __init__(
-        self, root: os.PathLike, train: bool, transform: callable, download: bool, model_name: str
+        self, root: os.PathLike, train: bool, n_samples:int, transform: callable, download: bool, model_name: str
     ) -> None:
         super().__init__(root, train=train, transform=transform, download=download)
 
@@ -65,11 +65,11 @@ class MNISTQuMET(datasets.MNIST, DataTransformationMixin):
 
 
 def get_mnist_dataset(
-    name: str, path: os.PathLike, train: bool, transform: callable, model_name: str
+    name: str, path: os.PathLike, train: bool, n_samples:int, transform: callable, model_name: str
 ) -> Dataset:
     match name.lower():
         case "mnist":
-            dataset = MNISTQuMET(path, train=train, transform=transform, model_name = model_name, download=True)
+            dataset = MNISTQuMET(path, train=train, transform=transform, n_samples = n_samples, model_name = model_name, download=True)
 
         case _:
             raise ValueError(f"Unknown dataset {name}")

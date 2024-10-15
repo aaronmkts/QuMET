@@ -136,6 +136,7 @@ CLI_DEFAULTS = {
     "load_name": None,
     "load_type": LOAD_TYPE[1],
     "batch_size": 8,
+    "n_samples": 1000,
     "to_debug": False,
     "log_level": LOG_LEVELS[1],
     "report_to": REPORT_TO[1],
@@ -431,6 +432,15 @@ class QuMETCLI:
             help="batch size for training and evaluation. (default: %(default)s)",
             metavar="NUM",
         )
+
+        general_group.add_argument(
+            "--n_samples",
+            dest="n_samples",
+            type=int,
+            help="number of samples for training and evaluation. (default: %(default)s)",
+            metavar="NUM",
+        )
+
         general_group.add_argument(
             "--debug",
             action="store_true",
@@ -677,6 +687,7 @@ class QuMETCLI:
             batch_size=self.args.batch_size,
             transform = self.args.transform,
             discretise = discretise,
+            n_samples = self.args.n_samples,
             n_qubits=self.args.n_qubits,
             num_workers=self.args.num_workers,
             model_name=self.args.model,

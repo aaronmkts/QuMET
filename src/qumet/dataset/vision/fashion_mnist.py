@@ -28,7 +28,7 @@ class Fashion_MNISTQuMET(datasets.FashionMNIST, DataTransformationMixin):
     """
     
     def __init__(
-        self, root: os.PathLike, train: bool, transform: callable, download: bool, model_name: str
+        self, root: os.PathLike, train: bool, n_samples:int, transform: callable, download: bool, model_name: str
     ) -> None:
         super().__init__(root, train=train, transform=transform, download=download)
 
@@ -76,12 +76,12 @@ class Fashion_MNISTQuMET(datasets.FashionMNIST, DataTransformationMixin):
         return img, target
 
 def get_fashion_mnist_dataset(
-    name: str, path: os.PathLike, train: bool, transform: callable, model_name: str
+    name: str, path: os.PathLike, train: bool, n_samples:int, transform: callable, model_name: str
 ) -> Dataset:
     match name.lower():
         case "fashion_mnist":
             dataset = Fashion_MNISTQuMET(
-                path, train=train, transform=transform, model_name = model_name, download=True
+                path, train=train, transform=transform, n_samples = n_samples, model_name = model_name, download=True
             )
         case _:
             raise ValueError(f"Unknown dataset {name}")

@@ -1,13 +1,12 @@
 # basics
 model = "apqgan"
-dataset = "fashion_mnist"
+dataset = "mnist"
 
 # training
 training_optimizer = "adam"
 learning_rate = 1e-2
-max_epochs = 8
-batch_size = 16
-seed = 100
+max_epochs = 5
+batch_size = 10
 
 # torch lightning
 task = "image_generation"
@@ -18,7 +17,7 @@ project = 'test_tl/fashion_mnist/seed100'
 
 # metrics configuration
 [metrics]
-use_metrics = ['NDB_JSD_EvaluationCallback', 'FIDEvaluationCallback', 'GANImagesCallback']
+use_metrics = ['NDB_JSD_EvaluationCallback', 'GMMEvaluationCallback']
 
 # Define initialization parameters for each metric
 
@@ -26,12 +25,12 @@ use_metrics = ['NDB_JSD_EvaluationCallback', 'FIDEvaluationCallback', 'GANImages
 every_n_epochs = 1
 number_of_bins=50
 significance_level=0.05
-z_threshold= 4
+z_threshold= "NA"
 whitening=false
 max_dims= "NA"
 
-[metric.FIDEvaluationCallback]
+[metrics.GMMEvaluationCallback]
 every_n_epochs = 1
-feature = 64
-reset_real_features = false
-normalize = true
+gmm_components = 50
+save_gmm = false
+gmm_save_path = 'egg'

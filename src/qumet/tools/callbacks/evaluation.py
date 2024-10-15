@@ -117,6 +117,7 @@ class NDB_JSD_EvaluationCallback(Callback):
             max_dims (int): Maximum dimensions to use for binning.
             every_n_epochs (int): Frequency of evaluation (in epochs).
         """
+        self.n_bins = number_of_bins
         self.every_n_epochs = every_n_epochs
         self.ndb_jsd_metric = NDB_JSD_Metric(
             number_of_bins=number_of_bins,
@@ -148,11 +149,11 @@ class NDB_JSD_EvaluationCallback(Callback):
         if trainer.current_epoch % self.every_n_epochs == 0:
             # Compute NDB and JSD metrics
             metrics = self.ndb_jsd_metric.compute()
-            ndb_value = metrics['NDB']
+            ndb_value = metrics['NDB'] / self.n_bins
             jsd_value = metrics['JS']
 
             # Log the metrics
-            pl_module.log("metrics/ndb", ndb_value, on_epoch=True)
+            pl_module.log("metrics/ndb/k", ndb_value, on_epoch=True)
             pl_module.log("metrics/jsd", jsd_value, on_epoch=True)
 
 # VAE-QWGAN Callback

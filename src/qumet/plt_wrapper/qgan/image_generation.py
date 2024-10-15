@@ -4,16 +4,10 @@ import numpy as np
 import math
 from ..base import WrapperBase, ValidationResult
 from abc import abstractmethod
-from line_profiler import profile
 import torch.nn.functional as F
 from ...dataset.vision.transforms import DataTransformationMixin 
-import itertools
-import torch.distributions as D
 import torch.nn.functional as F
-from scipy.linalg import sqrtm
-from sklearn.mixture import GaussianMixture
 from ..utils import compute_gradient_penalty
-from ..metrics import NDB_JSD_Metric
 
 class QGANImageGenerationModelWrapper(WrapperBase, DataTransformationMixin):
     def __init__(
@@ -48,14 +42,13 @@ class QGANImageGenerationModelWrapper(WrapperBase, DataTransformationMixin):
 
     def adversarial_loss(self, y_hat, y):
         return F.binary_cross_entropy(y_hat, y)
-    def adversarial_loss(self, y_hat, y):
-        return F.binary_cross_entropy(y_hat, y)
-        
+
     @abstractmethod
     def training_step(self, batch):
         pass
         
     def validation_step(self, batch, batch_idx):
+        
         img, _ = batch
         noise = torch.randn(img.size(0), self.n_qubits)
         fake_imgs = self.model(noise)
@@ -85,23 +78,6 @@ class QGANImageGenerationModelWrapper(WrapperBase, DataTransformationMixin):
             case _:
                 raise ValueError(f"Unknown noise type: {noise_type}")
         
-    
-    # calculate frechet inception distance
-    def calculate_fid(self, act1, act2):
-        # calculate mean and covariance statistics
-        mu1, sigma1 = act1.mean(axis=0), np.cov(act1, rowvar=False)
-        mu2, sigma2 = act2.mean(axis=0), np.cov(act2, rowvar=False)
-        # calculate sum squared difference between means
-        ssdiff = np.sum((mu1 - mu2)**2.0)
-        # calculate sqrt of product between cov
-        covmean = sqrtm(sigma1.dot(sigma2))
-        # check and correct imaginary numbers from sqrt
-        if np.iscomplexobj(covmean):
-            covmean = covmean.real
-        # calculate score
-        fid = ssdiff + np.trace(sigma1 + sigma2 - 2.0 * covmean)
-        return fid
-    
     def configure_optimizers(self):
         # Use self.trainer.model.parameters() instead of self.parameters() to support FullyShared (Model paralleled) training
         match self.optimizer.lower():
