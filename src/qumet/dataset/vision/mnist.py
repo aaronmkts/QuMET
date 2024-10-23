@@ -26,9 +26,6 @@ class MNISTQuMET(datasets.MNIST, DataTransformationMixin):
         if filter_labels:
             self.filter_labels(filter_labels)
             self.n_samples_(n_samples)
-        
-        if self.model_name == 'mosaiq':
-            self.fit_pca(n_components = 40)
 
     def prepare_data(self) -> None:
         pass
@@ -55,11 +52,6 @@ class MNISTQuMET(datasets.MNIST, DataTransformationMixin):
         
         if self.target_transform is not None:
             target = self.target_transform(target)
-
-        if self.model_name == 'mosaiq':
-            img = self.apply_pca(img)
-
-
 
         return img, target
 
