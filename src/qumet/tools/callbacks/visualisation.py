@@ -1,11 +1,7 @@
-
-from lightning import LightningModule, Trainer
-import numpy as np
+import lightning as pl
 from lightning.pytorch.callbacks import Callback
-from pathlib import Path
 import torchvision
-import matplotlib.pyplot as plt
-from torchvision.transforms import ToTensor
+import torch
 from qumet.plt_wrapper.base import ValidationResult
 
 class GANImagesCallback(Callback):
@@ -21,21 +17,40 @@ class GANImagesCallback(Callback):
         self.every_n_epochs = every_n_epochs
         self.nrow = nrow
 
+    def log_image(self, trainer, key, image, step):
+
+        logger = trainer.logger
+        run_id = trainer.logger.run_id
+       
+        if isinstance(logger, pl.pytorch.loggers.tensorboard.TensorBoardLogger):
+            # TensorBoard logger uses add_image
+            experiment = logger.experiment
+            experiment.add_image(key, image, step)
+        elif isinstance(logger, pl.pytorch.loggers.MLFlowLogger):
+            if isinstance(image, torch.Tensor):
+                transform = torchvision.transforms.ToPILImage()
+                image = transform(image)
+            
+            experiment = logger.experiment
+            experiment.log_image(run_id = run_id, image = image, key = key, step = step)
+
+
     def on_validation_batch_end(self, trainer, pl_module, outputs: ValidationResult, batch, batch_idx):
+ 
         if trainer.current_epoch % self.every_n_epochs == 0 and batch_idx == 0:
             # Real images
             real_grid = get_grid_images(outputs.real_image, self.batch_size, self.nrow)
-            trainer.logger.experiment.add_image("images/real", real_grid, global_step=trainer.current_epoch)
+            self.log_image(trainer, "images/real", real_grid, trainer.current_epoch)
 
             # Reconstructed images (if available)
             if outputs.recon_image is not None:
                 recon_grid = get_grid_images(outputs.recon_image, self.batch_size, self.nrow)
-                trainer.logger.experiment.add_image("images/recon", recon_grid, global_step=trainer.current_epoch)
+                self.log_image(trainer, "images/recon", recon_grid, trainer.current_epoch)
 
             # Fake images
             if outputs.fake_image is not None:
                 fake_grid = get_grid_images(outputs.fake_image, self.batch_size, self.nrow)
-                trainer.logger.experiment.add_image("images/sample", fake_grid, global_step=trainer.current_epoch)
+                self.log_image(trainer, "images/sample", fake_grid, trainer.current_epoch)
 
 
             # Additional custom outputs
@@ -43,7 +58,7 @@ class GANImagesCallback(Callback):
                 for key, img in outputs.others.items():
                     if img is not None:
                         grid = get_grid_images(img, self.batch_size, self.nrow)
-                        trainer.logger.experiment.add_image(f"images/{key}", grid, global_step=trainer.current_epoch)
+                        self.log_image(trainer, f"images/{key}", grid, trainer.current_epoch)
 
 def get_grid_images(imgs, nimgs=64, nrow=8):
     """Create a grid of images for visualization."""
