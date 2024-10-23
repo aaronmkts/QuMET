@@ -30,7 +30,7 @@ def get_vision_dataset(name: str, path: os.PathLike, split: str, n_samples:int, 
     
     preprocessing = transform
     train = split == "train"
-    transform = get_vision_dataset_transform(name, train, model_name) #Torchvision transforms
+    transform = get_vision_dataset_transform(name, train, model_name, preprocessing) #Torchvision transforms
 
     match name:
         case "mnist":
