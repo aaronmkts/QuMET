@@ -42,6 +42,8 @@ import warnings
 import lightning as pl
 from lightning.pytorch.loggers.wandb import WandbLogger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
+from lightning.pytorch.loggers import MLFlowLogger
+import mlflow
 import optuna
 from tabulate import tabulate
 import torch
@@ -749,6 +751,23 @@ class QuMETCLI:
                     save_dir=self.output_dir_sw.joinpath("tensorboard")
                 )
                 visualizer.log_hyperparams(vars(self.args))
+            case "mlflow":  
+                
+                mlflow.set_experiment("Training")
+                mlflow.pytorch.autolog()
+                mlflow.start_run(run_name=self.args.project)
+
+                visualizer = MLFlowLogger(
+                experiment_name=mlflow.get_experiment(mlflow.active_run().info.experiment_id).name,
+                run_id=mlflow.active_run().info.run_id,
+                )
+                '''
+                visualizer = MLFlowLogger(
+                    experiment_name=self.args.project, 
+                    save_dir=self.output_dir_sw.joinpath("mlflow"),
+                )
+                visualizer.log_hyperparams(vars(self.args))
+                '''
             case _:
                 raise ValueError(f"unsupported reporting tool {self.args.report_to!r}")
         return visualizer
