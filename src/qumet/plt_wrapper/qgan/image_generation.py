@@ -5,11 +5,10 @@ import math
 from ..base import WrapperBase, ValidationResult
 from abc import abstractmethod
 import torch.nn.functional as F
-from ...dataset.vision.transforms import DataTransformationMixin 
 import torch.nn.functional as F
 from ..utils import compute_gradient_penalty
 
-class QGANImageGenerationModelWrapper(WrapperBase, DataTransformationMixin):
+class QGANImageGenerationModelWrapper(WrapperBase):
     def __init__(
         self,
         model,
@@ -205,7 +204,6 @@ class MosaiQGANWrapper(QGANImageGenerationModelWrapper):
         batch_size = pca_data.size(0)
         real_data = pca_data.reshape(-1, self.pca_dims)
 
-    
         real_labels = torch.full((batch_size,), 0.9, dtype=torch.float).type_as(
             real_data
         )
@@ -252,6 +250,19 @@ class MosaiQGANWrapper(QGANImageGenerationModelWrapper):
         self.log("train_g_loss_step", errG, prog_bar=True)
 
         self.untoggle_optimizer(optG)
+
+    def validation_step(self, batch, batch_idx):
+
+        transform = self.trainer.datamodule.transform_instance
+
+        pca_data, _ = batch
+        batch_size = pca_data.size(0)
+        real_imgs = transform.inverse_transform(pca_data)
+
+        noise = self.generate_noise('adaptive', batch_size)
+        fake_imgs = transform.inverse_transform(self.model(noise))
+       
+        return ValidationResult(real_image=real_imgs, fake_image=fake_imgs)
 
 class PQWGANWrapper(QGANImageGenerationModelWrapper):
     def __init__(self,
