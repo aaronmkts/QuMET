@@ -19,10 +19,13 @@ class PCA_Transform(TransformBase):
         x_transformed = self.pca_model.transform(x_flat.unsqueeze(0))  # Add batch dimension
         return x_transformed.squeeze(0)  # Remove batch dimension
 
-    def inverse_transform(self, x):
-        # x is a tensor of PCA components
-        x_reconstructed = self.pca_model.inverse_transform(x.unsqueeze(0))  # Add batch dimension
-        x_reconstructed = x_reconstructed.squeeze(0)  # Remove batch dimension
-        # Reshape to original image dimensions if necessary
-        # For MNIST, reshape to (1, 28, 28)
-        return x_reconstructed.view(1, 28, 28)
+    def inverse_transform(self, x, img_shape=(1, 28, 28)):
+        # Ensure x is a 2D tensor (batch_size, n_components)
+
+        if x.ndimension() != 2:
+            raise ValueError(f"Expected input tensor to have 2 dimensions (batch_size, n_components), but got shape {x.shape}")
+        
+        x_reconstructed = self.pca_model.inverse_transform(x) 
+        batch_size = x_reconstructed.shape[0]
+        
+        return x_reconstructed.view(batch_size, *img_shape)
