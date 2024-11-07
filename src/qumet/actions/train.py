@@ -81,7 +81,7 @@ def train(
     )
     
     trainer = pl.Trainer(**plt_trainer_args, deterministic= True, num_sanity_val_steps=0)
-    trainer.validate(model=pl_model, datamodule=data_module)
+    #trainer.validate(model=pl_model, datamodule=data_module)
     trainer.fit(
         pl_model,
         datamodule=data_module,

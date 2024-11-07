@@ -41,7 +41,7 @@ class DataTransformationMixin:
         return scale_data(data, scale=scale, dtype=np.float32)
 
     
-def get_vision_dataset_transform(name: str, train: bool, model_name: str):
+def get_vision_dataset_transform(name: str, train: bool, model_name: str, transform: None):
     """
     Args:
         name (str): name of the dataset
@@ -50,12 +50,16 @@ def get_vision_dataset_transform(name: str, train: bool, model_name: str):
     Returns:
         transform (callable): transform function
     """
-    match name.lower():
-        case "mnist":
-            return get_mnist_transform(train, model_name)
-        case "fashion_mnist":
-            return get_fashion_mnist_transform(train, model_name)
-        case "cifar10":
-            return get_cifar10_transform(train, model_name)
-        case _:
-            raise ValueError(f"Unknown dataset {name}")
+    if callable(transform):
+        # If transform is already a callable (e.g., PCA_Transform instance), return it directly
+        return transform
+    else:
+        match name.lower():
+            case "mnist":
+                return get_mnist_transform(train, model_name)
+            case "fashion_mnist":
+                return get_fashion_mnist_transform(train, model_name)
+            case "cifar10":
+                return get_cifar10_transform(train, model_name)
+            case _:
+                raise ValueError(f"Unknown dataset {name}")
