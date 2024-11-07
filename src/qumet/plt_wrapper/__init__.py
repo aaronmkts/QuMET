@@ -5,7 +5,8 @@ from .qgan import (
     MosaiQGANWrapper,
     PatchGANWrapper,
     APQGANWrapper,
-    PQWGANWrapper
+    PQWGANWrapper,
+    ProbsQGANWrapper
     )
 
 from .qcbm import(
@@ -34,6 +35,8 @@ def get_model_wrapper(model_info, task: str):
                         return APQGANWrapper
                     elif model_info.name == 'pqwgan_qc':
                         return PQWGANWrapper
+                    elif model_info.name == 'qgan_probs':
+                        return ProbsQGANWrapper
                     else:
                         return ValueError(f"A training wrapper is not supported for {model_info.name}")
                 case _:

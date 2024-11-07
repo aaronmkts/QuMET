@@ -26,7 +26,7 @@ class QGANImageGenerationModelWrapper(WrapperBase):
             epochs=epochs,
             optimizer=optimizer,
         )
-        self.image_size = dataset_info.image_size[1:]
+        self.image_size = dataset_info.image_size
         self.dataset_info = dataset_info
         self.optimizer = optimizer
         self.automatic_optimization = False
@@ -34,13 +34,6 @@ class QGANImageGenerationModelWrapper(WrapperBase):
         self.weight_decay = weight_decay
         self.n_qubits = self.model.generator.n_qubits
         self.criterion = nn.BCELoss()
-        self.validation_step_outputs = []
-        self.validation_step_outputs = []
-        # Noise utils
-        self.validation_z = self.generate_noise('uniform-angle', batch_size = 16)
-
-    def adversarial_loss(self, y_hat, y):
-        return F.binary_cross_entropy(y_hat, y)
 
     @abstractmethod
     def training_step(self, batch):
@@ -111,7 +104,9 @@ class QGANImageGenerationModelWrapper(WrapperBase):
 
         return [optG, optD], []
     
-class PatchGANWrapper(QGANImageGenerationModelWrapper):
+
+
+class ProbsQGANWrapper(QGANImageGenerationModelWrapper):
     def __init__(self,
         model,
         dataset_info,
@@ -122,34 +117,33 @@ class PatchGANWrapper(QGANImageGenerationModelWrapper):
         super().__init__(model, dataset_info, learning_rate, 
                          weight_decay, epochs, optimizer)
 
-        self.validation_z = self.generate_noise('uniform-angle', 16)
-
+    def preprocess_remapping(self, data):
+        remapped_img, indices = torch.sort(data, dim=1)
+        return remapped_img, indices
+    
+    def postprocess_remapping(self, data, original_indices):
+        original_batch = torch.zeros_like(data)
+        original_batch.scatter_(dim=1, index=original_indices, src=data)
+        return original_batch
+    
     def training_step(self, batch):
         
         optG, optD = self.optimizers()
-       
-        # data and real/fake labels
-        train_data, _ = batch
-        real_data = train_data.reshape(-1, self.image_size[0] * self.image_size[1])
 
-        batch_size = real_data.size(0)
+        data, _ = batch
+        real_data, _ = self.preprocess_remapping(data)
 
-        real_labels = torch.full((batch_size,), 1.0, dtype=torch.float).type_as(
-            real_data
-        )
-        fake_labels = torch.full((batch_size,), 0.0, dtype=torch.float).type_as(
-            real_data
-        )
-        
-        # Generate fake-data using noise input
-        noise = self.generate_noise('uniform-angle', batch_size)
+        real_labels = torch.full((real_data.size(0), ), 1.0, dtype=torch.float).type_as(real_data)
+        fake_labels = torch.full((real_data.size(0) ,), 0.0, dtype=torch.float).type_as(real_data)
+        noise = self.generate_noise('uniform-angle', batch_size = real_data.size(0))
 
-        fake_data = self.model.generator(noise).type_as(real_data)
+        fake_data = self.model(noise).type_as(real_data)
         # Training the discriminator
+        
         self.toggle_optimizer(optD)
 
         optD.zero_grad()
-    
+       
         outD_real = self.model.discriminator(real_data).view(-1)
         outD_fake = self.model.discriminator(fake_data.detach()).view(-1)
         errD_real = self.criterion(outD_real, real_labels)  # Discriminator real loss
@@ -163,20 +157,74 @@ class PatchGANWrapper(QGANImageGenerationModelWrapper):
         optD.step()
 
         self.untoggle_optimizer(optD)
-        
+
         # Training the generator
         self.toggle_optimizer(optG)
+
         optG.zero_grad()
         outD_fake = self.model.discriminator(fake_data).view(-1)
         errG = self.criterion(outD_fake, real_labels)
-        
-        self.manual_backward(errG)
+        self.manual_backward(errG) 
+        optG.step()
 
         self.log("train_g_loss_step", errG, prog_bar=True)
-        optG.step()
-  
-        self.untoggle_optimizer(optG)        
-        
+
+        self.untoggle_optimizer(optG)
+
+    def validation_step(self, batch, batch_idx):
+
+        image_size = (32,32)
+        scaling = 255
+
+        img, _ = batch
+        real_data, remapped_indices = self.preprocess_remapping(img) 
+
+        noise = self.generate_noise('uniform-angle', img.size(0))
+        fake_data = self.model(noise).type_as(real_data)
+        fake_imgs = self.postprocess_remapping(fake_data, remapped_indices)
+
+        real_imgs_scaled = real_data * scaling  # Scale real images
+        fake_imgs_scaled = fake_imgs * scaling  # Scale fake images
+        real_imgs_reshaped = real_imgs_scaled.view(-1, 1, *image_size)  # Reshape to (batch_size, 32, 32)
+        fake_imgs_reshaped = fake_imgs_scaled.view(-1, 1, *image_size)
+
+        return ValidationResult(real_image=real_imgs_reshaped, fake_image=fake_imgs_reshaped)
+
+    def configure_optimizers(self):
+        # Use self.trainer.model.parameters() instead of self.parameters() to support FullyShared (Model paralleled) training
+        match self.optimizer.lower():
+            case "adam":
+                b1 = 0
+                b2 = 0.9
+
+                optG = torch.optim.Adam(
+                    self.model.generator.parameters(),
+                    lr=0.001,
+                    weight_decay=self.weight_decay,
+                    betas=(b1, b2),
+                )
+
+                optD = torch.optim.Adam(
+                    self.model.discriminator.parameters(),
+                    lr=0.0005,
+                    weight_decay=self.weight_decay,
+                    betas=(b1, b2),
+                )
+            case "sgd":
+                lrG = 0.3  # Learning rate for the generator
+                lrD = 0.001  # Learning rate for the discriminator
+
+                optD = torch.optim.SGD(
+                    self.model.discriminator.parameters(), 
+                    lr=lrD)
+                optG = torch.optim.SGD(self.model.generator.parameters(),
+                                        lr=lrG)
+            case _:
+                raise ValueError(f"Unsupported optimizer name {self.optimizer}")
+
+        return [optG, optD], []
+
+
 class MosaiQGANWrapper(QGANImageGenerationModelWrapper):
 
     def __init__(self,
@@ -264,6 +312,71 @@ class MosaiQGANWrapper(QGANImageGenerationModelWrapper):
        
         return ValidationResult(real_image=real_imgs, fake_image=fake_imgs)
 
+class PatchGANWrapper(QGANImageGenerationModelWrapper):
+    def __init__(self,
+        model,
+        dataset_info,
+        learning_rate=1e-4,
+        weight_decay=0.0,
+        epochs=100,
+        optimizer=None):
+        super().__init__(model, dataset_info, learning_rate, 
+                         weight_decay, epochs, optimizer)
+
+        self.validation_z = self.generate_noise('uniform-angle', 16)
+
+    def training_step(self, batch):
+        
+        optG, optD = self.optimizers()
+       
+        # data and real/fake labels
+        train_data, _ = batch
+        real_data = train_data.reshape(-1, self.image_size[0] * self.image_size[1])
+
+        batch_size = real_data.size(0)
+
+        real_labels = torch.full((batch_size,), 1.0, dtype=torch.float).type_as(
+            real_data
+        )
+        fake_labels = torch.full((batch_size,), 0.0, dtype=torch.float).type_as(
+            real_data
+        )
+        
+        # Generate fake-data using noise input
+        noise = self.generate_noise('uniform-angle', batch_size)
+
+        fake_data = self.model.generator(noise).type_as(real_data)
+        # Training the discriminator
+        self.toggle_optimizer(optD)
+
+        optD.zero_grad()
+    
+        outD_real = self.model.discriminator(real_data).view(-1)
+        outD_fake = self.model.discriminator(fake_data.detach()).view(-1)
+        errD_real = self.criterion(outD_real, real_labels)  # Discriminator real loss
+        errD_fake = self.criterion(outD_fake, fake_labels)  # Discriminator fake loss
+        
+        self.manual_backward(errD_real)
+        self.manual_backward(errD_fake)
+
+        errD = (errD_real + errD_fake) 
+        self.log("train_d_loss_step", errD, prog_bar=True)
+        optD.step()
+
+        self.untoggle_optimizer(optD)
+        
+        # Training the generator
+        self.toggle_optimizer(optG)
+        optG.zero_grad()
+        outD_fake = self.model.discriminator(fake_data).view(-1)
+        errG = self.criterion(outD_fake, real_labels)
+        
+        self.manual_backward(errG)
+
+        self.log("train_g_loss_step", errG, prog_bar=True)
+        optG.step()
+  
+        self.untoggle_optimizer(optG)    
 class PQWGANWrapper(QGANImageGenerationModelWrapper):
     def __init__(self,
         model,
@@ -343,8 +456,7 @@ class PQWGANWrapper(QGANImageGenerationModelWrapper):
         val_mse_sum = F.mse_loss(img, fake_imgs, reduction='sum') / N
         self.log("metrics/val_mse_reduction", val_mse_sum, on_epoch=True)
 
-        return ValidationResult(real_image=img, fake_image=fake_imgs, recon_image=recon_image)
-
+        return ValidationResult(real_image=img, fake_image=fake_imgs, recon_image=recon_image) 
 class APQGANWrapper(QGANImageGenerationModelWrapper):
     def __init__(self,
         model,
