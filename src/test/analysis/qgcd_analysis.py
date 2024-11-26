@@ -18,6 +18,7 @@ from qumet.dataset import QuMETDataModule
 from qumet.models import get_model, get_model_info
 from qumet.dataset import get_dataset, get_dataset_info
 import torch.optim as optim
+from qumet.tools.checkpoint_load import *
 
 import numpy as np
 
@@ -25,166 +26,91 @@ import torch
 import pennylane as qml
 
 
-
 def main():
-    # Seed the random number generators for reproducibility
-    seed = 42
-    np.random.seed(seed)
-    torch.manual_seed(seed)
+    #print(os.listdir())
 
-    # Check if MPS device is available
-    device = torch.device("cpu")
-    print(f'Using device: {device}')
+    dataset_info = get_dataset_info("mnist")
+    model = get_model("apqgan", "image_generation", dataset_info)
+    ckpt = torch.load("best.ckpt", weights_only=True)
 
-    class MMD:
+    print(model.modules)
 
-        def __init__(self, scales, space):
-            gammas = 1 / (2 * (scales**2))
-            sq_dists = np.abs(space[:, None] - space[None, :]) ** 2
-            self.K = sum(np.exp(-gamma * sq_dists) for gamma in gammas) / len(scales)
-            self.K = torch.tensor(self.K, dtype=torch.float64).to(device)
-            self.scales = scales
+    ckpt_updated = {key.replace("model.", "", 1): value for key, value in ckpt["state_dict"].items()}
 
-        def k_expval(self, px, py):
-            return torch.matmul(px, torch.matmul(self.K, py))
+    assert ckpt_updated.keys() == model.state_dict().keys()
 
-        def __call__(self, px, py):
-            pxy = px - py
-            return self.k_expval(pxy, pxy)
+    module_list = model.state_dict().keys()
 
-    n = 3
-    n_qubits = n**2
-    def get_bars_and_stripes(n): #correct
-        bitstrings = [list(np.binary_repr(i, n))[::-1] for i in range(2**n)]
-        bitstrings = np.array(bitstrings, dtype=int)
+    print(module_list)
 
-        stripes = bitstrings.copy()
-        stripes = np.repeat(stripes, n, 0)
-        stripes = stripes.reshape(2**n, n * n)
+    # target_modules = ['encoder.encoder.0.weight', 'encoder.encoder.0.bias']
 
-        bars = bitstrings.copy()
-        bars = bars.reshape(2**n * n, 1)
-        bars = np.repeat(bars, n, 1)
-        bars = bars.reshape(2**n, n * n)
-        return np.vstack((stripes[0 : stripes.shape[0] - 1], bars[1 : bars.shape[0]]))
+    # for name, param in model.named_parameters():
+    #     print(name, "->", param.requires_grad)
+
+    # for module_name, param in model.named_parameters():
+    #     if module_name in target_modules:
+    #         param.requires_grad = True
+    #     else:
+    #         param.requires_grad = False
+
+    # print()
+
+    # for name, param in model.named_parameters():
+    #     print(name, "->", param.requires_grad)
+            
+
+    #print(model.state_dict()['encoder.encoder.0.bias'])
+    #print(ckpt_updated['encoder.encoder.0.bias'])
+
+    #model.load_state_dict(ckpt_updated)
+
+    #print(model.state_dict()['encoder.encoder.0.bias'])
+
+    #print(model.state_dict()['encoder.encoder.0.bias'])
+    #print(ckpt["state_dict"]['model.encoder.encoder.0.bias'])
     
-    data = get_bars_and_stripes(n)
-    bitstrings = []
-    nums = []
-    for d in data:
-        bitstrings += ["".join(str(int(i)) for i in d)]
-        nums += [int(bitstrings[-1], 2)]
-    probs = np.zeros(2**n_qubits)
-    probs[nums] = 1 / len(data)
-    probs = torch.tensor(probs, dtype=torch.float64).to(device)  # Ensure probs is a Float tensor
-
-    bandwidth = np.array([0.25])
-    space = np.arange(2**n_qubits)
-
-    mmd = MMD(bandwidth, space)
-
-  
+    #model.load_state_dict(ckpt["state_dict"],strict=False)
 
 
-    class QCBM:
+    #for name in ckpt["state_dict"].keys():
+        #ckpt["state_dict"][name] = name.replace("model.","")
+        #print(name)
+        #print(name.replace("model.",""))
+        #ckpt["state_dict"][name]
+        #print(ckpt["state_dict"][name])
+        #ckpt["state_dict"][name] = ckpt["state_dict"][name].lstrip("model.") # remove "model." from keys
+        #print(name)
+        #print(f"Layer: {name} | Shape: {param.shape}")# | Values: {param}")
+    #print(ckpt["state_dict"].keys())
 
-        def __init__(self, circ, mmd, py):
-            self.circ = circ
-            self.mmd = mmd
-            self.py = py.clone().detach()
-
-        def mmd_loss(self, params):
-          
-            px = self.circ(params)
-            return self.mmd(px, self.py), px
-
-        def kl_divergence(self, px):
-            # Avoid division by zero and handle log(0) cases
-            qcbm_probs = px.clone().detach()
-            target_probs = self.py
-            kl_div = -torch.sum(target_probs * torch.nan_to_num(torch.log(qcbm_probs / target_probs)))
-            return kl_div
+    #print(model.state_dict()['encoder.encoder.0.bias'])
+    #print(ckpt["state_dict"]['model.encoder.encoder.0.bias'])
     
+    #model.load_state_dict(ckpt["state_dict"],strict=False)
+
+    #print(model.state_dict()['encoder.encoder.0.bias'])
+
+    #for name, param in model.state_dict().items():
+    #    print(f"Layer: {name} | Shape: {param.shape} | Values: {param}")
+
+    #print(ckpt.keys())
+
+    #print(ckpt["state_dict"].keys())
+    #print(model.named_modules)
+
+    #load_lightning_ckpt_to_unwrapped_model(ckpt["state_dict"],model)
+    #load_unwrapped_ckpt(ckpt["state_dict"],model)
     
+    #model.load_state_dict(ckpt["state_dict"])
 
-  
-    n_layers = 6
+
+    #for name, module in model.named_modules():
+    #    print(module)
     
-    wshape = qml.StronglyEntanglingLayers.shape(n_layers=n_layers, n_wires=n_qubits)
-    
-    weights = np.random.random(size=wshape)
-    
-    weights = torch.tensor(weights, requires_grad=True, dtype=torch.float64)
-    dev = qml.device("default.qubit", wires=n_qubits)
-    @qml.qnode(dev, interface='torch', diff_method= 'backprop')
-    def circuit(weights):
-        qml.StronglyEntanglingLayers(
-            weights=weights, ranges=[1] * n_layers, wires=range(n_qubits)
-        )
-        return qml.probs()
-
-    
-    qcbm = QCBM(circuit, mmd, probs)
-    b1 , b2 = 0.777, 0.999
-    optimizer = optim.Adam([weights], lr=0.1,  betas=(b1, b2))
-    
-    # Training loop
-    history = []
-    divs = []   
-    num_epochs = 100
-    for epoch in range(num_epochs):
-        optimizer.zero_grad()
-        print(np.random.get_state()[1][0])
-        loss, px = qcbm.mmd_loss(weights)
-        loss.backward()
-        optimizer.step()
-        kl_div = qcbm.kl_divergence(px)
-
-        print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {loss.item()}, KL Divergence: {kl_div.item()}')
-
-        history.append(loss.item())
-        divs.append(kl_div.item())
-
-    fig, ax = plt.subplots(1, 2, figsize=(12, 5))
-
-    ax[0].plot(history)
-    ax[0].set_xlabel("Iteration", fontsize=16)
-    ax[0].set_ylabel("MMD Loss", fontsize=16)
-    ax[0].tick_params(axis='both', labelsize=16)
-
-    ax[1].plot(divs, color="green")
-    ax[1].set_xlabel("Iteration", fontsize=16)
-    ax[1].set_ylabel("KL Divergence", fontsize=16)
-    ax[1].tick_params(axis='both', labelsize=16)
+    #print(model.modules)
+    #print(help(model))
 
 
-    def circuit(weights):
-        qml.StronglyEntanglingLayers(
-            weights=weights, ranges=[1] * n_layers, wires=range(n_qubits)
-        )
-        return qml.sample()
-
-
-    for N in [2000, 20000]:
-        dev = qml.device("default.qubit", wires=n_qubits, shots=N)
-        circ = qml.QNode(circuit, device=dev)
-        preds = circ(weights)
-
-        mask = np.any(
-            np.all(np.array(preds[:, None]) == data, axis=2), axis=1)  # Check for row-wise equality
-        chi = np.sum(mask) / N
-        print(f"χ for N = {N}: {chi:.4f}")
-
-    plt.figure(figsize=(8, 8))
-    j = 1
-    for i, m in zip(preds[:64], mask[:64]):
-        ax = plt.subplot(8, 8, j)
-        j += 1
-        plt.imshow(np.reshape(i, (n, n)), cmap="gray", vmin=0, vmax=1)
-        if ~m:
-            plt.setp(ax.spines.values(), color="red", linewidth=1.5)
-        plt.xticks([])
-        plt.yticks([])
-    plt.show()
 if __name__ == "__main__":
     main()
