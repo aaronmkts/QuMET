@@ -34,7 +34,7 @@ class Fashion_MNISTQuMET(datasets.FashionMNIST, DataTransformationMixin):
 
         self.model_name = model_name
         filter_labels = [0,1,6]
-        n_samples = 2400
+        
         if filter_labels:
         
             self.filter_labels(filter_labels)

@@ -22,7 +22,6 @@ class MNISTQuMET(datasets.MNIST, DataTransformationMixin):
 
         self.model_name = model_name
         filter_labels = [1,7,9]
-        n_samples = 2400
         if filter_labels:
             self.filter_labels(filter_labels)
             self.n_samples_(n_samples)
