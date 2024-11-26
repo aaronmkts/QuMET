@@ -1,12 +1,14 @@
 # basics
 model = "apqgan"
 dataset = "fashion_mnist"
-seed = 110
+seed = 121
+ckpt_path = "mnist.ckpt"
+freeze_modules = ['discriminator.model.0.weight', 'discriminator.model.0.bias', 'discriminator.model.2.weight', 'discriminator.model.2.bias', 'discriminator.model.4.weight', 'discriminator.model.4.bias']
 
 # training
 training_optimizer = "adam"
 learning_rate = 1e-2
-max_epochs = 8
+max_epochs = 4
 batch_size = 16
 n_samples = 2400
 
@@ -15,14 +17,13 @@ task = "image_generation"
 num_workers = 0
 num_devices = 1
 accelerator = "cpu"
-project = 'test_tl/rubbish/seed110'
+project = 'test_tl/tl_retrain_network/seed121'
 
 # metrics configuration
 [metrics]
 use_metrics = ['FIDEvaluationCallback', 'NDB_JSD_EvaluationCallback', 'GANImagesCallback']
 
 # Define initialization parameters for each metric
-
 [metrics.NDB_JSD_EvaluationCallback]
 every_n_epochs = 1
 number_of_bins=50
