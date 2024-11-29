@@ -213,7 +213,7 @@ class GMMEvaluationCallback(Callback):
             # Concatenate accumulated data
             real_images = torch.cat(self.real_images, dim=0)
             z_samples = torch.cat(self.z_samples, dim=0).cpu().numpy()
-
+            
             # Fit GMM to the latent variables
             N = z_samples.shape[0]
             gmm = GaussianMixture(n_components=self.gmm_components, random_state=9).fit(z_samples)

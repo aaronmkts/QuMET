@@ -46,6 +46,8 @@ import optuna
 from tabulate import tabulate
 import torch
 import pennylane
+import torch.utils
+import torch.utils.checkpoint
 
 from . import models
 from .actions import train, validate
@@ -163,6 +165,10 @@ CLI_DEFAULTS = {
     # Project options,
     "project_dir": os.path.join(ROOT, "qumet_output"),
     "project": None,
+    
+    # Transfer learning
+    "ckpt_path": None,
+    "freeze_modules": None
 }
 
 
@@ -298,10 +304,11 @@ class QuMETCLI:
             "load_type": self.args.load_type,
             "metrics": self.args.metrics_to_use,
             "metric_init_args": self.args.metric_init_args,
+            "freeze_modules": self.args.freeze_modules,
         }
 
         self.logger.info(f"##### WEIGHT DECAY ##### {self.args.weight_decay}")
-     
+
         train(**train_params)
         self.logger.info("Training is completed")
 
@@ -698,6 +705,28 @@ class QuMETCLI:
             task=self.args.task,
             dataset_info=dataset_info,
         )
+
+        # transfer learning protocol
+        if self.args.ckpt_path is not None:
+            ckpt = torch.load(self.args.ckpt_path, weights_only=True)
+            ckpt_updated = {key.replace("model.", "", 1): value for key, value in ckpt["state_dict"].items()} # remove "model." prefix in keys
+            
+            assert ckpt_updated.keys() == model.state_dict().keys() # ensure ckpt & model modules match
+
+            model.load_state_dict(ckpt_updated)
+            model.zero_grad(set_to_none = False)
+
+        if self.args.freeze_modules is not None:
+            # freeze modules specified in "freeze_modules"
+            for module_name, param in model.named_parameters():
+                if module_name in self.args.freeze_modules:
+                    param.requires_grad = False
+                else:
+                    param.requires_grad = True
+        
+        for name, param in model.named_parameters():
+            print(name, "->", param.requires_grad)
+
 
         return model, data_module, dataset_info, model_info
 

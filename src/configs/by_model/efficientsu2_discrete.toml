@@ -1,0 +1,22 @@
+# basics
+model = "efficientsu2"
+dataset = "2d_grid_gaussian"
+
+# training
+training_optimizer = "adam"
+learning_rate = 1e-2
+max_epochs = 50
+batch_size = 256
+n_qubits = 10
+transform = 'minmax'
+
+# torch lightning
+task = "discrete_generation"
+num_workers = 0
+num_devices = 1
+accelerator = "cpu"
+
+project = "su2/grid/0.1/depol(0.1)"
+# load
+#load_name = "../qumet_output/qgcd_probs_generation_2d_gaussian_2024-02-29/software/training_ckpts/last.ckpt"
+#load_type = "pl"

@@ -21,7 +21,8 @@ class MNISTQuMET(datasets.MNIST, DataTransformationMixin):
         super().__init__(root, train=train, transform=transform, download=download)
 
         self.model_name = model_name
-        filter_labels = [0]
+
+        filter_labels = [1,7,9]
 
         if filter_labels:
             self.filter_labels(filter_labels)

@@ -17,6 +17,7 @@ class QGANImageGenerationModelWrapper(WrapperBase):
         weight_decay=0.0,
         epochs=100,
         optimizer=None,
+        freeze_modules=None
     ):
         super().__init__(
             model=model,
@@ -25,6 +26,7 @@ class QGANImageGenerationModelWrapper(WrapperBase):
             weight_decay=weight_decay,
             epochs=epochs,
             optimizer=optimizer,
+            freeze_modules=freeze_modules
         )
         self.image_size = dataset_info.image_size
         self.dataset_info = dataset_info
@@ -464,9 +466,10 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
         learning_rate=1e-4,
         weight_decay=0.0,
         epochs=100,
-        optimizer=None):
+        optimizer=None,
+        freeze_modules=None):
         super().__init__(model, dataset_info, learning_rate, 
-                         weight_decay, epochs, optimizer)
+                         weight_decay, epochs, optimizer, freeze_modules)
 
         # reconstruction weight in discriminator feature space, first tune this parameter if performace is unsatifactory.
         self.recon_weight = 5e-4
@@ -509,7 +512,11 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
 
         wasserstein_distance = torch.mean(real_validity) - torch.mean(fake_validity)
 
-        self.manual_backward(errD)
+        if "discriminator" not in self.freeze_networks:
+            self.manual_backward(errD) # discriminator backwards
+        else:
+            pass
+
         optD.step()
 
         self.log("discriminator/total_loss", errD, prog_bar=True)
@@ -532,7 +539,12 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
             prior_loss = self.normal_kld(mu, log_var) 
 
             errE =  prior_loss + recon_loss
-            self.manual_backward(errE)
+            
+            if "encoder" not in self.freeze_networks:
+                self.manual_backward(errE) # encoder backwards
+            else:
+                pass
+            
             optE.step()
 
             self.log('encoder/prior_loss', prior_loss)
@@ -552,8 +564,12 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
             fake_validity  = critic(fake_data)
     
             errG = -torch.mean(fake_validity) + self.recon_weight * recon_loss
-        
-            self.manual_backward(errG)
+
+            if "generator" not in self.freeze_networks:
+                self.manual_backward(errG) # generator backwards
+            else:
+                pass
+            
             optG.step()
 
             self.log("generator/fake_validity", -fake_validity.mean())

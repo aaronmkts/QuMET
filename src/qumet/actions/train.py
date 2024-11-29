@@ -12,6 +12,8 @@ from lightning.pytorch.plugins.environments import SLURMEnvironment
 from torch.distributed.fsdp import FullyShardedDataParallel
 from lightning.pytorch.strategies import DDPStrategy
 
+import torch
+
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,7 @@ def train(
     load_type,
     metrics,
     metric_init_args,
+    freeze_modules
 ):
     if save_path is not None:
         # if save_path is None, the model will not be saved
@@ -78,6 +81,7 @@ def train(
         weight_decay=weight_decay,
         epochs=plt_trainer_args["max_epochs"],
         optimizer=optimizer,
+        freeze_modules=freeze_modules
     )
     
     trainer = pl.Trainer(**plt_trainer_args, deterministic= True, num_sanity_val_steps=0)
