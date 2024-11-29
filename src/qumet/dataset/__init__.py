@@ -1,11 +1,15 @@
 import os
 
+import torch
+import torchvision.transforms as tv_transforms
 import lightning.pytorch as pl
 from torch.utils.data import DataLoader
 
 from ..tools.registry import MAIN_CACHE_DIR
 from .vision import VISION_DATASET_MAPPING, get_vision_dataset, get_vision_dataset_cls
 from .manual import MANUAL_DATASET_MAPPING, get_manual_dataset, get_manual_dataset_cls
+
+from .vision.transforms.transformations import get_transform
 
 DATASET_CACHE_DIR = MAIN_CACHE_DIR / "dataset"
 
@@ -30,7 +34,7 @@ def get_dataset_info(name: str):
 def get_dataset(
     name: str,
     split: bool,
-    transform: str,
+    transform,
     discretise: bool,
     n_samples: int,
     n_qubits: int,
@@ -110,20 +114,50 @@ class QuMETDataModule(pl.LightningDataModule):
         self.test_dataset = None
         self.pred_dataset = None
         self.dataset_info = get_dataset_info(name)
+        self.transform_instance = None
 
         self.batch_size = 1 if self.dataset_info.probs_generation else batch_size
  
     def prepare_data(self) -> None:
-        train_dataset = get_dataset(
-            self.name,
-            split="train",
-            num_workers=self.num_workers,
-            n_samples=self.n_samples,
-            n_qubits=self.n_qubits,
-            transform = self.transform,
-            discretise = self.discretise,
-            model_name=self.model_name,
-        )
+        
+        if self.transform in ['pca', 'vae']:
+            match self.transform:
+                case 'pca':
+                    self.transform_instance = get_transform(self.transform, n_components = 40)
+                case 'vae':
+                    pass
+                case _:
+                    raise ValueError(f"Unknown transform {self.transform}")
+
+            train_dataset = get_dataset(
+                self.name,
+                split="train",
+                num_workers=self.num_workers,
+                n_samples=self.n_samples,
+                n_qubits=self.n_qubits,
+                transform = self.transform,
+                discretise = self.discretise,
+                model_name=self.model_name,
+            )
+
+            all_data = []
+            for img, _ in train_dataset:
+                all_data.append(img)
+            all_data = torch.stack(all_data) 
+            self.transform_instance.fit(all_data)
+        
+        else:
+            train_dataset = get_dataset(
+                self.name,
+                split="train",
+                num_workers=self.num_workers,
+                n_samples=self.n_samples,
+                n_qubits=self.n_qubits,
+                transform = self.transform,
+                discretise = self.discretise,
+                model_name=self.model_name,
+            )
+
         val_dataset = get_dataset(
             self.name,
             split="validation",
@@ -164,6 +198,11 @@ class QuMETDataModule(pl.LightningDataModule):
                 pred_dataset.prepare_data()
 
     def setup(self, stage: str = None) -> None:
+        if self.transform_instance is not None:
+            transform = self.transform_instance
+        else:
+            transform = self.transform
+
         if stage in ["fit", None]:
             self.train_dataset = get_dataset(
                 self.name,
@@ -171,7 +210,7 @@ class QuMETDataModule(pl.LightningDataModule):
                 num_workers=self.num_workers,
                 n_samples=self.n_samples,
                 n_qubits=self.n_qubits,
-                transform = self.transform,
+                transform = transform,
                 discretise = self.discretise,
                 model_name=self.model_name,
             )
@@ -184,7 +223,7 @@ class QuMETDataModule(pl.LightningDataModule):
                 num_workers=self.num_workers,
                 n_samples=self.n_samples,
                 n_qubits=self.n_qubits,
-                transform = self.transform,
+                transform = transform,
                 discretise = self.discretise,
                 model_name=self.model_name,
             )
@@ -197,7 +236,7 @@ class QuMETDataModule(pl.LightningDataModule):
                 num_workers=self.num_workers,
                 n_samples=self.n_samples,
                 n_qubits=self.n_qubits,
-                transform = self.transform,
+                transform = transform,
                 discretise = self.discretise,
                 model_name=self.model_name,
             )
@@ -210,7 +249,7 @@ class QuMETDataModule(pl.LightningDataModule):
                 num_workers=self.num_workers,
                 n_samples=self.n_samples,
                 n_qubits=self.n_qubits,
-                transform = self.transform,
+                transform = transform,
                 discretise = self.discretise,
                 model_name=self.model_name,
             )

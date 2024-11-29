@@ -7,11 +7,25 @@ training_optimizer = "sgd"
 learning_rate = 1e-2
 max_epochs = 5
 batch_size = 8
-
+n_samples = 400
 # torch lightning
 task = "image_generation"
 num_workers = 0
 num_devices = 1
 accelerator = "cpu"
 
-project = "mnist_training"
+project = "mosaiq"
+
+
+# metrics configuration
+[metrics]
+use_metrics = ['GANImagesCallback']
+
+# Define initialization parameters for each metric
+
+[metrics.NDB_JSD_EvaluationCallback]
+every_n_epochs = 1
+number_of_bins = 50
+z_threshold= 4
+whitening=false
+max_dims= "NA"
