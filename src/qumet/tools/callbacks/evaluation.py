@@ -10,8 +10,10 @@ from ...plt_wrapper.metrics import NDB_JSD_Metric
 from .visualisation import GANImagesCallback
 import torchvision
 import joblib
-
+import numpy as np 
+from scipy.linalg import sqrtm
 # General GAN Callbacks
+'''
 class FIDEvaluationCallback(Callback):
     def __init__(self, every_n_epochs=1, feature = 2048, reset_real_features=False, 
                  normalize=True,input_img_size=(3, 299, 299)):
@@ -61,6 +63,82 @@ class FIDEvaluationCallback(Callback):
                 fid_score = self.fid.compute()
                 pl_module.log("metrics/fid", fid_score, on_epoch=True)
                 self.fid.reset()  # Reset the metric for the next epoch
+''' 
+
+
+class FIDEvaluationCallback(Callback):
+    def __init__(self, every_n_epochs=1):
+        """
+        Args:
+            every_n_epochs (int): How often to compute the FID (in epochs).
+        """
+        super().__init__()
+        self.every_n_epoch = every_n_epochs
+        
+        # Buffers to store real/fake images each epoch
+        self.real_images_accum = []
+        self.fake_images_accum = []
+
+    def calculate_fid(self, act1, act2):
+        """
+        Compute FID given two sets of activations or flattened images.
+        By default, this is set up for 28x28 images => 784-dim. 
+        Adjust as needed if your images have different shape.
+        """
+        # Move to CPU and flatten
+        act1 = act1.detach().cpu().numpy().reshape([-1, 784])
+        act2 = act2.detach().cpu().numpy().reshape([-1, 784])
+
+        mu1, sigma1 = act1.mean(axis=0), np.cov(act1, rowvar=False)
+        mu2, sigma2 = act2.mean(axis=0), np.cov(act2, rowvar=False)
+
+        ssdiff = np.sum((mu1 - mu2)**2.0)
+
+        covmean = sqrtm(sigma1.dot(sigma2))
+        if np.iscomplexobj(covmean):
+            covmean = covmean.real
+
+        # Frechet Distance
+        fid_value = ssdiff + np.trace(sigma1 + sigma2 - 2.0 * covmean)
+        return fid_value
+   
+
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0):
+        """
+        Collect the real and fake images at the end of each validation batch.
+        """
+        if outputs is not None:
+            real_imgs = getattr(outputs, 'real_image', None)
+            fake_imgs = getattr(outputs, 'fake_image', None)
+            
+            if real_imgs is not None and fake_imgs is not None:
+                self.real_images_accum.append(real_imgs)
+                self.fake_images_accum.append(fake_imgs)
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        """
+        Compute the manual FID score over all accumulated images.
+        """
+  
+        if trainer.current_epoch % self.every_n_epoch == 0:
+      
+            if len(self.real_images_accum) > 0 and len(self.fake_images_accum) > 0:
+                # Concatenate all real and fake images along the batch dimension
+                real_images = torch.cat(self.real_images_accum, dim=0)
+                fake_images = torch.cat(self.fake_images_accum, dim=0)
+                
+                fid_score = self.calculate_fid(real_images, fake_images)
+                
+                # Log the result
+                pl_module.log("metrics/fid", fid_score, on_epoch=True)
+
+            # Optionally, clear buffers or do any post-processing here
+            self.real_images_accum.clear()
+            self.fake_images_accum.clear()
+
+
+
+
 
 class ISEvaluationCallback(Callback):
     def __init__(self, every_n_epochs=1, feature = 'logits_unbiased', splits = 10, normalize=True):

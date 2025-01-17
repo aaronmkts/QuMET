@@ -1,4 +1,4 @@
-from .visualisation import GANImagesCallback
+from .visualisation import GANImagesCallback, TSNEPlotCallback
 from .evaluation import (
     FIDEvaluationCallback,
     ISEvaluationCallback,
@@ -30,7 +30,8 @@ def select_callbacks(model_info, dataset_info, task, metrics_to_use=None, metric
         'FIDEvaluationCallback': FIDEvaluationCallback,
         'ISEvaluationCallback': ISEvaluationCallback,
         'NDB_JSD_EvaluationCallback': NDB_JSD_EvaluationCallback,
-        'GMMEvaluationCallback': GMMEvaluationCallback
+        'GMMEvaluationCallback': GMMEvaluationCallback,
+        'TSNEPlotCallback': TSNEPlotCallback
     }
 
     # Mapping from model types and tasks to the corresponding callbacks
@@ -41,22 +42,21 @@ def select_callbacks(model_info, dataset_info, task, metrics_to_use=None, metric
                     'GANImagesCallback',
                     'FIDEvaluationCallback',
                     'ISEvaluationCallback',
-                    'NDB_JSD_EvaluationCallback'
+                    'NDB_JSD_EvaluationCallback',
+                    'GMMEvaluationCallback',
+                    'TSNEPlotCallback'
                 ],
                 'apqgan': [
                     'GMMEvaluationCallback',
                     # You can include other metrics specific to 'apqgan' here
                 ],
-                # You can add other specific model names and their metrics here
             },
         },
-        # Include other model types if needed
+       
     }
 
-    # Initialize the list of callbacks
     callbacks = []
 
-    # Get the model type, model name, and task
     model_type = model_info.model_type.value
     model_name = model_info.name.lower()
     task_lower = task.lower()
