@@ -142,8 +142,8 @@ class QuantumGenerator(nn.Module):
         probsgiven0 /= torch.sum(probs)
         
         # Post-Processing
-        probsgiven = probsgiven0 / torch.max(probsgiven0)
-        return probsgiven
+        post_processed_patch = ((probsgiven0 / torch.max(probsgiven0)) - 0.5) * 2
+        return post_processed_patch
     
     def circuit(self, inputs, weights):
 
