@@ -35,7 +35,6 @@ def train(
     load_type,
     metrics,
     metric_init_args,
-    freeze_modules
 ):
     if save_path is not None:
         # if save_path is None, the model will not be saved
@@ -57,7 +56,7 @@ def train(
         callbacks = select_callbacks(model_info, dataset_info, task, metrics, metric_init_args)
         callbacks.append(checkpoint_callback)
         callbacks.append(lr_monitor_callback)
-
+       
         plt_trainer_args["callbacks"] = [cb for cb in callbacks if cb is not None]
         plt_trainer_args["logger"] = visualizer
 
@@ -81,11 +80,10 @@ def train(
         weight_decay=weight_decay,
         epochs=plt_trainer_args["max_epochs"],
         optimizer=optimizer,
-        freeze_modules=freeze_modules
     )
     
     trainer = pl.Trainer(**plt_trainer_args, deterministic= True, num_sanity_val_steps=0)
-    #trainer.validate(model=pl_model, datamodule=data_module)
+    trainer.validate(model=pl_model, datamodule=data_module)
     trainer.fit(
         pl_model,
         datamodule=data_module,

@@ -165,10 +165,6 @@ CLI_DEFAULTS = {
     # Project options,
     "project_dir": os.path.join(ROOT, "qumet_output"),
     "project": None,
-    
-    # Transfer learning
-    "ckpt_path": None,
-    "freeze_modules": None
 }
 
 
@@ -304,7 +300,7 @@ class QuMETCLI:
             "load_type": self.args.load_type,
             "metrics": self.args.metrics_to_use,
             "metric_init_args": self.args.metric_init_args,
-            "freeze_modules": self.args.freeze_modules,
+            
         }
 
         self.logger.info(f"##### WEIGHT DECAY ##### {self.args.weight_decay}")
@@ -706,6 +702,7 @@ class QuMETCLI:
             dataset_info=dataset_info,
         )
 
+        ''' 
         # transfer learning protocol
         if self.args.ckpt_path is not None:
             ckpt = torch.load(self.args.ckpt_path, weights_only=True)
@@ -727,7 +724,7 @@ class QuMETCLI:
         for name, param in model.named_parameters():
             print(name, "->", param.requires_grad)
 
-
+        ''' 
         return model, data_module, dataset_info, model_info
 
     def _setup_folders(self):

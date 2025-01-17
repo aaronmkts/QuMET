@@ -11,8 +11,8 @@ from PIL import Image
     dataset_source="torchvision",
     available_splits=("train", "test"),
     image_generation=True,
-    num_classes=1,
-    image_size=(1, 8, 8),
+    num_classes=3,
+    image_size=(1, 28, 28),
 )
 class MNISTQuMET(datasets.MNIST, DataTransformationMixin):
     def __init__(
@@ -22,7 +22,7 @@ class MNISTQuMET(datasets.MNIST, DataTransformationMixin):
 
         self.model_name = model_name
 
-        filter_labels = [1,7,9]
+        filter_labels = [0,1]
 
         if filter_labels:
             self.filter_labels(filter_labels)
