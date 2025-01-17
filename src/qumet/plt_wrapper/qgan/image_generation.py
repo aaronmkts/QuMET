@@ -448,7 +448,7 @@ class PQWGANWrapper(QGANImageGenerationModelWrapper):
 
     def validation_step(self, batch, batch_idx):
 
-        img, _ = batch
+        img, labels = batch
         N = img.size(0)
 
         noise = torch.rand(img.size(0), self.n_qubits) 
@@ -458,7 +458,7 @@ class PQWGANWrapper(QGANImageGenerationModelWrapper):
         val_mse_sum = F.mse_loss(img, fake_imgs, reduction='sum') / N
         self.log("metrics/val_mse_reduction", val_mse_sum, on_epoch=True)
 
-        return ValidationResult(real_image=img, fake_image=fake_imgs, recon_image=recon_image) 
+        return ValidationResult(real_image=img, fake_image=fake_imgs, recon_image=recon_image, label=labels) 
 class APQGANWrapper(QGANImageGenerationModelWrapper):
     def __init__(self,
         model,
@@ -511,12 +511,6 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
         errD = -torch.mean(real_validity) + torch.mean(fake_validity) + self.lambda_gp * gradient_penalty
 
         wasserstein_distance = torch.mean(real_validity) - torch.mean(fake_validity)
-
-        if "discriminator" not in self.freeze_networks:
-            self.manual_backward(errD) # discriminator backwards
-        else:
-            pass
-
         optD.step()
 
         self.log("discriminator/total_loss", errD, prog_bar=True)
@@ -539,12 +533,7 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
             prior_loss = self.normal_kld(mu, log_var) 
 
             errE =  prior_loss + recon_loss
-            
-            if "encoder" not in self.freeze_networks:
-                self.manual_backward(errE) # encoder backwards
-            else:
-                pass
-            
+
             optE.step()
 
             self.log('encoder/prior_loss', prior_loss)
@@ -565,11 +554,6 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
     
             errG = -torch.mean(fake_validity) + self.recon_weight * recon_loss
 
-            if "generator" not in self.freeze_networks:
-                self.manual_backward(errG) # generator backwards
-            else:
-                pass
-            
             optG.step()
 
             self.log("generator/fake_validity", -fake_validity.mean())
@@ -580,7 +564,7 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
 
     def validation_step(self, batch, batch_idx):
         
-        img, _ = batch
+        img, labels = batch
         
         N = img.size(0)
 
@@ -591,13 +575,13 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
 
         self.log("metrics/val_mse_reduction", val_mse_sum, on_epoch=True)
     
-        return ValidationResult(real_image=img, fake_image=fake_imgs, encode_latent=z)
+        return ValidationResult(real_image=img, fake_image=fake_imgs, encode_latent=z, label=labels)
 
   
     def configure_optimizers(self):
         lrE = 0.0003  # Learning rate for the encoder
         lrG = 0.01  # Learning rate for the generator
-        lrD = 0.0005  # Learning rate for the discriminator
+        lrD = 0.0002  # Learning rate for the discriminator
     
         match self.optimizer.lower():
             case "adam":
