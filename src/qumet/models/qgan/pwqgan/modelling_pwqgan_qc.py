@@ -106,7 +106,7 @@ class PWQGenerator(nn.Module):
         probsgiven0 /= torch.sum(probs)
         
         # Post-Processing
-        post_processed_patch = ((probsgiven0 / torch.max(probsgiven0)) - 0.5) * 2
+        post_processed_patch = (probsgiven0 / torch.max(probsgiven0))
         return post_processed_patch
     
     def circuit(self, inputs, weights):

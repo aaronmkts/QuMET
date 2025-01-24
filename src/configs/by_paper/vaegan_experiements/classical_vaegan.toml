@@ -1,5 +1,7 @@
 # basics
-model = "pqwgan_qc"
+model = "gan"
+add_vae = true
+
 dataset = "mnist"
 seed = 45
 
@@ -15,11 +17,21 @@ task = "image_generation"
 num_workers = 0
 num_devices = 1
 accelerator = "cpu"
-project = 'mnist3/pqwgan_qc/seed45'
+project = 'vae_gan/mnist/seed45'
 
 # metrics configuration
 [metrics]
-use_metrics = ['TSNEPlotCallback', 'FID', 'GANImagesCallback', 'NDB_JSD', 'PSNR', 'SSIM', 'CosineSimilarity']
+use_metrics = ['TSNEPlotCallback', 'FID', 'NDB_JSD']
+
+# Define initialization parameters for each metric
+
+[metrics.NDB_JSD_EvaluationCallback]
+every_n_epochs = 1
+number_of_bins=50
+significance_level=0.05
+z_threshold= "NA"
+whitening=false
+max_dims= "NA"
 
 [metrics.FIDEvaluationCallback]
 every_n_epochs = 1
@@ -27,10 +39,3 @@ every_n_epochs = 1
 [metrics.TSNEPlotCallback]
 every_n_epochs = 1
 
-[metrics.NDB_JSD_EvaluationCallback]
-every_n_epochs = 1
-number_of_bins= 50
-significance_level=0.05
-z_threshold= "NA"
-whitening=false
-max_dims= "NA"

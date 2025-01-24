@@ -39,3 +39,4 @@ qw_map
 line_profiler
 jax
 torch-fidelity
+scikit-image

@@ -459,6 +459,122 @@ class PQWGANWrapper(QGANImageGenerationModelWrapper):
         self.log("metrics/val_mse_reduction", val_mse_sum, on_epoch=True)
 
         return ValidationResult(real_image=img, fake_image=fake_imgs, recon_image=recon_image, label=labels) 
+
+class QINRWrapper(QGANImageGenerationModelWrapper):
+    def __init__(self,
+        model,
+        dataset_info,
+        learning_rate=1e-4,
+        weight_decay=0.0,
+        epochs=100,
+        optimizer=None):
+        super().__init__(model, dataset_info, learning_rate, 
+                         weight_decay, epochs, optimizer)
+        self.lambda_gp = 10
+        self.n_critic = 3
+        self.validation_z = self.generate_noise('uniform', batch_size = 16)
+
+    def training_step(self, batch, batch_idx):
+        
+        critic = self.model.discriminator
+        optG, optD = self.optimizers()
+
+        # data and real/fake labels
+        real_data, _ = batch
+
+        batch_size = real_data.size(0)
+
+        # Generate fake-data using noise input
+        noise = self.generate_noise('uniform', batch_size)
+        fake_data = self.model.generator(noise).type_as(real_data)
+
+        # Training the discriminator
+        self.toggle_optimizer(optD)
+        optD.zero_grad()
+        
+     
+        # Real and fake images
+        real_validity, fake_validity = critic(real_data), critic(fake_data.detach())
+        # # Adversarial loss
+        gradient_penalty = compute_gradient_penalty(critic, real_data, fake_data)
+        errD = -torch.mean(real_validity) + torch.mean(fake_validity) + self.lambda_gp * gradient_penalty
+
+        wasserstein_distance = torch.mean(real_validity) - torch.mean(fake_validity)
+
+        self.manual_backward(errD)
+        optD.step()
+
+        self.log("discriminator/total_loss", errD, prog_bar=True)
+        self.log("wasserstein_distance", wasserstein_distance, prog_bar=True)
+
+        self.untoggle_optimizer(optD)
+        
+        
+        # Training the generator
+        if  batch_idx!= 0 and batch_idx % (self.n_critic + 1) == self.n_critic:
+            self.toggle_optimizer(optG)
+            optG.zero_grad()
+
+            fake_data = self.model.generator(noise).type_as(real_data)
+            # Loss measures generator's ability to fool the discriminator,Train on fake images
+
+            fake_validity = critic(fake_data)
+            errG = -torch.mean(fake_validity)
+        
+            self.manual_backward(errG)
+            optG.step()
+            self.log("generator/total_loss", errG, prog_bar=True)
+  
+            self.untoggle_optimizer(optG) 
+
+    def validation_step(self, batch, batch_idx):
+
+        img, labels = batch
+        N = img.size(0)
+
+        noise = torch.rand(img.size(0), self.n_qubits) 
+        fake_imgs = self.model(noise)
+        recon_image = self.model(self.validation_z)
+
+        val_mse_sum = F.mse_loss(img, fake_imgs, reduction='sum') / N
+        self.log("metrics/val_mse_reduction", val_mse_sum, on_epoch=True)
+
+        return ValidationResult(real_image=img, fake_image=fake_imgs, recon_image=recon_image, label=labels) 
+    
+    def configure_optimizers(self):
+        # Use self.trainer.model.parameters() instead of self.parameters() to support FullyShared (Model paralleled) training
+        match self.optimizer.lower():
+            case "adam":
+                b1 = 0
+                b2 = 0.9
+
+                optG = torch.optim.Adam(
+                    self.model.generator.parameters(),
+                    lr=0.001,
+                    weight_decay=self.weight_decay,
+                    betas=(b1, b2),
+                )
+
+                optD = torch.optim.Adam(
+                    self.model.discriminator.parameters(),
+                    lr=0.00012,
+                    weight_decay=self.weight_decay,
+                    betas=(b1, b2),
+                )
+            case "sgd":
+                lrG = 0.3  # Learning rate for the generator
+                lrD = 0.001  # Learning rate for the discriminator
+
+                optD = torch.optim.SGD(
+                    self.model.discriminator.parameters(), 
+                    lr=lrD)
+                optG = torch.optim.SGD(self.model.generator.parameters(),
+                                        lr=lrG)
+            case _:
+                raise ValueError(f"Unsupported optimizer name {self.optimizer}")
+
+        return [optG, optD], []
+
 class APQGANWrapper(QGANImageGenerationModelWrapper):
     def __init__(self,
         model,
@@ -466,10 +582,9 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
         learning_rate=1e-4,
         weight_decay=0.0,
         epochs=100,
-        optimizer=None,
-        freeze_modules=None):
+        optimizer=None):
         super().__init__(model, dataset_info, learning_rate, 
-                         weight_decay, epochs, optimizer, freeze_modules)
+                         weight_decay, epochs, optimizer)
 
         # reconstruction weight in discriminator feature space, first tune this parameter if performace is unsatifactory.
         self.recon_weight = 5e-4
@@ -511,6 +626,8 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
         errD = -torch.mean(real_validity) + torch.mean(fake_validity) + self.lambda_gp * gradient_penalty
 
         wasserstein_distance = torch.mean(real_validity) - torch.mean(fake_validity)
+
+        self.manual_backward(errD)
         optD.step()
 
         self.log("discriminator/total_loss", errD, prog_bar=True)
@@ -533,7 +650,7 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
             prior_loss = self.normal_kld(mu, log_var) 
 
             errE =  prior_loss + recon_loss
-
+            self.manual_backward(errE)
             optE.step()
 
             self.log('encoder/prior_loss', prior_loss)
@@ -553,7 +670,8 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
             fake_validity  = critic(fake_data)
     
             errG = -torch.mean(fake_validity) + self.recon_weight * recon_loss
-
+        
+            self.manual_backward(errG)
             optG.step()
 
             self.log("generator/fake_validity", -fake_validity.mean())
@@ -581,7 +699,7 @@ class APQGANWrapper(QGANImageGenerationModelWrapper):
     def configure_optimizers(self):
         lrE = 0.0003  # Learning rate for the encoder
         lrG = 0.01  # Learning rate for the generator
-        lrD = 0.0002  # Learning rate for the discriminator
+        lrD = 0.0005  # Learning rate for the discriminator
     
         match self.optimizer.lower():
             case "adam":

@@ -32,7 +32,6 @@ config = {
     },
     "discriminator": {
         "image_shape": image_shape,
-        "return_features": False,
         }, 
 }
 
@@ -111,8 +110,11 @@ class Encoder(nn.Module):
     
 
 class QuantumGenerator(nn.Module):
-    def __init__(self,  config):
-        super(QuantumGenerator, self).__init__()
+    """Quantum generator class for the patch method"""
+
+    def __init__(self, config):
+        super().__init__()
+        
         name = "generator"
         generator_config = config[name]
 
@@ -129,6 +131,8 @@ class QuantumGenerator(nn.Module):
         self.q_device = qml.device(self.device, wires= self.n_qubits)
         self._construct_quantum_layers()
    
+ 
+
     def _construct_quantum_layers(self):
         qnode = qml.QNode(self.circuit, self.q_device, interface="torch", diff_method=self.diff_method)
         weight_shapes = {"weights": (self.depth, self.n_qubits, 3)}
@@ -142,7 +146,7 @@ class QuantumGenerator(nn.Module):
         probsgiven0 /= torch.sum(probs)
         
         # Post-Processing
-        post_processed_patch = ((probsgiven0 / torch.max(probsgiven0)) - 0.5) * 2
+        post_processed_patch = (probsgiven0 / torch.max(probsgiven0))
         return post_processed_patch
     
     def circuit(self, inputs, weights):
@@ -156,7 +160,7 @@ class QuantumGenerator(nn.Module):
 
             for j in range(self.n_qubits-1):
                 qml.CNOT(wires=[j, j+1])
-                
+
             qml.CNOT(wires=[self.n_qubits-1, 0])
         
         return qml.probs(wires=list(range(self.n_qubits)))
@@ -166,6 +170,7 @@ class QuantumGenerator(nn.Module):
         patch_size = 2 ** (self.n_qubits - self.n_a_qubits )
         image_pixels = self.image_shape[2] ** 2
         pixels_per_patch = image_pixels // self.n_generators
+
         if special_shape and self.patch_shape[0] * self.patch_shape[1] != pixels_per_patch:
             raise ValueError("patch shape and patch size dont match!")
         output_images = torch.Tensor(x.size(0), 0)
@@ -199,13 +204,6 @@ class Discriminator(nn.Module):
         name = "discriminator"
         self.image_shape = config[name]["image_shape"]
 
-        self.return_features = config[name]["return_features"]
-        if self.return_features:
-            self.feature_extractor = FeatureExtractor()
-        else:
-            self.feature_extractor = lambda x: x
-
-
         self.model = nn.Sequential(
             nn.Linear(int(np.prod(self.image_shape)), 512),
             nn.LeakyReLU(0.2),
@@ -214,7 +212,7 @@ class Discriminator(nn.Module):
             nn.Linear(256, 1),
         )
 
-             # Apply LeCun initialization
+        # Apply LeCun initialization
         self._initialize_weights()
 
     def _initialize_weights(self):
@@ -225,24 +223,10 @@ class Discriminator(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-
-    def forward(self, input):
-        N = input.shape[0]
-
-        if self.return_features:
-            self.feature_extractor.clean()
-            x = input.view(N, -1)
-            output = self.model(x)
-            features = self.feature_extractor.features[0]
-           # features = torch.cat(
-           #     [torch.ravel(x) for x in self.feature_extractor.features]
-           # )
-            return output, features
-        
-        else:
-            x = input.view(N, -1)
-            output = self.model(x)
-            return output
+    def forward(self, x):
+        x = x.view(x.shape[0], -1)
+        x = self.model(x)
+        return x
 
    
 class APQGAN(nn.Module):

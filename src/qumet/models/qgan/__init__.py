@@ -7,7 +7,8 @@ from .mosaiq import get_mosaiq
 from .apqgan import get_apqgan
 from .pwqgan import get_pqwgan_qc
 from .su2 import get_su2
-
+from .qinr import get_qinr_qc
+from .classical_gan import get_gan
 # fmt: off
 QGAN_MODELS = {
     "efficientsu2":{
@@ -37,7 +38,15 @@ QGAN_MODELS = {
     "su2":{
         "get_model_fn_generation": get_su2,
         "info": QumetModelInfo("su2", model_type="qgan", task_type ="generation",  bitstring_sampling= True), 
-    }
+    },
+    "qinr":{
+        "get_model_fn_generation": get_qinr_qc,
+        "info": QumetModelInfo("qinr", model_type="qgan", task_type ="generation",  observable_sampling = True),
+    },
+    "gan":{
+        "get_model_fn_generation": get_gan,
+        "info": QumetModelInfo("gan", model_type="gan", task_type ="generation",  observable_sampling = True),
+    },
 }
 
 
