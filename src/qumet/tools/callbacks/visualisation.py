@@ -21,7 +21,7 @@ def denorm(x):
 
 def get_grid_images(imgs, nimgs=64, nrow=8):
     """Create a grid of images for visualization."""
-    grid = torchvision.utils.make_grid(denorm(imgs[:nimgs]), normalize=False, nrow=nrow, pad_value=1)
+    grid = torchvision.utils.make_grid(imgs[:nimgs], normalize=True, nrow=nrow, pad_value=1)
     return grid
 class GANImagesCallback(Callback):
     def __init__(self, batch_size=64, every_n_epochs=1, nrow=8):

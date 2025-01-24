@@ -3,7 +3,10 @@ from .evaluation import (
     FIDEvaluationCallback,
     ISEvaluationCallback,
     NDB_JSD_EvaluationCallback,
-    GMMEvaluationCallback
+    CosSimilarityEvaluationCallback,
+    GMMEvaluationCallback,
+    PSNRCallback,
+    SSIMCallback
 )
 
 def select_callbacks(model_info, dataset_info, task, metrics_to_use=None, metric_init_args=None):
@@ -27,32 +30,43 @@ def select_callbacks(model_info, dataset_info, task, metrics_to_use=None, metric
     # Mapping from class names to callback classes
     callback_classes = {
         'GANImagesCallback': GANImagesCallback,
-        'FIDEvaluationCallback': FIDEvaluationCallback,
-        'ISEvaluationCallback': ISEvaluationCallback,
-        'NDB_JSD_EvaluationCallback': NDB_JSD_EvaluationCallback,
+        'FID': FIDEvaluationCallback,
+        'IS': ISEvaluationCallback,
+        'NDB_JSD': NDB_JSD_EvaluationCallback,
         'GMMEvaluationCallback': GMMEvaluationCallback,
+        "CosineSimilarity": CosSimilarityEvaluationCallback,
+        "PSNR": PSNRCallback,
+        "SSIM": SSIMCallback,
         'TSNEPlotCallback': TSNEPlotCallback
     }
 
     # Mapping from model types and tasks to the corresponding callbacks
-    metric_mapping = {
-        'qgan': {
-            'image_generation': {
-                'default': [
-                    'GANImagesCallback',
-                    'FIDEvaluationCallback',
-                    'ISEvaluationCallback',
-                    'NDB_JSD_EvaluationCallback',
-                    'GMMEvaluationCallback',
-                    'TSNEPlotCallback'
-                ],
-                'apqgan': [
-                    'GMMEvaluationCallback',
-                    # You can include other metrics specific to 'apqgan' here
-                ],
-            },
+    # Define the shared callbacks dictionary
+    shared_callbacks = {
+        'image_generation': {
+            'default': [
+                'GANImagesCallback',
+                'FID',
+                'IS',
+                'NDB_JSD',
+                'GMMEvaluationCallback',
+                'TSNEPlotCallback',
+                'CosineSimilarity',
+                'PSNR',
+                'SSIM'
+            ],
+            'apqgan': [
+                'GMMEvaluationCallback',
+                # You can include other metrics specific to 'apqgan' here
+            ],
         },
-       
+    }
+
+    # Define the metric_mapping with each model type as a separate key
+    metric_mapping = {
+        'qgan': shared_callbacks,
+        'gan': shared_callbacks,
+        # Add other model types as needed
     }
 
     callbacks = []
