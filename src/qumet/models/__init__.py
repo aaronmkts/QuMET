@@ -50,7 +50,7 @@ def get_model(
     }
 
     match model_info.model_type:
-        case ModelType.QGAN:
+        case ModelType.QGAN | ModelType.GAN:
             model = get_qgan_model(**model_kwargs)
         case ModelType.QCBM:
             model = get_qcbm_model(**model_kwargs)
