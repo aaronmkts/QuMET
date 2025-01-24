@@ -2,6 +2,7 @@ import logging
 import os
 from pathlib import Path
 from qumet.plt_wrapper import get_model_wrapper
+from qumet.plt_wrapper.vaeqgan_wrapper import Encoder
 from qumet.tools.checkpoint_load import load_model
 from qumet.tools.progress_bar import progress_bar
 from qumet.tools.callbacks import select_callbacks
@@ -35,6 +36,7 @@ def train(
     load_type,
     metrics,
     metric_init_args,
+    add_vae
 ):
     if save_path is not None:
         # if save_path is None, the model will not be saved
@@ -67,23 +69,38 @@ def train(
         plugins = None
     plt_trainer_args["plugins"] = plugins
     
-    wrapper_cls = get_model_wrapper(model_info, task)
 
     if load_name is not None:
         model = load_model(load_name, load_type=load_type, model=model)
         logger.info(f"'{load_type}' checkpoint loaded before training")
+    
+    wrapper_cls = get_model_wrapper(model_info, task, add_vae)
 
-    pl_model = wrapper_cls(
-        model,
-        dataset_info=dataset_info,
-        learning_rate=learning_rate,
-        weight_decay=weight_decay,
-        epochs=plt_trainer_args["max_epochs"],
-        optimizer=optimizer,
-    )
+    if add_vae:
+        encoder = Encoder()
+
+        pl_model = wrapper_cls(
+            base_model=model,
+            encoder=encoder,
+            dataset_info=dataset_info,
+            learning_rate=learning_rate,
+            weight_decay=weight_decay,
+            epochs=plt_trainer_args["max_epochs"],
+            optimizer=optimizer,
+        )
+        
+    else:
+        pl_model = wrapper_cls(
+            model,
+            dataset_info=dataset_info,
+            learning_rate=learning_rate,
+            weight_decay=weight_decay,
+            epochs=plt_trainer_args["max_epochs"],
+            optimizer=optimizer,
+        )
     
     trainer = pl.Trainer(**plt_trainer_args, deterministic= True, num_sanity_val_steps=0)
-    trainer.validate(model=pl_model, datamodule=data_module)
+    #trainer.validate(model=pl_model, datamodule=data_module)
     trainer.fit(
         pl_model,
         datamodule=data_module,
