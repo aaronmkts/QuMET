@@ -153,6 +153,7 @@ CLI_DEFAULTS = {
     "accumulate_grad_batches": 1,
     "log_every_n_steps": 4,
     "n_qubits": 6,
+    "add_vae": False,
     # Runtime environment options
     "num_workers": int(os.cpu_count() / 2),
     "num_devices": 1,
@@ -300,6 +301,7 @@ class QuMETCLI:
             "load_type": self.args.load_type,
             "metrics": self.args.metrics_to_use,
             "metric_init_args": self.args.metric_init_args,
+            "add_vae": self.args.add_vae,
             
         }
 
@@ -558,6 +560,14 @@ class QuMETCLI:
             dest="n_qubits",
             type=_positive_int,
             help="number of qubits for data module. (default: %(default)s))",
+            metavar="NUM",
+        )
+        
+        trainer_group.add_argument(
+            "--add_vae",
+            dest="add_vae",
+            type=bool,
+            help="add a vae to gan type modules for mode collapse (default: %(default)s))",
             metavar="NUM",
         )
 
