@@ -17,7 +17,7 @@ num_devices = 1
 accelerator = "cpu"
 project = 'QMI-ModeCollapse'
 report_to= "wandb"
-run_name = "pqwgan_qc_vae"
+run_name = "vae_pqwgan_qc"
 # metrics configuration
 [metrics]
 use_metrics = ['TSNEPlotCallback', 'FID', 'NDB_JSD', 'GANImagesCallback',
