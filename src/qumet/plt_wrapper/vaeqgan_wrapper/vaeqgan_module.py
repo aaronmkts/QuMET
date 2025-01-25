@@ -21,7 +21,6 @@ class VAEGANWrapper(pl.LightningModule):
         self,
         base_model: nn.Module,
         encoder: nn.Module,
-        dataset_info,
         learning_rate=1e-4,
         weight_decay=0.0,
         epochs=100,
