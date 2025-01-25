@@ -9,7 +9,7 @@ from PIL import Image
     dataset_source="torchvision",
     available_splits=("train", "test"),
     image_generation=True,
-    num_classes=10,
+    num_classes=2,
     image_size=(1, 28, 28),
 )
 class Fashion_MNISTQuMET(datasets.FashionMNIST, DataTransformationMixin):
@@ -33,15 +33,13 @@ class Fashion_MNISTQuMET(datasets.FashionMNIST, DataTransformationMixin):
         super().__init__(root, train=train, transform=transform, download=download)
 
         self.model_name = model_name
-        filter_labels = [0,1,6]
+        filter_labels = [0,1]
         
         if filter_labels:
         
             self.filter_labels(filter_labels)
             self.n_samples_(n_samples)
-        
-        if self.model_name == 'mosaiq':
-            self.fit_pca(n_components = 40)
+
     def prepare_data(self) -> None:
         pass
 

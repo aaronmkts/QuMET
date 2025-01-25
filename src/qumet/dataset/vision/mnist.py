@@ -11,7 +11,7 @@ from PIL import Image
     dataset_source="torchvision",
     available_splits=("train", "test"),
     image_generation=True,
-    num_classes=3,
+    num_classes=2,
     image_size=(1, 28, 28),
 )
 class MNISTQuMET(datasets.MNIST, DataTransformationMixin):
