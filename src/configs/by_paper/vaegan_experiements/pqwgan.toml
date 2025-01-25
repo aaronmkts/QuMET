@@ -1,0 +1,50 @@
+# basics
+model = "pqwgan_qc"
+dataset = "mnist"
+seed = 42
+
+# training
+training_optimizer = "adam"
+learning_rate = 1e-2
+max_epochs = 10
+batch_size = 8
+n_samples = 2600
+
+# torch lightning
+task = "image_generation"
+num_workers = 0
+num_devices = 1
+accelerator = "cpu"
+project = 'QMI-ModeCollapse'
+report_to= "wandb"
+# metrics configuration
+[metrics]
+use_metrics = ['TSNEPlotCallback', 'FID', 'NDB_JSD', 'GANImagesCallback',
+'CosineSimilarity','PSNR','SSIM']
+
+# Define initialization parameters for each metric
+
+[metrics.TSNEPlotCallback]
+every_n_epochs = 2
+
+
+[metrics.FIDEvaluationCallback]
+every_n_epochs = 1
+
+[metrics.NDB_JSD_EvaluationCallback]
+every_n_epochs = 1
+number_of_bins=50
+significance_level=0.05
+z_threshold= "NA"
+whitening=false
+max_dims= "NA"
+
+
+[metrics.CosineSimilarityCallback]
+every_n_epochs = 1
+
+[metrics.PSNR]
+every_n_epochs = 1
+
+[metrics.SSIM]
+every_n_epochs =1
