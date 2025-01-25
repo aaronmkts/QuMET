@@ -55,7 +55,7 @@ class VAEGANWrapper(pl.LightningModule):
 
         # Extract any needed shape info from config
         self.z_dim = self.encoder.z_dim
-        self.image_shape = dataset_info.image_size
+
         
     def forward(self, z):
 
