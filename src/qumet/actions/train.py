@@ -23,7 +23,6 @@ def train(
     model,
     model_info,
     data_module,
-    dataset_info,
     task,
     optimizer,
     learning_rate,
@@ -45,7 +44,7 @@ def train(
         
         checkpoint_callback = ModelCheckpoint(
             save_top_k=1,
-            monitor="metrics/val_mse_reduction",
+            monitor="metrics/ndb_k",
             mode="min",
             filename="best",
             dirpath=save_path,
@@ -55,7 +54,7 @@ def train(
         lr_monitor_callback = LearningRateMonitor(logging_interval="step")
         
         
-        callbacks = select_callbacks(model_info, dataset_info, task, metrics, metric_init_args)
+        callbacks = select_callbacks(model_info, task, metrics, metric_init_args)
         callbacks.append(checkpoint_callback)
         callbacks.append(lr_monitor_callback)
        
@@ -82,7 +81,6 @@ def train(
         pl_model = wrapper_cls(
             base_model=model,
             encoder=encoder,
-            dataset_info=dataset_info,
             learning_rate=learning_rate,
             weight_decay=weight_decay,
             epochs=plt_trainer_args["max_epochs"],
@@ -92,7 +90,6 @@ def train(
     else:
         pl_model = wrapper_cls(
             model,
-            dataset_info=dataset_info,
             learning_rate=learning_rate,
             weight_decay=weight_decay,
             epochs=plt_trainer_args["max_epochs"],
@@ -100,7 +97,7 @@ def train(
         )
     
     trainer = pl.Trainer(**plt_trainer_args, deterministic= True, num_sanity_val_steps=0)
-    #trainer.validate(model=pl_model, datamodule=data_module)
+    trainer.validate(model=pl_model, datamodule=data_module)
     trainer.fit(
         pl_model,
         datamodule=data_module,
