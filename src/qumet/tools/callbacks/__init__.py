@@ -9,7 +9,7 @@ from .evaluation import (
     SSIMCallback
 )
 
-def select_callbacks(model_info, dataset_info, task, metrics_to_use=None, metric_init_args=None):
+def select_callbacks(model_info, task, metrics_to_use=None, metric_init_args=None):
     """
     Selects and returns a list of callbacks based on the model type, model name, dataset information, and task.
     Optionally, it can initialize only a subset of metrics and provide initialization arguments.

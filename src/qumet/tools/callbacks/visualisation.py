@@ -40,25 +40,25 @@ class GANImagesCallback(Callback):
         if trainer.current_epoch % self.every_n_epochs == 0 and batch_idx == 0:
             # Real images
             real_grid = get_grid_images(outputs.real_image, self.batch_size, self.nrow)
-            trainer.logger.experiment.add_image("images/real", real_grid, global_step=trainer.current_epoch)
+            trainer.logger.log_image(key="images/real", images=[real_grid], caption=[f"Epoch {trainer.current_epoch}"])
 
             # Reconstructed images (if available)
             if outputs.recon_image is not None:
                 recon_grid = get_grid_images(outputs.recon_image, self.batch_size, self.nrow)
-                trainer.logger.experiment.add_image("images/recon", recon_grid, global_step=trainer.current_epoch)
+                trainer.logger.log_image(key="images/recon", images=[recon_grid], caption=[f"Epoch {trainer.current_epoch}"])
 
             # Fake images
             if outputs.fake_image is not None:
                 fake_grid = get_grid_images(outputs.fake_image, self.batch_size, self.nrow)
-                trainer.logger.experiment.add_image("images/sample", fake_grid, global_step=trainer.current_epoch)
-
+                trainer.logger.log_image(key="images/sample", images=[fake_grid], caption=[f"Epoch {trainer.current_epoch}"])
 
             # Additional custom outputs
             if hasattr(outputs, "others") and outputs.others:
                 for key, img in outputs.others.items():
                     if img is not None:
                         grid = get_grid_images(img, self.batch_size, self.nrow)
-                        trainer.logger.experiment.add_image(f"images/{key}", grid, global_step=trainer.current_epoch)
+                        trainer.logger.log_image(key=f"images/{key}", images=[grid], caption=[f"Epoch {trainer.current_epoch}"])
+
 
 
 class TSNEPlotCallback(Callback):
@@ -161,7 +161,7 @@ class TSNEPlotCallback(Callback):
         return emb
     
     def _log_image(self, trainer, img, name):
-        trainer.logger.experiment.add_image(name, img, global_step=trainer.current_epoch)
+        trainer.logger.log_image(key = name, images = [img],  caption=[f"Epoch {trainer.current_epoch}"])
 
 
     def _plot_tsne(self,
@@ -203,8 +203,10 @@ class TSNEPlotCallback(Callback):
             if fake_tsne is not None:
                 # Plot fake data on top 
                 plt.scatter(fake_tsne[:, 0], fake_tsne[:, 1],
-                            c='black', alpha=0.75, marker='o', label="Fake Data")
+                            c='black', alpha=0.75, marker='X', label="Fake Data")
 
+        plt.xticks([])
+        plt.yticks([])
         plt.tight_layout()
 
         buf = io.BytesIO()
@@ -220,10 +222,10 @@ class TSNEPlotCallback(Callback):
             img=plot_tensor,
             name=f"TSNE/epoch_{epoch}"  
         )
-        base_dir = os.path.abspath(os.path.join(trainer.log_dir, "../../"))
-        save_file = os.path.join(base_dir, f"tsne_epoch_{epoch}.png")
-        os.makedirs(os.path.dirname(save_file), exist_ok=True)
-        plt.savefig(save_file)
+        #base_dir = os.path.abspath(os.path.join(trainer.log_dir, "../../"))
+        #save_file = os.path.join(base_dir, f"tsne_epoch_{epoch}.png")
+        #os.makedirs(os.path.dirname(save_file), exist_ok=True)
+        #plt.savefig(save_file)
 
 
         plt.close()
