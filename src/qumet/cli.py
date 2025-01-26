@@ -751,7 +751,7 @@ class QuMETCLI:
             case "wandb":
                 visualizer = WandbLogger(
                     project=self.args.project, save_dir=self.output_dir_sw,
-                    log_model = True, name = self.args.run_name, 
+                    log_model = True, name = self.args.run_name, entity = 'qumet'
                 )
              
                 visualizer.experiment.config.update(vars(self.args))

@@ -2,7 +2,7 @@
 model = "qinr"
 dataset = "mnist"
 seed = 42
-
+add_vae = true
 # training
 training_optimizer = "adam"
 learning_rate = 1e-2
@@ -15,8 +15,9 @@ task = "image_generation"
 num_workers = 0
 num_devices = 1
 accelerator = "cpu"
-project = 'qinr_test4'
-
+project = 'QINR_TEST'
+report_to= "wandb"
+run_name = "qinr_vae"
 # metrics configuration
 [metrics]
 use_metrics = ['TSNEPlotCallback', 'FID', 'GANImagesCallback', 'NDB_JSD']

@@ -1,12 +1,12 @@
 # basics
 model = "pqwgan_qc"
 dataset = "mnist"
-seed = 42
+seed = 69
 
 # training
 training_optimizer = "adam"
 learning_rate = 1e-2
-max_epochs = 10
+max_epochs = 15
 batch_size = 8
 n_samples = 2600
 
@@ -17,7 +17,7 @@ num_devices = 1
 accelerator = "cpu"
 project = 'QMI-ModeCollapse'
 report_to= "wandb"
-run_name = "pqwgan_mnist01_uniform_seed42"
+run_name = "pqwgan_mnist01_uniform_seed69"
 # metrics configuration
 [metrics]
 use_metrics = ['TSNEPlotCallback', 'FID', 'NDB_JSD', 'GANImagesCallback',
@@ -48,4 +48,4 @@ every_n_epochs = 1
 every_n_epochs = 1
 
 [metrics.SSIM]
-every_n_epochs =1
+every_n_epochs = 1
