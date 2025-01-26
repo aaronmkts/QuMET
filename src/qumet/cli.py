@@ -166,6 +166,7 @@ CLI_DEFAULTS = {
     # Project options,
     "project_dir": os.path.join(ROOT, "qumet_output"),
     "project": None,
+    "run_name": None,
 }
 
 
@@ -223,7 +224,6 @@ class QuMETCLI:
         (
             self.model,
             self.data_module,
-            self.dataset_info,
             self.model_info,
         ) = self._setup_model_and_dataset()
         
@@ -288,7 +288,6 @@ class QuMETCLI:
             "model": self.model,
             "model_info": self.model_info,
             "data_module": self.data_module,
-            "dataset_info": self.dataset_info,
             "task": self.args.task,
             "optimizer": self.args.training_optimizer,
             "learning_rate": self.args.learning_rate,
@@ -329,7 +328,6 @@ class QuMETCLI:
             "model": self.model,
             "model_info": self.model_info,
             "data_module": self.data_module,
-            "dataset_info": self.dataset_info,
             "task": self.args.task,
             "optimizer": self.args.training_optimizer,
             "learning_rate": self.args.learning_rate,
@@ -691,7 +689,7 @@ class QuMETCLI:
         # of a specified model.
         # NOTE: See main/qumet/models/__init__.py for more information
         
-        dataset_info = get_dataset_info(self.args.dataset)
+        #dataset_info = get_dataset_info(self.args.dataset)
         model_info = models.get_model_info(self.args.model)
         discretise = True if 'discrete' or 'probs' in self.args.task else False
         self.logger.info(f"Initialising dataset {self.args.dataset!r}...")
@@ -709,33 +707,8 @@ class QuMETCLI:
         model = models.get_model(
             name=self.args.model,
             task=self.args.task,
-            dataset_info=dataset_info,
         )
-
-        ''' 
-        # transfer learning protocol
-        if self.args.ckpt_path is not None:
-            ckpt = torch.load(self.args.ckpt_path, weights_only=True)
-            ckpt_updated = {key.replace("model.", "", 1): value for key, value in ckpt["state_dict"].items()} # remove "model." prefix in keys
-            
-            assert ckpt_updated.keys() == model.state_dict().keys() # ensure ckpt & model modules match
-
-            model.load_state_dict(ckpt_updated)
-            model.zero_grad(set_to_none = False)
-
-        if self.args.freeze_modules is not None:
-            # freeze modules specified in "freeze_modules"
-            for module_name, param in model.named_parameters():
-                if module_name in self.args.freeze_modules:
-                    param.requires_grad = False
-                else:
-                    param.requires_grad = True
-        
-        for name, param in model.named_parameters():
-            print(name, "->", param.requires_grad)
-
-        ''' 
-        return model, data_module, dataset_info, model_info
+        return model, data_module, model_info
 
     def _setup_folders(self):
         project = None
@@ -772,13 +745,15 @@ class QuMETCLI:
         ipdb.post_mortem(etb)
 
     def _setup_visualizer(self):
-
+    
         visualizer = None
         match self.args.report_to:
             case "wandb":
                 visualizer = WandbLogger(
-                    project=self.args.project, save_dir=self.output_dir_sw
+                    project=self.args.project, save_dir=self.output_dir_sw,
+                    log_model = True, name = self.args.run_name, entity = 'qumet'
                 )
+             
                 visualizer.experiment.config.update(vars(self.args))
             case "tensorboard":
                 visualizer = TensorBoardLogger(

@@ -12,7 +12,6 @@ class QGANImageGenerationModelWrapper(WrapperBase):
     def __init__(
         self,
         model,
-        dataset_info,
         learning_rate=1e-4,
         weight_decay=0.0,
         epochs=100,
@@ -21,15 +20,12 @@ class QGANImageGenerationModelWrapper(WrapperBase):
     ):
         super().__init__(
             model=model,
-            dataset_info=dataset_info,
             learning_rate=learning_rate,
             weight_decay=weight_decay,
             epochs=epochs,
             optimizer=optimizer,
             freeze_modules=freeze_modules
         )
-        self.image_size = dataset_info.image_size
-        self.dataset_info = dataset_info
         self.optimizer = optimizer
         self.automatic_optimization = False
         self.learning_rate = learning_rate
@@ -111,12 +107,11 @@ class QGANImageGenerationModelWrapper(WrapperBase):
 class ProbsQGANWrapper(QGANImageGenerationModelWrapper):
     def __init__(self,
         model,
-        dataset_info,
         learning_rate=1e-4,
         weight_decay=0.0,
         epochs=100,
         optimizer=None):
-        super().__init__(model, dataset_info, learning_rate, 
+        super().__init__(model, learning_rate, 
                          weight_decay, epochs, optimizer)
 
     def preprocess_remapping(self, data):
@@ -231,12 +226,11 @@ class MosaiQGANWrapper(QGANImageGenerationModelWrapper):
 
     def __init__(self,
         model,
-        dataset_info,
         learning_rate=1e-4,
         weight_decay=0.0,
         epochs=100,
         optimizer=None):
-        super().__init__(model, dataset_info, learning_rate, 
+        super().__init__(model, learning_rate, 
                          weight_decay, epochs, optimizer)
 
         self.pca_dims = 40
@@ -317,12 +311,11 @@ class MosaiQGANWrapper(QGANImageGenerationModelWrapper):
 class PatchGANWrapper(QGANImageGenerationModelWrapper):
     def __init__(self,
         model,
-        dataset_info,
         learning_rate=1e-4,
         weight_decay=0.0,
         epochs=100,
         optimizer=None):
-        super().__init__(model, dataset_info, learning_rate, 
+        super().__init__(model, learning_rate, 
                          weight_decay, epochs, optimizer)
 
         self.validation_z = self.generate_noise('uniform-angle', 16)
@@ -382,12 +375,11 @@ class PatchGANWrapper(QGANImageGenerationModelWrapper):
 class PQWGANWrapper(QGANImageGenerationModelWrapper):
     def __init__(self,
         model,
-        dataset_info,
         learning_rate=1e-4,
         weight_decay=0.0,
         epochs=100,
         optimizer=None):
-        super().__init__(model, dataset_info, learning_rate, 
+        super().__init__(model, learning_rate, 
                          weight_decay, epochs, optimizer)
         self.lambda_gp = 10
         self.n_critic = 5
@@ -463,12 +455,11 @@ class PQWGANWrapper(QGANImageGenerationModelWrapper):
 class QINRWrapper(QGANImageGenerationModelWrapper):
     def __init__(self,
         model,
-        dataset_info,
         learning_rate=1e-4,
         weight_decay=0.0,
         epochs=100,
         optimizer=None):
-        super().__init__(model, dataset_info, learning_rate, 
+        super().__init__(model, learning_rate, 
                          weight_decay, epochs, optimizer)
         self.lambda_gp = 10
         self.n_critic = 3
@@ -578,12 +569,11 @@ class QINRWrapper(QGANImageGenerationModelWrapper):
 class APQGANWrapper(QGANImageGenerationModelWrapper):
     def __init__(self,
         model,
-        dataset_info,
         learning_rate=1e-4,
         weight_decay=0.0,
         epochs=100,
         optimizer=None):
-        super().__init__(model, dataset_info, learning_rate, 
+        super().__init__(model, learning_rate, 
                          weight_decay, epochs, optimizer)
 
         # reconstruction weight in discriminator feature space, first tune this parameter if performace is unsatifactory.

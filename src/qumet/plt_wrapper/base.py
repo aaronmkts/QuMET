@@ -16,7 +16,6 @@ class WrapperBase(pl.LightningModule):
         weight_decay=0.0,
         epochs=1,
         optimizer=None,
-        dataset_info=None,
         freeze_modules=None
     ):
         super().__init__()
@@ -26,20 +25,7 @@ class WrapperBase(pl.LightningModule):
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.epochs = epochs
         self.optimizer = optimizer
-        self.dataset_info = dataset_info
         self.freeze_modules=freeze_modules
-
-        if self.freeze_modules is not None:
-            freeze_networks = set()
-                
-            for item in self.freeze_modules:
-                network = item.split('.')[0]
-                freeze_networks.add(network)
-            
-            freeze_networks = list(freeze_networks)
-            self.freeze_networks = freeze_networks
-        else:
-            self.freeze_networks = None  
         
 
     def forward(self, x):

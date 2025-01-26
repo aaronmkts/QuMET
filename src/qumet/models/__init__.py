@@ -39,7 +39,7 @@ def get_model_info(name: str) -> QumetModelInfo:
 def get_model(
     name: str,
     task: str,
-    dataset_info: dict,
+    dataset_info: dict = {},
 ):
     model_info = get_model_info(name)
 

@@ -1,29 +1,36 @@
 # basics
 model = "pqwgan_qc"
-add_vae = true
-
 dataset = "mnist"
-seed = 1
-
+seed = 42
+add_vae = true # ADDS VAE component
 # training
 training_optimizer = "adam"
 learning_rate = 1e-2
-max_epochs = 8
+max_epochs = 10
 batch_size = 8
-n_samples = 2400
+n_samples = 2600
 
 # torch lightning
 task = "image_generation"
 num_workers = 0
 num_devices = 1
 accelerator = "cpu"
-project = 'vae_qwgan/mnist/seed1'
-
+project = 'QMI-ModeCollapse'
+report_to= "wandb"
+run_name = "vae_pqwgan_qc"
 # metrics configuration
 [metrics]
-use_metrics = ['TSNEPlotCallback', 'FID', 'NDB_JSD']
+use_metrics = ['TSNEPlotCallback', 'FID', 'NDB_JSD', 'GANImagesCallback',
+'CosineSimilarity','PSNR','SSIM']
 
 # Define initialization parameters for each metric
+
+[metrics.TSNEPlotCallback]
+every_n_epochs = 2
+
+
+[metrics.FIDEvaluationCallback]
+every_n_epochs = 1
 
 [metrics.NDB_JSD_EvaluationCallback]
 every_n_epochs = 1
@@ -33,9 +40,12 @@ z_threshold= "NA"
 whitening=false
 max_dims= "NA"
 
-[metrics.FIDEvaluationCallback]
+
+[metrics.CosineSimilarityCallback]
 every_n_epochs = 1
 
-[metrics.TSNEPlotCallback]
+[metrics.PSNR]
 every_n_epochs = 1
 
+[metrics.SSIM]
+every_n_epochs =1

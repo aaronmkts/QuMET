@@ -21,7 +21,6 @@ class VAEGANWrapper(pl.LightningModule):
         self,
         base_model: nn.Module,
         encoder: nn.Module,
-        dataset_info,
         learning_rate=1e-4,
         weight_decay=0.0,
         epochs=100,
@@ -56,7 +55,7 @@ class VAEGANWrapper(pl.LightningModule):
 
         # Extract any needed shape info from config
         self.z_dim = self.encoder.z_dim
-        self.image_shape = dataset_info.image_size
+
         
     def forward(self, z):
 

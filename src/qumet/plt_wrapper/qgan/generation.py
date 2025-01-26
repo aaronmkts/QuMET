@@ -9,7 +9,6 @@ class QGANGenerationModelWrapper(WrapperBase):
     def __init__(
         self,
         model,
-        dataset_info,
         learning_rate=1e-4,
         weight_decay=0.0,
         epochs=100,
@@ -17,7 +16,6 @@ class QGANGenerationModelWrapper(WrapperBase):
     ):
         super().__init__(
             model=model,
-            dataset_info=dataset_info,
             learning_rate=learning_rate,
             weight_decay=weight_decay,
             epochs=epochs,

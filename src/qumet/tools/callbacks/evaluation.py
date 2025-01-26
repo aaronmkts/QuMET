@@ -83,13 +83,14 @@ class PSNRCallback(Callback):
         """
         Collect the real and fake images at the end of each validation batch.
         """
-        if outputs is not None:
-            real_imgs = getattr(outputs, 'real_image', None)
-            fake_imgs = getattr(outputs, 'fake_image', None)
-            
-            if real_imgs is not None and fake_imgs is not None:
-                self.real_images_accum.append(real_imgs)
-                self.fake_images_accum.append(fake_imgs)
+        if trainer.current_epoch % self.every_n_epoch == 0:
+            if outputs is not None:
+                real_imgs = getattr(outputs, 'real_image', None)
+                fake_imgs = getattr(outputs, 'fake_image', None)
+                
+                if real_imgs is not None and fake_imgs is not None:
+                    self.real_images_accum.append(real_imgs)
+                    self.fake_images_accum.append(fake_imgs)
 
     def on_validation_epoch_end(self, trainer, pl_module):
         """
@@ -103,13 +104,19 @@ class PSNRCallback(Callback):
                 real_images = torch.cat(self.real_images_accum, dim=0)
                 fake_images = torch.cat(self.fake_images_accum, dim=0)
                 
-                a_ssim = fake_images.detach().cpu().numpy().reshape(-1, 28, 28)
-                b_ssim = real_images.detach().cpu().numpy().reshape(-1, 28, 28)
+                real = fake_images.detach().cpu().numpy().reshape(-1, 28, 28)
+                fake = real_images.detach().cpu().numpy().reshape(-1, 28, 28)
 
-                psnr = peak_signal_noise_ratio(a_ssim, b_ssim)
+                psnr_list = []
+                
+                for i in range(len(real)):
+                    psnr_val = peak_signal_noise_ratio(real[i], fake[i])
+                    psnr_list.append(psnr_val)
+
+                psnr_mean = np.mean(psnr_list)
                 
                 # Log the result
-                pl_module.log("metrics/psnr", psnr, on_epoch=True)
+                pl_module.log("metrics/psnr", psnr_mean, on_epoch=True)
 
             # Clear buffers or do any post-processing here
             self.real_images_accum.clear()
@@ -132,13 +139,14 @@ class SSIMCallback(Callback):
         """
         Collect the real and fake images at the end of each validation batch.
         """
-        if outputs is not None:
-            real_imgs = getattr(outputs, 'real_image', None)
-            fake_imgs = getattr(outputs, 'fake_image', None)
-            
-            if real_imgs is not None and fake_imgs is not None:
-                self.real_images_accum.append(real_imgs)
-                self.fake_images_accum.append(fake_imgs)
+        if trainer.current_epoch % self.every_n_epoch == 0:
+            if outputs is not None:
+                real_imgs = getattr(outputs, 'real_image', None)
+                fake_imgs = getattr(outputs, 'fake_image', None)
+                
+                if real_imgs is not None and fake_imgs is not None:
+                    self.real_images_accum.append(real_imgs)
+                    self.fake_images_accum.append(fake_imgs)
 
     def on_validation_epoch_end(self, trainer, pl_module):
         """
@@ -152,15 +160,23 @@ class SSIMCallback(Callback):
                 real_images = torch.cat(self.real_images_accum, dim=0)
                 fake_images = torch.cat(self.fake_images_accum, dim=0)
                 
-                a_ssim = fake_images.detach().cpu().numpy().reshape(-1, 28, 28)
-                b_ssim = real_images.detach().cpu().numpy().reshape(-1, 28, 28)
+                fake = fake_images.detach().cpu().numpy().reshape(-1, 28, 28)
+                real= real_images.detach().cpu().numpy().reshape(-1, 28, 28)
 
-                ssim = structural_similarity(a_ssim, b_ssim, data_range=1)
+                ssim_values = []
+                for i in range(len(real)):
+                    ssim_val = structural_similarity(
+                        real[i], 
+                        fake[i],
+                        data_range=1.0  
+                    )
+                    ssim_values.append(ssim_val)
+
+                ssim_mean = np.mean(ssim_values)
                 
                 # Log the result
-                pl_module.log("metrics/ssim", ssim, on_epoch=True)
+                pl_module.log("metrics/ssim", ssim_mean, on_epoch=True)
 
-            # Clear buffers or do any post-processing here
             self.real_images_accum.clear()
             self.fake_images_accum.clear()
 class CosSimilarityEvaluationCallback(Callback):
@@ -183,20 +199,23 @@ class CosSimilarityEvaluationCallback(Callback):
         denom = np.linalg.norm(v1, axis=1).reshape(-1, 1) * np.linalg.norm(v2, axis=1) 
         res = num / denom
         res[np.isneginf(res)] = 0
-        return 0.5 + 0.5 * res
+        res = 0.5 + 0.5 * res
+        cos_mean = np.mean(res)
+        return cos_mean
    
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0):
         """
         Collect the real and fake images at the end of each validation batch.
         """
-        if outputs is not None:
-            real_imgs = getattr(outputs, 'real_image', None)
-            fake_imgs = getattr(outputs, 'fake_image', None)
-            
-            if real_imgs is not None and fake_imgs is not None:
-                self.real_images_accum.append(real_imgs)
-                self.fake_images_accum.append(fake_imgs)
+        if trainer.current_epoch % self.every_n_epoch == 0:
+            if outputs is not None:
+                real_imgs = getattr(outputs, 'real_image', None)
+                fake_imgs = getattr(outputs, 'fake_image', None)
+                
+                if real_imgs is not None and fake_imgs is not None:
+                    self.real_images_accum.append(real_imgs)
+                    self.fake_images_accum.append(fake_imgs)
 
     def on_validation_epoch_end(self, trainer, pl_module):
         """
@@ -211,8 +230,7 @@ class CosSimilarityEvaluationCallback(Callback):
                 fake_images = torch.cat(self.fake_images_accum, dim=0)
                 
                 cos_sim_score = self.calculate_cos(real_images, fake_images)
-                mean_cos_sim_score = cos_sim_score.mean()
-                pl_module.log("metrics/cos_sim", mean_cos_sim_score, on_epoch=True)
+                pl_module.log("metrics/cos_sim", cos_sim_score, on_epoch=True)
 
             # Clear buffers or do any post-processing here
             self.real_images_accum.clear()
@@ -259,13 +277,14 @@ class FIDEvaluationCallback(Callback):
         """
         Collect the real and fake images at the end of each validation batch.
         """
-        if outputs is not None:
-            real_imgs = getattr(outputs, 'real_image', None)
-            fake_imgs = getattr(outputs, 'fake_image', None)
-            
-            if real_imgs is not None and fake_imgs is not None:
-                self.real_images_accum.append(real_imgs)
-                self.fake_images_accum.append(fake_imgs)
+        if trainer.current_epoch % self.every_n_epoch == 0:
+            if outputs is not None:
+                real_imgs = getattr(outputs, 'real_image', None)
+                fake_imgs = getattr(outputs, 'fake_image', None)
+                
+                if real_imgs is not None and fake_imgs is not None:
+                    self.real_images_accum.append(real_imgs)
+                    self.fake_images_accum.append(fake_imgs)
 
     def on_validation_epoch_end(self, trainer, pl_module):
         """
@@ -378,7 +397,7 @@ class NDB_JSD_EvaluationCallback(Callback):
             jsd_value = metrics['JS']
 
             # Log the metrics
-            pl_module.log("metrics/ndb/k", ndb_value, on_epoch=True)
+            pl_module.log("metrics/ndb_k", ndb_value, on_epoch=True)
             pl_module.log("metrics/jsd", jsd_value, on_epoch=True)
 
 # VAE-QWGAN Callback
