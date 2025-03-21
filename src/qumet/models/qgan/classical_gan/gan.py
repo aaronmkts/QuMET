@@ -68,7 +68,10 @@ class Generator(nn.Module):
             nn.LeakyReLU(0.2),
             nn.Linear(256, 512),
             nn.LeakyReLU(0.2),
-            nn.Linear(512, self.output_dim),
+            nn.Linear(512, 1024),
+            nn.LeakyReLU(0.2),
+            nn.Linear(1024, self.output_dim),
+            nn.Sigmoid(),
         )
 
         # Apply LeCun initialization
