@@ -6,6 +6,7 @@ import lightning.pytorch as pl
 import torch
 from sklearn.mixture import GaussianMixture
 import torch.nn.functional as F
+import wandb
 from ...plt_wrapper.metrics import NDB_JSD_Metric
 from .visualisation import GANImagesCallback
 import torchvision
@@ -94,7 +95,7 @@ class PSNRCallback(Callback):
 
     def on_validation_epoch_end(self, trainer, pl_module):
         """
-        Compute the manual FID score over all accumulated images.
+        Compute the manual PSNR score over all accumulated images.
         """
   
         if trainer.current_epoch % self.every_n_epoch == 0:
@@ -288,7 +289,7 @@ class FIDEvaluationCallback(Callback):
 
     def on_validation_epoch_end(self, trainer, pl_module):
         """
-        Compute the manual FID score over all accumulated images.
+        Compute the manual FD score over all accumulated images.
         """
   
         if trainer.current_epoch % self.every_n_epoch == 0:
@@ -351,7 +352,7 @@ class ISEvaluationCallback(Callback):
                 self.inception_score.reset()  # Reset the metric for the next epoch
 
 class NDB_JSD_EvaluationCallback(Callback):
-    def __init__(self, number_of_bins=30, significance_level=0.05, z_threshold=None, whitening=False, max_dims=None, every_n_epochs=1):
+    def __init__(self, number_of_bins=50, significance_level=0.05, z_threshold=None, whitening=False, max_dims=None, every_n_epochs=1):
         """
         Args:
             number_of_bins (int): Number of bins for clustering.
@@ -404,7 +405,6 @@ class NDB_JSD_EvaluationCallback(Callback):
 class GMMEvaluationCallback(Callback):
     def __init__(
         self,
-        every_n_epochs=1,
         gmm_components=40,
         save_gmm=False,
         gmm_save_path='gmm_model.pkl',
@@ -420,7 +420,7 @@ class GMMEvaluationCallback(Callback):
             ndb_jsd_args (dict): Initialization arguments for NDB_JSD_EvaluationCallback.
             gan_images_args (dict): Initialization arguments for GANImagesCallback.
         """
-        self.every_n_epochs = every_n_epochs
+
         self.gmm_components = gmm_components
         self.save_gmm = save_gmm
         self.gmm_save_path = gmm_save_path
@@ -436,16 +436,72 @@ class GMMEvaluationCallback(Callback):
         self.ndb_jsd_callback = NDB_JSD_EvaluationCallback(**ndb_jsd_args)
         self.gan_images_callback = GANImagesCallback(**gan_images_args)
 
+    def calculate_fid(self, real_imgs, fake_imgs):
+        """
+        Compute the Frechet Inception Distance (FID) between two sets of images.
+        Assumes images are in [0, 1] and reshapes them to (N, D).
+        """
+        # Flatten: works for 28x28 (D=784) or any CxHxW (D = C*H*W)
+        real_np = real_imgs.detach().cpu().numpy().reshape(real_imgs.shape[0], -1)
+        fake_np = fake_imgs.detach().cpu().numpy().reshape(fake_imgs.shape[0], -1)
+        mu1, sigma1 = real_np.mean(axis=0), np.cov(real_np, rowvar=False)
+        mu2, sigma2 = fake_np.mean(axis=0), np.cov(fake_np, rowvar=False)
+        ssdiff = np.sum((mu1 - mu2) ** 2)
+        covmean = sqrtm(sigma1.dot(sigma2))
+        if np.iscomplexobj(covmean):
+            covmean = covmean.real
+        fid_value = ssdiff + np.trace(sigma1 + sigma2 - 2 * covmean)
+        return fid_value
+    
+    def calculate_cos(self, v1, v2):
+        v1 = v1.detach().cpu().numpy().reshape(-1, 784)
+        v2 = v2.detach().cpu().numpy().reshape(-1, 784)
+        num = np.dot(v1, np.array(v2).T) 
+        denom = np.linalg.norm(v1, axis=1).reshape(-1, 1) * np.linalg.norm(v2, axis=1) 
+        res = num / denom
+        res[np.isneginf(res)] = 0
+        res = 0.5 + 0.5 * res
+        cos_mean = np.mean(res)
+        return cos_mean
+    
+    def calculate_ssim(self, real_imgs, fake_imgs):
+        real = real_imgs.detach().cpu().numpy().reshape(-1, 28, 28)
+        fake = fake_imgs.detach().cpu().numpy().reshape(-1, 28, 28)
+
+        ssim_values = []
+        for i in range(len(real)):
+            ssim_val = structural_similarity(
+                real[i], 
+                fake[i],
+                data_range=1.0  
+            )
+            ssim_values.append(ssim_val)
+
+        ssim_mean = np.mean(ssim_values)
+        return ssim_mean
+    
+    def calculate_psnr(self, real_imgs, fake_imgs):
+        real = fake_imgs.detach().cpu().numpy().reshape(-1, 28, 28)
+        fake = real_imgs.detach().cpu().numpy().reshape(-1, 28, 28)
+
+        psnr_list = []
+        for i in range(len(real)):
+            psnr_val = peak_signal_noise_ratio(real[i], fake[i])
+            psnr_list.append(psnr_val)
+
+        psnr_mean = np.mean(psnr_list)
+        return psnr_mean
+    
     def on_validation_epoch_start(self, trainer, pl_module):
         """Reset internal states and callbacks at the start of the validation epoch."""
-        if trainer.current_epoch % self.every_n_epochs == 0:
+        if trainer.current_epoch == trainer.max_epochs - 1:
             self.z_samples = []
             self.real_images = []
             self.ndb_jsd_callback.on_validation_epoch_start(trainer, pl_module)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs: ValidationResult, batch, batch_idx):
         """Accumulate latent variables and real images during validation."""
-        if trainer.current_epoch % self.every_n_epochs == 0:
+        if trainer.current_epoch == trainer.max_epochs - 1:
             z = outputs.encode_latent
             real_images = outputs.real_image
             self.z_samples.append(z)
@@ -453,7 +509,7 @@ class GMMEvaluationCallback(Callback):
 
     def on_validation_epoch_end(self, trainer, pl_module):
         """Fit GMM, generate images, and utilize existing callbacks with prefixed logging."""
-        if trainer.current_epoch % self.every_n_epochs == 0:
+        if trainer.current_epoch == trainer.max_epochs - 1:
             # Concatenate accumulated data
             real_images = torch.cat(self.real_images, dim=0)
             z_samples = torch.cat(self.z_samples, dim=0).cpu().numpy()
@@ -463,16 +519,30 @@ class GMMEvaluationCallback(Callback):
             gmm = GaussianMixture(n_components=self.gmm_components, random_state=9).fit(z_samples)
             disp_prior, _ = gmm.sample(N)
             disp_prior = torch.tensor(disp_prior, dtype=torch.float32).to(pl_module.device)
-            fake_images = pl_module.model(disp_prior)
+          
+            fake_images = pl_module.base_model.generator(disp_prior)
 
             # Save GMM model if save_gmm is True, Only save GMM on the last epoch
             if self.save_gmm and trainer.current_epoch == (trainer.max_epochs - 1):
                 joblib.dump(gmm, self.gmm_save_path)
+                wandb.save(self.gmm_save_path)
                 print(f"GMM model saved at {self.gmm_save_path}")
+
 
             # MSE Evaluation
             val_mse_disp = F.mse_loss(real_images, fake_images, reduction='sum') / N
-            pl_module.log("gmm/metrics/val_mse", val_mse_disp, on_epoch=True)
+            pl_module.log("gmm_metrics/mse", val_mse_disp, on_epoch=True)
+
+            fid_val = self.calculate_fid(real_images, fake_images)
+            cos_sim_val = self.calculate_cos(real_images, fake_images)
+            psnr_val = self.calculate_psnr(real_images, fake_images)
+            ssim_val = self.calculate_ssim(real_images, fake_images)
+
+          
+            pl_module.log("gmm_metrics/fid", fid_val, on_epoch=True)
+            pl_module.log("gmm_metrics/cos_sim", cos_sim_val, on_epoch=True)
+            pl_module.log("gmm_metrics/psnr", psnr_val, on_epoch=True)
+            pl_module.log("gmm_metrics/ssim", ssim_val, on_epoch=True)
 
             # Prepare outputs to mimic the structure expected by the callbacks
             outputs = ValidationResult(
@@ -491,13 +561,13 @@ class GMMEvaluationCallback(Callback):
             pl_module.log = prefixed_log
 
             # Wrap trainer.logger.experiment.add_image to add a prefix to image tags
-            original_add_image = trainer.logger.experiment.add_image
+            original_add_image = trainer.logger.log_image
 
-            def prefixed_add_image(tag, img_tensor, global_step=None, *args, **kwargs):
-                prefixed_tag = f"gmm/{tag}"
-                original_add_image(prefixed_tag, img_tensor, global_step, *args, **kwargs)
+            def prefixed_add_image(key, images,  **kwargs):
+                prefixed_tag = f"gmm_metrics/{key}"
+                original_add_image(key = prefixed_tag, images = images, **kwargs)
 
-            trainer.logger.experiment.add_image = prefixed_add_image
+            trainer.logger.log_image = prefixed_add_image
 
             try:
                 # Use the existing NDB/JSD callback
@@ -513,4 +583,4 @@ class GMMEvaluationCallback(Callback):
             finally:
                 # Restore the original methods
                 pl_module.log = original_log_method
-                trainer.logger.experiment.add_image = original_add_image
+                trainer.logger.log_image = original_add_image
