@@ -7,7 +7,8 @@ from .qgan import (
     APQGANWrapper,
     PQWGANWrapper,
     ProbsQGANWrapper,
-    QINRWrapper
+    QINRWrapper,
+    GANWrapper
     )
 
 from .qcbm import(
@@ -28,6 +29,16 @@ def get_model_wrapper(model_info, task: str, add_vae: bool = False):
             raise ValueError(f"VAE-GAN wrapper is not supported for model type {model_info.model_type.value}")
     
     if model_info.is_generation_model:
+        if model_info.model_type.value =='gan':
+            match task:
+                case "image_generation":
+                    if model_info.name == 'gan':
+                        return GANWrapper
+                    else:
+                        return ValueError(f"A training wrapper is not supported for {model_info.name}")
+                case _:
+                    raise ValueError(f"Task {task} is not supported for {model_info.name}")
+                
         if model_info.model_type.value == 'qgan':
             match task:
                 case "probs_generation":

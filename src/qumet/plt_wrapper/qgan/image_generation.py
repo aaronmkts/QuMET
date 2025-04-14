@@ -72,7 +72,7 @@ class QGANImageGenerationModelWrapper(WrapperBase):
         # Use self.trainer.model.parameters() instead of self.parameters() to support FullyShared (Model paralleled) training
         match self.optimizer.lower():
             case "adam":
-                b1 = 0
+                b1 = 0.0
                 b2 = 0.9
 
                 optG = torch.optim.Adam(
@@ -102,6 +102,144 @@ class QGANImageGenerationModelWrapper(WrapperBase):
 
         return [optG, optD], []
     
+
+class GANWrapper(WrapperBase):
+    def __init__(self,
+        model,
+        learning_rate=1e-4,
+        weight_decay=0.0,
+        epochs=100,
+        optimizer=None,
+        freeze_modules=None):
+        super().__init__(
+            model=model,
+            learning_rate=learning_rate,
+            weight_decay=weight_decay,
+            epochs=epochs,
+            optimizer=optimizer,
+            freeze_modules=freeze_modules
+        )
+
+        self.optimizer = optimizer
+        self.automatic_optimization = False
+        self.learning_rate = learning_rate
+
+        self.latent_space = 7
+        self.lambda_gp = 10
+        self.n_critic = 5
+        self.validation_z = self.generate_noise('uniform', batch_size = 16)
+
+    def generate_noise(self, noise_type, batch_size=8):
+        match noise_type:
+            case 'uniform-angle':
+                return torch.rand(batch_size, self.latent_space) * math.pi / 2
+            case 'uniform':
+                return torch.rand(batch_size, self.latent_space)
+            case 'gaussian':
+                return torch.randn(batch_size, self.latent_space)
+            case _:
+                raise ValueError(f"Unknown noise type: {noise_type}")
+            
+    def training_step(self, batch, batch_idx):
+        
+        critic = self.model.discriminator
+        optG, optD = self.optimizers()
+
+        # data and real/fake labels
+        real_data, _ = batch
+
+        batch_size = real_data.size(0)
+
+        # Generate fake-data using noise input
+        noise = self.generate_noise('uniform', batch_size)
+        fake_data = self.model.generator(noise).type_as(real_data)
+
+        # Training the discriminator
+        self.toggle_optimizer(optD)
+        optD.zero_grad()
+        
+     
+        # Real and fake images
+        real_validity, fake_validity = critic(real_data), critic(fake_data.detach())
+        # # Adversarial loss
+        gradient_penalty = compute_gradient_penalty(critic, real_data, fake_data)
+        errD = -torch.mean(real_validity) + torch.mean(fake_validity) + self.lambda_gp * gradient_penalty
+
+        wasserstein_distance = torch.mean(real_validity) - torch.mean(fake_validity)
+
+        self.manual_backward(errD)
+        optD.step()
+
+        self.log("discriminator/total_loss", errD, prog_bar=True)
+        self.log("wasserstein_distance", wasserstein_distance, prog_bar=True)
+
+        self.untoggle_optimizer(optD)
+        
+        
+        # Training the generator
+        if  batch_idx!= 0 and batch_idx % (self.n_critic + 1) == self.n_critic:
+            self.toggle_optimizer(optG)
+            optG.zero_grad()
+
+            fake_data = self.model.generator(noise).type_as(real_data)
+            # Loss measures generator's ability to fool the discriminator,Train on fake images
+
+            fake_validity = critic(fake_data)
+            errG = -torch.mean(fake_validity)
+        
+            self.manual_backward(errG)
+            optG.step()
+            self.log("generator/total_loss", errG, prog_bar=True)
+  
+            self.untoggle_optimizer(optG) 
+
+    def validation_step(self, batch, batch_idx):
+
+        img, labels = batch
+        N = img.size(0)
+
+        noise = torch.rand(img.size(0), self.latent_space) 
+        fake_imgs = self.model(noise)
+        recon_image = self.model(self.validation_z)
+
+        val_mse_sum = F.mse_loss(img, fake_imgs, reduction='sum') / N
+        self.log("metrics/val_mse_reduction", val_mse_sum, on_epoch=True)
+
+        return ValidationResult(real_image=img, fake_image=fake_imgs, recon_image=recon_image, label=labels)
+
+    def configure_optimizers(self):
+        # Use self.trainer.model.parameters() instead of self.parameters() to support FullyShared (Model paralleled) training
+        match self.optimizer.lower():
+            case "adam":
+                b1 = 0.0
+                b2 = 0.9
+
+                optG = torch.optim.Adam(
+                    self.model.generator.parameters(),
+                    lr=0.0005,
+                    weight_decay=self.weight_decay,
+                    betas=(b1, b2),
+                )
+
+                optD = torch.optim.Adam(
+                    self.model.discriminator.parameters(),
+                    lr=0.0005,
+                    weight_decay=self.weight_decay,
+                    betas=(b1, b2),
+                )
+            case "sgd":
+                lrG = 0.0002# Learning rate for the generator
+                lrD =0.0002  # Learning rate for the discriminator
+
+                optD = torch.optim.SGD(
+                    self.model.discriminator.parameters(), 
+                    lr=lrD)
+                optG = torch.optim.SGD(self.model.generator.parameters(),
+                                        lr=lrG)
+            case _:
+                raise ValueError(f"Unsupported optimizer name {self.optimizer}")
+
+        return [optG, optD], []
 
 
 class ProbsQGANWrapper(QGANImageGenerationModelWrapper):
@@ -383,7 +521,7 @@ class PQWGANWrapper(QGANImageGenerationModelWrapper):
                          weight_decay, epochs, optimizer)
         self.lambda_gp = 10
         self.n_critic = 5
-        self.validation_z = self.generate_noise('uniform', batch_size = 16)
+        self.validation_z = self.generate_noise('gaussian', batch_size = 16)
 
     def training_step(self, batch, batch_idx):
         
@@ -396,7 +534,7 @@ class PQWGANWrapper(QGANImageGenerationModelWrapper):
         batch_size = real_data.size(0)
 
         # Generate fake-data using noise input
-        noise = self.generate_noise('uniform', batch_size)
+        noise = self.generate_noise('gaussian', batch_size)
         fake_data = self.model.generator(noise).type_as(real_data)
 
         # Training the discriminator
@@ -443,7 +581,7 @@ class PQWGANWrapper(QGANImageGenerationModelWrapper):
         img, labels = batch
         N = img.size(0)
 
-        noise = torch.rand(img.size(0), self.n_qubits) 
+        noise = torch.randn(img.size(0), self.n_qubits) 
         fake_imgs = self.model(noise)
         recon_image = self.model(self.validation_z)
 
