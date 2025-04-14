@@ -254,18 +254,18 @@ class APQGAN(nn.Module):
     
 
 # ---------------------------------------
-# SSQGAN
+# VAEQWGAN
 # ---------------------------------------
 
 
-def _apqgan(config, task: str) -> APQGAN:
+def _vaeqwgan(config, task: str) -> APQGAN:
 
     model = APQGAN(config, task)
     return model
 
 
-def get_apqgan(info: Dict) -> APQGAN:
+def get_vaeqwgan(info: Dict) -> APQGAN:
 
     task = "info.generation"
     logger.info(f"The following {config} loaded for task into SSPQGAN")
-    return _apqgan(config=config, task=task)
+    return _vaeqwgan(config=config, task=task)
