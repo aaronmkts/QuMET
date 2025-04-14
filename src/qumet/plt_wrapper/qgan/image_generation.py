@@ -216,14 +216,14 @@ class GANWrapper(WrapperBase):
 
                 optG = torch.optim.Adam(
                     self.model.generator.parameters(),
-                    lr=0.0002,
+                    lr=0.0005,
                     weight_decay=self.weight_decay,
                     betas=(b1, b2),
                 )
 
                 optD = torch.optim.Adam(
                     self.model.discriminator.parameters(),
-                    lr=0.0002,
+                    lr=0.0005,
                     weight_decay=self.weight_decay,
                     betas=(b1, b2),
                 )
@@ -521,7 +521,7 @@ class PQWGANWrapper(QGANImageGenerationModelWrapper):
                          weight_decay, epochs, optimizer)
         self.lambda_gp = 10
         self.n_critic = 5
-        self.validation_z = self.generate_noise('uniform', batch_size = 16)
+        self.validation_z = self.generate_noise('gaussian', batch_size = 16)
 
     def training_step(self, batch, batch_idx):
         
@@ -534,7 +534,7 @@ class PQWGANWrapper(QGANImageGenerationModelWrapper):
         batch_size = real_data.size(0)
 
         # Generate fake-data using noise input
-        noise = self.generate_noise('uniform', batch_size)
+        noise = self.generate_noise('gaussian', batch_size)
         fake_data = self.model.generator(noise).type_as(real_data)
 
         # Training the discriminator
@@ -581,7 +581,7 @@ class PQWGANWrapper(QGANImageGenerationModelWrapper):
         img, labels = batch
         N = img.size(0)
 
-        noise = torch.rand(img.size(0), self.n_qubits) 
+        noise = torch.randn(img.size(0), self.n_qubits) 
         fake_imgs = self.model(noise)
         recon_image = self.model(self.validation_z)
 
