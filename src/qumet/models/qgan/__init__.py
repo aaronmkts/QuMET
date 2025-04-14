@@ -4,7 +4,7 @@ from .efficient_su2 import get_qgcd_bitstring
 from .patchgan import get_patchgan
 from .qgan_probs import get_qgan_probs
 from .mosaiq import get_mosaiq
-from .apqgan import get_apqgan
+from .vaeqwgan import get_vaeqwgan
 from .pwqgan import get_pqwgan_qc
 from .su2 import get_su2
 from .qinr import get_qinr_qc
@@ -27,9 +27,9 @@ QGAN_MODELS = {
         "get_model_fn_generation": get_mosaiq,
         "info": QumetModelInfo("mosaiq", model_type="qgan", task_type ="generation",  observable_sampling = True),
     },
-    "apqgan":{
-        "get_model_fn_generation": get_apqgan,
-        "info": QumetModelInfo("apqgan", model_type="qgan", task_type ="generation",  observable_sampling = True),
+    "vaeqwgan":{
+        "get_model_fn_generation": get_vaeqwgan,
+        "info": QumetModelInfo("vaeqwgan", model_type="qgan", task_type ="generation",  observable_sampling = True),
     },
     "pqwgan_qc":{
         "get_model_fn_generation": get_pqwgan_qc,

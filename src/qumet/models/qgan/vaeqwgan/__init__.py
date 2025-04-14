@@ -1,1 +1,1 @@
-from .modelling_vaeqwgan
+from .modelling_vaeqwgan import get_vaeqwgan
