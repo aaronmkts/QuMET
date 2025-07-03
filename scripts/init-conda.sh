@@ -30,3 +30,5 @@ else
     echo "❌ Failed to find the Python in qumet env. Current Python is at ${current_python}"
     exit 1
 fi
+
+#doestn work
