@@ -119,7 +119,8 @@ def evaluate_metrics_for_checkpoint(checkpoint_path, real_imgs, n_samples=2600):
     # -------------------------------
     # 1. Load the Pre-trained Model
     # -------------------------------
-    APQGAN = get_model("apqgan", "image_generation", get_dataset_info("mnist"))
+    APQGAN = get_model("vaeqwgan", "image_generation", get_dataset_info("cifar10"))
+ 
     model = load_model(checkpoint_path, "pl", APQGAN)
     model.eval()
     
@@ -129,15 +130,15 @@ def evaluate_metrics_for_checkpoint(checkpoint_path, real_imgs, n_samples=2600):
     with torch.no_grad():
         _, _, z = model.vae_forward(real_imgs)
         z_samples = z  
-
+    print("HERE")
     z_samples_np = z_samples.cpu().numpy()
-    gmm = GaussianMixture(n_components=2, covariance_type='full', random_state=9).fit(z_samples_np)
+    gmm = GaussianMixture(n_components=4, covariance_type='spherical', random_state=9).fit(z_samples_np)
     disp_prior, _ = gmm.sample(n_samples)
     disp_prior = torch.tensor(disp_prior, dtype=torch.float32)
-
+    print("HERE 2", disp_prior.shape)
     with torch.no_grad():
         fake_imgs = model(disp_prior)
-    
+    print("HERE AGAIN")
     cos_mean   = calculate_cos(real_imgs, fake_imgs)
     fid_value  = calculate_fid(real_imgs, fake_imgs)
     psnr_mean  = calculate_psnr(real_imgs, fake_imgs)
@@ -181,25 +182,39 @@ def evaluate_checkpoints(checkpoint_paths, real_imgs, n_samples=2600):
         print("  {} - Mean: {:.4f}, Std: {:.4f}".format(metric, stats["mean"], stats["std"]))
     
     return aggregated
-
+def _get_cifar10_bw28_transform(train: bool):
+    transform_list = [
+        tv_transforms.Grayscale(num_output_channels=1),
+        tv_transforms.Resize((28, 28), interpolation=tv_transforms.InterpolationMode.BICUBIC),
+        tv_transforms.ToTensor()
+    ]
+    transform = tv_transforms.Compose(transform_list)
+    return transform
 # ====== Main Execution ======
 if __name__ == "__main__":
-  
-    dataset = get_dataset('fashion_mnist', 'train', 'min-max', False, 2600, 8)
-    mnist = dataset.data
-    mnist = mnist.to(torch.float32) / 255.0  
-    mnist = mnist.unsqueeze(1)
-    real_images = mnist.cpu().numpy().squeeze(1)
+    
+    
+    dataset = get_dataset('cifar10', 'train', 'min-max', False, 2600, 8)
+    from torchvision import transforms as tv_transforms
+    transform = _get_cifar10_bw28_transform(train=True)
 
-    checkpoint_paths = [
-        "../artifacts/model-vefs28fk:v1/model.ckpt",
-        "../artifacts/model-rlx9or4d:v1/model.ckpt",
-        "../artifacts/model-j9gn11m7:v1/model.ckpt",
+    transformed_images = [
+    transform(Image.fromarray(img)) for img in dataset.data
+    ]
+    cifar10=torch.stack(transformed_images)
+    # ------------------------------
+    cifar10 = cifar10.squeeze(1)
+
+    checkpoint_paths = [    
+        "artifacts/cifar/model-3eukaalq:v1/model.ckpt",
+        "artifacts/cifar/model-qqmvif6q:v1/model.ckpt",
+        "artifacts/cifar/model-iozh0o19:v1/model.ckpt",
+
     ]
     
     # -------------------------------
     # 3. Evaluate Metrics Across Checkpoints
     # -------------------------------
-    aggregated_results = evaluate_checkpoints(checkpoint_paths, mnist, n_samples=2600)
+    aggregated_results = evaluate_checkpoints(checkpoint_paths, cifar10, n_samples=2600)
     print(aggregated_results)
-    print("fmnist017real")
+    print("mnist1preal")

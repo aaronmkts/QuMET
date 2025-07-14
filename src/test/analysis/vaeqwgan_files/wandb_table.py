@@ -10,7 +10,7 @@ import os
 os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
 sys.path.append(
     os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", "src"
+        os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", "..","src"
     )
 )
 import re
@@ -21,25 +21,30 @@ import torch.optim as optim
 from qumet.tools.checkpoint_load import *
 import wandb
 
+
 def split_seed_from_name(run_name: str):
     """
-    Splits off the '_seedXX' and optional '_TLv1' parts of a run name, if present.
-    Returns (experiment_group, seed_number).
-    E.g. 'vaeqwgan_mnist01_seed42' -> ('vaeqwgan_mnist01', '42')
-         'pqwgan_mnist01_gaussian_seed69' -> ('pqwgan_mnist01_gaussian', '69')
-         'vaeqwgan_mnist017_seed42_TLv1' -> ('vaeqwgan_mnist017_TL', '42')
-    If no seed found, returns (run_name, None).
+    Splits off the '_seedXX' part of a run name, and returns
+    (experiment_group, seed_number), where experiment_group
+    is everything *before* and *after* the seed.
+    
+    E.g.
+      'pqwgan_mnist01_seed42_uniform_1p'
+        -> ('pqwgan_mnist01_uniform_1p', '42')
+      'vaeqwgan_mnist017_seed42_TLv1_1p'
+        -> ('vaeqwgan_mnist017_TLv1_1p', '42')
+      'foo_bar_seed7'
+        -> ('foo_bar', '7')
     """
-    pattern = r'^(.*)_seed(\d+)(_TLv\d+)?$'
-    match = re.match(pattern, run_name)
-    if match:
-        group = match.group(1)  # everything before _seed
-        seed_num = match.group(2)
-        if match.group(3):  # if '_TLvX' is present
-            group += "_TL"
-        return group, seed_num
-    else:
+    pattern = r'^(.*)_seed(\d+)(.*)$'
+    m = re.match(pattern, run_name)
+    if not m:
         return run_name, None
+
+    prefix, seed, suffix = m.group(1), m.group(2), m.group(3)
+    experiment_group = prefix + suffix
+    return experiment_group, seed
+
 
 # -------------------------------
 # Load W&B runs and process history
@@ -66,6 +71,8 @@ all_runs_df = pd.concat(dfs, ignore_index=True)
 filtered_df = all_runs_df.drop(columns=columns_to_ignore, errors='ignore')
 
 # Split run_name into experiment_group and seed.
+
+# Set a breakpoint here to inspect the DataFrame if needed.
 filtered_df["experiment_group"], filtered_df["seed"] = zip(*filtered_df["run_name"].apply(split_seed_from_name))
 
 # Sort by experiment_group, run_id, and step.
@@ -113,10 +120,12 @@ def get_metric_stats(allowed_groups, metrics, epoch):
     """
     results = {}
     # Filter the epoch-assigned data to only the allowed groups and the given epoch.
+  
     df_filtered = epoch_assigned_df[
         (epoch_assigned_df["experiment_group"].isin(allowed_groups)) &
         (epoch_assigned_df["epoch"] == epoch)
     ]
+  
     for metric in metrics:
         # Group by experiment_group and compute the mean and std for the metric.
         agg_df = (
@@ -133,9 +142,8 @@ def get_metric_stats(allowed_groups, metrics, epoch):
 if __name__ == "__main__":
     # Define the allowed experiment groups.
     allowed_groups = [
-        
-                      "pqwgan_fmnist017_gaussian", 
-                      "pqwgan_fmnist017_uniform",
+                      "vaeqwgan_mnist017_TL",
+
                  ]
     
     # Specify the list of metric columns you want to aggregate.

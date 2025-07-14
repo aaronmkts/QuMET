@@ -28,13 +28,13 @@ def main():
     y = y.numpy()
 
     # ---- NEW PART: Subselect images that correspond to labels 1, 3, and 5 ----
-    mask = np.isin(y, [0, 1, 9])
+    mask = np.isin(y, [0, 1, 7, 8])
     X = X[mask]
     y = y[mask]
 
     # Subselect 2000 random samples to save time (optional; can adjust as needed)
     np.random.seed(42)
-    idx = np.random.choice(len(X), 2000, replace=False)
+    idx = np.random.choice(len(X), 4000, replace=False)
     X_sub = X[idx]
     y_sub = y[idx]
 
@@ -57,14 +57,7 @@ def main():
         alpha=0.6
     )
 
-    # Color bar with correct tick labels
-    cbar = plt.colorbar(scatter)
-    cbar.set_ticks(range(len(unique_labels)))
-    cbar.set_ticklabels(unique_labels)  # Original labels [0, 1, 9]
-
-    plt.title("t-SNE visualization of MNIST (labels: 0, 1, 9)")
-    plt.xlabel("t-SNE Feature 1")
-    plt.ylabel("t-SNE Feature 2")
+    plt.axis('off')
     plt.show()
 
 if __name__ == "__main__":
