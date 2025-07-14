@@ -1,7 +1,7 @@
 # basics
 model = "pqwgan_qc"
-dataset = "fashion_mnist"
-seed = 24
+dataset = "cifar10"
+seed = 19
 add_vae = true # ADDS VAE component
 
 # training
@@ -18,21 +18,12 @@ num_devices = 1
 accelerator = "cpu"
 project = 'QMI-ModeCollapse'
 report_to= "wandb"
-run_name = "tester"
+run_name = "cifar10_01_vaeqwgan_seed19"
 # metrics configuration
 [metrics]
-use_metrics = ['GMMEvaluationCallback', 'FID', 'NDB_JSD', 'GANImagesCallback',
-'CosineSimilarity','PSNR','SSIM']
+use_metrics = ['FID', 'NDB_JSD', 'CosineSimilarity', 'PSNR', 'SSIM']
 
 # Define initialization parameters for each metric
-
-
-[metrics.GMMEvaluationCallback]
-gmm_components=3
-save_gmm=true
-gmm_save_path='gmm_model_mnist017_seed42.pkl'
-
-
 
 [metrics.FIDEvaluationCallback]
 every_n_epochs = 1

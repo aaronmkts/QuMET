@@ -18,7 +18,7 @@ import torch
 import torch.nn as nn
 import pennylane as qml
 from pennylane.qnn import TorchLayer as TorchConnector
-from pennylane import broadcast
+#from pennylane import broadcast
 from pennylane.wires import Wires
 
 

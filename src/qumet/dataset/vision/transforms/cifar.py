@@ -51,10 +51,27 @@ def get_cifar10_default_transform(train: bool) -> tv_transforms.Compose:
         train, IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
     )
 
+def _get_cifar10_bw28_transform(train: bool):
+    
+    transform_list = [
+        tv_transforms.Grayscale(num_output_channels=1),
+        tv_transforms.Resize((28, 28), interpolation=tv_transforms.InterpolationMode.BICUBIC),
+        tv_transforms.ToTensor()
+    ]
+    transform = tv_transforms.Compose(transform_list)
+
+    return transform
+
+def get_cifar10_bw28_transform(train: bool) -> tv_transforms.Compose:
+    """
+    Returns a transform for CIFAR10 dataset that converts images to grayscale and resizes them to 28x28.
+    This is useful for models that expect input images of size 28x28, such as those trained on MNIST or FashionMNIST.
+    """
+    return _get_cifar10_bw28_transform(train)
 
 def get_cifar10_transform(train: bool, model: str = None):
     if model is None:
-        return get_cifar10_default_transform(train)
+        return get_cifar10_bw28_transform(train)
     else:
         # Currently no model-dependent transform for CIFAR10 is supported.
-        return get_cifar10_default_transform(train)
+        return get_cifar10_bw28_transform(train)

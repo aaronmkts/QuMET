@@ -10,7 +10,7 @@ import os
 os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
 sys.path.append(
      os.path.join(
-         os.path.dirname(os.path.realpath(__file__)), "..", "..", ".." ,"src"
+         os.path.dirname(os.path.realpath(__file__)), "..", "..", ".." ,"..", "src"
      )
     )
 import seaborn as sns
@@ -27,7 +27,7 @@ import re
 # 1. Data Loading and Preprocessing
 # -------------------------------
 # Load dataset (assumed to return both data and labels)
-dataset = get_dataset('mnist', 'train', 'min-max', False, 2600, 8)
+dataset = get_dataset('mnist', 'train', 'min-max', False, 5000, 8)
 mnist = dataset.data
 real_labels = dataset.targets  # Assumes labels are provided by the dataset
 
@@ -40,27 +40,23 @@ mnist = mnist.unsqueeze(1)
 # -------------------------------
 
 # VAEQWGAN
-APQGAN = get_model("apqgan", "image_generation", get_dataset_info("mnist"))
-checkpoint_path_vae = "artifacts/model-f4m5ngxy:v1/model.ckpt"
+APQGAN = get_model("vaeqwgan", "image_generation", get_dataset_info("mnist"))
+checkpoint_path_vae = "artifacts/model-6x4m1nb1:v1/model.ckpt"
 model_vaeqwgan = load_model(checkpoint_path_vae, "pl", APQGAN)
 
 #PQWGAN + Uniform
 
 PQWGAN_UNIFORM = get_model("pqwgan_qc", "image_generation", get_dataset_info("mnist"))
-checkpoint_path_pqwgan_uniform = "artifacts/model-r1l5d7c7:v1/model.ckpt"
+checkpoint_path_pqwgan_uniform = "artifacts/model-5ycpj1en:v0/model.ckpt"
 model_pqwgan = load_model(checkpoint_path_pqwgan_uniform, "pl", PQWGAN_UNIFORM)
 # -------------------------------
 
 #PQWGAN + Gaussian
 PQWGAN_GAUSSIAN = get_model("pqwgan_qc", "image_generation", get_dataset_info("mnist"))
-checkpoint_path_pqwgan_gaussian = "artifacts/model-9i4sr047:v1/model.ckpt"
+checkpoint_path_pqwgan_gaussian = "artifacts/model-ydjr50aa:v1/model.ckpt"
 model_pqwgan_gaussian = load_model(checkpoint_path_pqwgan_gaussian, "pl", PQWGAN_GAUSSIAN)
 # -------------------------------
 
-#Classical GANS+Uniform
-GAN_UNIFORM = get_model("gan", "image_generation", get_dataset_info("mnist"))
-checkpoint_path_gan_uniform = "artifacts/model-tdib7ub6:v1/model.ckpt"
-model_gan_uniform = load_model(checkpoint_path_gan_uniform, "pl", GAN_UNIFORM)
 
 # -------------------------------
 # 3. Generate images
@@ -70,8 +66,6 @@ model_gan_uniform = load_model(checkpoint_path_gan_uniform, "pl", GAN_UNIFORM)
 model_vaeqwgan.eval()
 model_pqwgan.eval()
 model_pqwgan_gaussian.eval()
-model_gan_uniform.eval()
-
 
 
 latent_z = []
@@ -82,7 +76,7 @@ with torch.no_grad():
 z_samples = torch.cat(latent_z, dim=0).cpu().numpy()
 
 n_samples = 8  
-gmm = GaussianMixture(n_components=3, covariance_type='full', random_state=9).fit(z_samples)
+gmm = GaussianMixture(n_components=7, covariance_type='tied', random_state=9).fit(z_samples)
 disp_prior, _ = gmm.sample(n_samples)
 disp_prior = torch.tensor(disp_prior, dtype=torch.float32)
 
@@ -98,15 +92,11 @@ fake_pqwgan_uniform_samples = model_pqwgan(z_uniform).view(-1, 28, 28)
 z_gaussian = torch.randn(8,7)
 fake_pqwgan_gaussian_samples = model_pqwgan_gaussian(z_gaussian).view(-1, 28, 28)
 
-z_gan_uniform = torch.rand(8,7)
-fake_gan_uniform_samples = model_gan_uniform(z_gan_uniform).view(-1, 28, 28)
-
-
 real_images = mnist[:8].squeeze(1).detach().cpu()
 vae_qwgan_images = fake_images_np.detach().cpu()
 uniform_images = fake_pqwgan_uniform_samples.detach().cpu()
 gaussian_images = fake_pqwgan_gaussian_samples.detach().cpu()
-classical_gan_images = fake_gan_uniform_samples.detach().cpu()
+
 import matplotlib.gridspec as gridspec
 # Combine all into a list
 all_samples = [
@@ -114,7 +104,7 @@ all_samples = [
     (vae_qwgan_images, r"VAE-QWGAN + GMM($\mu$, $\Sigma$)"),
     (gaussian_images, r"PQWGAN + $\mathcal{N}(0, \mathbb{I})$"),
     (uniform_images, r"PQWGAN + $U_{[0, 1)}$"),
-    (classical_gan_images, r"GAN + Uniform $U_{[0, 1)}$")
+
 ]
 
 num_images = 8  # Number of images per row

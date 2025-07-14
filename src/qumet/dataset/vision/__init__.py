@@ -37,7 +37,7 @@ def get_vision_dataset(name: str, path: os.PathLike, split: str, n_samples:int, 
             dataset = get_mnist_dataset(name, path, train, n_samples, transform, model_name)
         case "fashion_mnist":
             dataset = get_fashion_mnist_dataset(name, path, train, n_samples, transform, model_name)
-        case "cifar":
+        case "cifar10":
             dataset = get_cifar_dataset(name, path, train, transform, n_samples, model_name)
 
     return dataset

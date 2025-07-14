@@ -20,14 +20,14 @@ def filter_by_labels(dataset, labels: list):
     Filters the dataset to only include specified labels.
     """
     X_data = dataset.data
-    Y_data = dataset.targets
-    
+    Y_data = np.array(dataset.targets)
+
     # Create a mask for the desired labels
     mask = np.isin(Y_data, labels)
     
     # Filter the data and targets
     dataset.data = X_data[mask]
-    dataset.targets = Y_data[mask]
+    dataset.targets = Y_data[mask].tolist()
 
     return dataset
 
@@ -37,14 +37,13 @@ def n_samples(dataset, samples: int):
     """
 
     X_data = dataset.data
-    Y_data = dataset.targets
-
+    Y_data = np.array(dataset.targets)
 
     rnd_indices = choices(list(range(len(X_data))), k=samples)
     
     # Filter the data and targets
     dataset.data = X_data[rnd_indices]
-    dataset.targets = Y_data[rnd_indices]
+    dataset.targets = Y_data[rnd_indices].tolist()
 
     return dataset
 

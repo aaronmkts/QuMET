@@ -18,22 +18,39 @@ from sklearn.model_selection import GridSearchCV
 from qumet.dataset import get_dataset, get_dataset_info
 from qumet.models import get_model
 from qumet.tools.checkpoint_load import load_model
+from torchvision import transforms as tv_transforms
+from PIL import Image
 
 
+def _get_cifar10_bw28_transform(train: bool):
+    transform_list = [
+        tv_transforms.Grayscale(num_output_channels=1),
+        tv_transforms.Resize((28, 28), interpolation=tv_transforms.InterpolationMode.BICUBIC),
+        tv_transforms.ToTensor()
+    ]
+    transform = tv_transforms.Compose(transform_list)
+    return transform
 def main():
     # -------------------------------
     # 1. Load Dataset
     # -------------------------------
-    mnist = get_dataset('mnist', 'train', 'min-max', False, 5000, 8).data
-    dataset_info = get_dataset_info("mnist")
-    mnist = mnist.to(torch.float32) / 255.0  
-    mnist = mnist.unsqueeze(1)  
+    dataset = get_dataset('cifar10', 'train', 'min-max', False, 2600, 8)
+    from torchvision import transforms as tv_transforms
+    transform = _get_cifar10_bw28_transform(train=True)
 
+    transformed_images = [
+    transform(Image.fromarray(img)) for img in dataset.data
+    ]
+    cifar10=torch.stack(transformed_images)
+    # ------------------------------
+    dataset_info = get_dataset_info("cifar10")
+    mnist = cifar10.squeeze(1)
     # -------------------------------
     # 2. Load Model
     # -------------------------------
-    APQGAN = get_model("apqgan", "image_generation", dataset_info)
-    checkpoint_path = "../artifacts/model-ibvzjwpg:v1/model.ckpt"
+    APQGAN = get_model("vaeqwgan", "image_generation", dataset_info)
+
+    checkpoint_path = "artifacts/cifar/model-qqmvif6q:v1/model.ckpt"
     model = load_model(checkpoint_path, "pl", APQGAN)
     model.eval()
 
@@ -55,7 +72,7 @@ def main():
     # 5. Grid Search for Best GMM
     # -------------------------------
     param_grid = {
-        "n_components": range(1, 8),
+        "n_components": range(1, 9),
         "covariance_type": ["spherical", "tied", "diag", "full"],
     }
     

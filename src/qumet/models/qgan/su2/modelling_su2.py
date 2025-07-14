@@ -6,7 +6,7 @@ import torch.nn as nn
 import pennylane as qml
 from torch import Tensor
 from logging import getLogger
-from pennylane import broadcast
+#from pennylane import broadcast
 from pennylane.wires import Wires
 from typing import Optional as _Optional
 import warnings
