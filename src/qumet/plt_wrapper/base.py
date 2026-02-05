@@ -100,7 +100,6 @@ class WrapperBase(pl.LightningModule):
         buf = io.BytesIO()
         plt.savefig(buf, format="jpeg")
         plt.close(figure)
-        plt.close(figure)
         buf.seek(0)
         im = Image.open(buf)
         im = torchvision.transforms.ToTensor()(im)
