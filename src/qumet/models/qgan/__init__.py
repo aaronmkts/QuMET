@@ -1,14 +1,14 @@
 from ..utils import QumetModelInfo
-
-from .efficient_su2 import get_qgcd_bitstring
-from .patchgan import get_patchgan
-from .qgan_probs import get_qgan_probs
-from .mosaiq import get_mosaiq
-from .vaeqwgan import get_vaeqwgan
-from .pwqgan import get_pqwgan_qc
-from .su2 import get_su2
-from .qinr import get_qinr_qc
 from .classical_gan import get_gan
+from .efficient_su2 import get_qgcd_bitstring
+from .mosaiq import get_mosaiq
+from .patchgan import get_patchgan
+from .pwqgan import get_pqwgan_qc
+from .qgan_probs import get_qgan_probs
+from .qinr import get_qinr_qc
+from .su2 import get_su2
+from .vaeqwgan import get_vaeqwgan
+
 # fmt: off
 QGAN_MODELS = {
     "efficientsu2":{
@@ -37,7 +37,7 @@ QGAN_MODELS = {
     },
     "su2":{
         "get_model_fn_generation": get_su2,
-        "info": QumetModelInfo("su2", model_type="qgan", task_type ="generation",  bitstring_sampling= True), 
+        "info": QumetModelInfo("su2", model_type="qgan", task_type ="generation",  bitstring_sampling= True),
     },
     "qinr":{
         "get_model_fn_generation": get_qinr_qc,
@@ -76,7 +76,7 @@ def get_qgan_model(
     if name not in QGAN_MODELS:
         raise ValueError(f"QGAN model {name} is not supported")
     model_info: QumetModelInfo = QGAN_MODELS[name]["info"]
-    
+
     match task:
         case "probs_generation":
             assert (
@@ -89,7 +89,7 @@ def get_qgan_model(
                 model_info.observable_sampling
             ), f"Task {task} is not supported for {name}"
             model = QGAN_MODELS[name]["get_model_fn_generation"](info=dataset_info)
-        
+
         case "image_generation":
             assert (
                 model_info.observable_sampling

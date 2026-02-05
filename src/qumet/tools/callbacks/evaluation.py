@@ -1,19 +1,19 @@
-from lightning.pytorch.callbacks import Callback
-from torchmetrics.image.fid import FrechetInceptionDistance
-from torchmetrics.image.inception import InceptionScore
-from qumet.plt_wrapper.base import ValidationResult
-import lightning.pytorch as pl
+import joblib
+import numpy as np
 import torch
-from sklearn.mixture import GaussianMixture
 import torch.nn.functional as F
 import wandb
+from lightning.pytorch.callbacks import Callback
+from scipy.linalg import sqrtm
+from skimage.metrics import peak_signal_noise_ratio, structural_similarity
+from sklearn.mixture import GaussianMixture
+from torchmetrics.image.inception import InceptionScore
+
+from qumet.plt_wrapper.base import ValidationResult
+
 from ...plt_wrapper.metrics import NDB_JSD_Metric
 from .visualisation import GANImagesCallback
-import torchvision
-import joblib
-import numpy as np 
-from scipy.linalg import sqrtm
-from skimage.metrics import structural_similarity, peak_signal_noise_ratio 
+
 # General GAN Callbacks
 '''
 class FIDEvaluationCallback(Callback):
@@ -65,7 +65,8 @@ class FIDEvaluationCallback(Callback):
                 fid_score = self.fid.compute()
                 pl_module.log("metrics/fid", fid_score, on_epoch=True)
                 self.fid.reset()  # Reset the metric for the next epoch
-''' 
+'''
+
 
 class PSNRCallback(Callback):
     def __init__(self, every_n_epochs=1):
@@ -75,20 +76,22 @@ class PSNRCallback(Callback):
         """
         super().__init__()
         self.every_n_epoch = every_n_epochs
-        
+
         # Buffers to store real/fake images each epoch
         self.real_images_accum = []
         self.fake_images_accum = []
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0):
+    def on_validation_batch_end(
+        self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0
+    ):
         """
         Collect the real and fake images at the end of each validation batch.
         """
         if trainer.current_epoch % self.every_n_epoch == 0:
             if outputs is not None:
-                real_imgs = getattr(outputs, 'real_image', None)
-                fake_imgs = getattr(outputs, 'fake_image', None)
-                
+                real_imgs = getattr(outputs, "real_image", None)
+                fake_imgs = getattr(outputs, "fake_image", None)
+
                 if real_imgs is not None and fake_imgs is not None:
                     self.real_images_accum.append(real_imgs)
                     self.fake_images_accum.append(fake_imgs)
@@ -97,31 +100,32 @@ class PSNRCallback(Callback):
         """
         Compute the manual PSNR score over all accumulated images.
         """
-  
+
         if trainer.current_epoch % self.every_n_epoch == 0:
-      
+
             if len(self.real_images_accum) > 0 and len(self.fake_images_accum) > 0:
                 # Concatenate all real and fake images along the batch dimension
                 real_images = torch.cat(self.real_images_accum, dim=0)
                 fake_images = torch.cat(self.fake_images_accum, dim=0)
-                
+
                 real = fake_images.detach().cpu().numpy().reshape(-1, 28, 28)
                 fake = real_images.detach().cpu().numpy().reshape(-1, 28, 28)
 
                 psnr_list = []
-                
+
                 for i in range(len(real)):
                     psnr_val = peak_signal_noise_ratio(real[i], fake[i])
                     psnr_list.append(psnr_val)
 
                 psnr_mean = np.mean(psnr_list)
-                
+
                 # Log the result
                 pl_module.log("metrics/psnr", psnr_mean, on_epoch=True)
 
             # Clear buffers or do any post-processing here
             self.real_images_accum.clear()
             self.fake_images_accum.clear()
+
 
 class SSIMCallback(Callback):
     def __init__(self, every_n_epochs=1):
@@ -131,20 +135,22 @@ class SSIMCallback(Callback):
         """
         super().__init__()
         self.every_n_epoch = every_n_epochs
-        
+
         # Buffers to store real/fake images each epoch
         self.real_images_accum = []
         self.fake_images_accum = []
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0):
+    def on_validation_batch_end(
+        self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0
+    ):
         """
         Collect the real and fake images at the end of each validation batch.
         """
         if trainer.current_epoch % self.every_n_epoch == 0:
             if outputs is not None:
-                real_imgs = getattr(outputs, 'real_image', None)
-                fake_imgs = getattr(outputs, 'fake_image', None)
-                
+                real_imgs = getattr(outputs, "real_image", None)
+                fake_imgs = getattr(outputs, "fake_image", None)
+
                 if real_imgs is not None and fake_imgs is not None:
                     self.real_images_accum.append(real_imgs)
                     self.fake_images_accum.append(fake_imgs)
@@ -153,33 +159,31 @@ class SSIMCallback(Callback):
         """
         Compute the manual FID score over all accumulated images.
         """
-  
+
         if trainer.current_epoch % self.every_n_epoch == 0:
-      
+
             if len(self.real_images_accum) > 0 and len(self.fake_images_accum) > 0:
                 # Concatenate all real and fake images along the batch dimension
                 real_images = torch.cat(self.real_images_accum, dim=0)
                 fake_images = torch.cat(self.fake_images_accum, dim=0)
-                
+
                 fake = fake_images.detach().cpu().numpy().reshape(-1, 28, 28)
-                real= real_images.detach().cpu().numpy().reshape(-1, 28, 28)
+                real = real_images.detach().cpu().numpy().reshape(-1, 28, 28)
 
                 ssim_values = []
                 for i in range(len(real)):
-                    ssim_val = structural_similarity(
-                        real[i], 
-                        fake[i],
-                        data_range=1.0  
-                    )
+                    ssim_val = structural_similarity(real[i], fake[i], data_range=1.0)
                     ssim_values.append(ssim_val)
 
                 ssim_mean = np.mean(ssim_values)
-                
+
                 # Log the result
                 pl_module.log("metrics/ssim", ssim_mean, on_epoch=True)
 
             self.real_images_accum.clear()
             self.fake_images_accum.clear()
+
+
 class CosSimilarityEvaluationCallback(Callback):
     def __init__(self, every_n_epochs=1):
         """
@@ -188,7 +192,7 @@ class CosSimilarityEvaluationCallback(Callback):
         """
         super().__init__()
         self.every_n_epoch = every_n_epochs
-        
+
         # Buffers to store real/fake images each epoch
         self.real_images_accum = []
         self.fake_images_accum = []
@@ -196,24 +200,25 @@ class CosSimilarityEvaluationCallback(Callback):
     def calculate_cos(self, v1, v2):
         v1 = v1.detach().cpu().numpy().reshape(-1, 784)
         v2 = v2.detach().cpu().numpy().reshape(-1, 784)
-        num = np.dot(v1, np.array(v2).T) 
-        denom = np.linalg.norm(v1, axis=1).reshape(-1, 1) * np.linalg.norm(v2, axis=1) 
+        num = np.dot(v1, np.array(v2).T)
+        denom = np.linalg.norm(v1, axis=1).reshape(-1, 1) * np.linalg.norm(v2, axis=1)
         res = num / denom
         res[np.isneginf(res)] = 0
         res = 0.5 + 0.5 * res
         cos_mean = np.mean(res)
         return cos_mean
-   
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0):
+    def on_validation_batch_end(
+        self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0
+    ):
         """
         Collect the real and fake images at the end of each validation batch.
         """
         if trainer.current_epoch % self.every_n_epoch == 0:
             if outputs is not None:
-                real_imgs = getattr(outputs, 'real_image', None)
-                fake_imgs = getattr(outputs, 'fake_image', None)
-                
+                real_imgs = getattr(outputs, "real_image", None)
+                fake_imgs = getattr(outputs, "fake_image", None)
+
                 if real_imgs is not None and fake_imgs is not None:
                     self.real_images_accum.append(real_imgs)
                     self.fake_images_accum.append(fake_imgs)
@@ -222,20 +227,21 @@ class CosSimilarityEvaluationCallback(Callback):
         """
         Compute the manual cosine similarity score over all accumulated images.
         """
-  
+
         if trainer.current_epoch % self.every_n_epoch == 0:
-      
+
             if len(self.real_images_accum) > 0 and len(self.fake_images_accum) > 0:
 
                 real_images = torch.cat(self.real_images_accum, dim=0)
                 fake_images = torch.cat(self.fake_images_accum, dim=0)
-                
+
                 cos_sim_score = self.calculate_cos(real_images, fake_images)
                 pl_module.log("metrics/cos_sim", cos_sim_score, on_epoch=True)
 
             # Clear buffers or do any post-processing here
             self.real_images_accum.clear()
             self.fake_images_accum.clear()
+
 
 class FIDEvaluationCallback(Callback):
     def __init__(self, every_n_epochs=1):
@@ -245,7 +251,7 @@ class FIDEvaluationCallback(Callback):
         """
         super().__init__()
         self.every_n_epoch = every_n_epochs
-        
+
         # Buffers to store real/fake images each epoch
         self.real_images_accum = []
         self.fake_images_accum = []
@@ -253,7 +259,7 @@ class FIDEvaluationCallback(Callback):
     def calculate_fid(self, act1, act2):
         """
         Compute FID given two sets of activations or flattened images.
-        By default, this is set up for 28x28 images => 784-dim. 
+        By default, this is set up for 28x28 images => 784-dim.
         Adjust as needed if your images have different shape.
         """
         # Move to CPU and flatten
@@ -263,7 +269,7 @@ class FIDEvaluationCallback(Callback):
         mu1, sigma1 = act1.mean(axis=0), np.cov(act1, rowvar=False)
         mu2, sigma2 = act2.mean(axis=0), np.cov(act2, rowvar=False)
 
-        ssdiff = np.sum((mu1 - mu2)**2.0)
+        ssdiff = np.sum((mu1 - mu2) ** 2.0)
 
         covmean = sqrtm(sigma1.dot(sigma2))
         if np.iscomplexobj(covmean):
@@ -272,17 +278,18 @@ class FIDEvaluationCallback(Callback):
         # Frechet Distance
         fid_value = ssdiff + np.trace(sigma1 + sigma2 - 2.0 * covmean)
         return fid_value
-   
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0):
+    def on_validation_batch_end(
+        self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0
+    ):
         """
         Collect the real and fake images at the end of each validation batch.
         """
         if trainer.current_epoch % self.every_n_epoch == 0:
             if outputs is not None:
-                real_imgs = getattr(outputs, 'real_image', None)
-                fake_imgs = getattr(outputs, 'fake_image', None)
-                
+                real_imgs = getattr(outputs, "real_image", None)
+                fake_imgs = getattr(outputs, "fake_image", None)
+
                 if real_imgs is not None and fake_imgs is not None:
                     self.real_images_accum.append(real_imgs)
                     self.fake_images_accum.append(fake_imgs)
@@ -291,16 +298,16 @@ class FIDEvaluationCallback(Callback):
         """
         Compute the manual FD score over all accumulated images.
         """
-  
+
         if trainer.current_epoch % self.every_n_epoch == 0:
-      
+
             if len(self.real_images_accum) > 0 and len(self.fake_images_accum) > 0:
                 # Concatenate all real and fake images along the batch dimension
                 real_images = torch.cat(self.real_images_accum, dim=0)
                 fake_images = torch.cat(self.fake_images_accum, dim=0)
-                
+
                 fid_score = self.calculate_fid(real_images, fake_images)
-                
+
                 # Log the result
                 pl_module.log("metrics/fid", fid_score, on_epoch=True)
 
@@ -308,8 +315,11 @@ class FIDEvaluationCallback(Callback):
             self.real_images_accum.clear()
             self.fake_images_accum.clear()
 
+
 class ISEvaluationCallback(Callback):
-    def __init__(self, every_n_epochs=1, feature = 'logits_unbiased', splits = 10, normalize=True):
+    def __init__(
+        self, every_n_epochs=1, feature="logits_unbiased", splits=10, normalize=True
+    ):
         """
         Args:
             every_n_epochs (int): How often to compute the IS (in epochs).
@@ -323,7 +333,9 @@ class ISEvaluationCallback(Callback):
 
     def setup_inception_score(self, pl_module):
         """Initialize the Inception Score metric on the current device."""
-        self.inception_score = InceptionScore(feature=self.feature, splits =self.splits, normalize=self.normalize).to(pl_module.device)
+        self.inception_score = InceptionScore(
+            feature=self.feature, splits=self.splits, normalize=self.normalize
+        ).to(pl_module.device)
 
     def convert_to_3channel(self, images):
         """Convert grayscale images to 3-channel images."""
@@ -334,11 +346,19 @@ class ISEvaluationCallback(Callback):
         if trainer.current_epoch % self.every_n_epoch == 0:
             self.setup_inception_score(pl_module)
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs: ValidationResult, batch, batch_idx, dataloader_idx=0):
+    def on_validation_batch_end(
+        self,
+        trainer,
+        pl_module,
+        outputs: ValidationResult,
+        batch,
+        batch_idx,
+        dataloader_idx=0,
+    ):
         """Update Inception Score with fake images during validation."""
         if trainer.current_epoch % self.every_n_epoch == 0 and outputs:
             fake_imgs = outputs.fake_image
-            
+
             if fake_imgs is not None:
                 fake_imgs_3channel = self.convert_to_3channel(fake_imgs)
                 self.inception_score.update(fake_imgs_3channel)
@@ -347,12 +367,23 @@ class ISEvaluationCallback(Callback):
         """Log the Inception Score at the end of the validation epoch."""
         if trainer.current_epoch % self.every_n_epoch == 0:
             if self.inception_score is not None:
-                inception_mean = self.inception_score.compute()[0]  # Compute only the mean
+                inception_mean = self.inception_score.compute()[
+                    0
+                ]  # Compute only the mean
                 pl_module.log("metrics/is", inception_mean, on_epoch=True)
                 self.inception_score.reset()  # Reset the metric for the next epoch
 
+
 class NDB_JSD_EvaluationCallback(Callback):
-    def __init__(self, number_of_bins=50, significance_level=0.05, z_threshold=None, whitening=False, max_dims=None, every_n_epochs=1):
+    def __init__(
+        self,
+        number_of_bins=50,
+        significance_level=0.05,
+        z_threshold=None,
+        whitening=False,
+        max_dims=None,
+        every_n_epochs=1,
+    ):
         """
         Args:
             number_of_bins (int): Number of bins for clustering.
@@ -369,7 +400,7 @@ class NDB_JSD_EvaluationCallback(Callback):
             significance_level=significance_level,
             z_threshold=z_threshold,
             whitening=whitening,
-            max_dims=max_dims
+            max_dims=max_dims,
         )
 
     def on_validation_epoch_start(self, trainer, pl_module):
@@ -377,29 +408,31 @@ class NDB_JSD_EvaluationCallback(Callback):
         if trainer.current_epoch % self.every_n_epochs == 0:
             self.ndb_jsd_metric.reset()  # Reset the internal state before starting validation
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs,
-                                 batch, batch_idx, dataloader_idx=0):
+    def on_validation_batch_end(
+        self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0
+    ):
         """Update the NDB metric with new batch data."""
         if trainer.current_epoch % self.every_n_epochs == 0 and outputs is not None:
             real_images, fake_images = outputs.real_image, outputs.fake_image
-            
+
             # Update metric with real (training) images
-            self.ndb_jsd_metric.update(real_images, data_type='training')
+            self.ndb_jsd_metric.update(real_images, data_type="training")
 
             # Update metric with generated (fake) images
-            self.ndb_jsd_metric.update(fake_images, data_type='generated')
+            self.ndb_jsd_metric.update(fake_images, data_type="generated")
 
     def on_validation_epoch_end(self, trainer, pl_module):
         """Compute and log NDB and JSD metrics at the end of the validation epoch."""
         if trainer.current_epoch % self.every_n_epochs == 0:
             # Compute NDB and JSD metrics
             metrics = self.ndb_jsd_metric.compute()
-            ndb_value = metrics['NDB'] / self.n_bins
-            jsd_value = metrics['JS']
+            ndb_value = metrics["NDB"] / self.n_bins
+            jsd_value = metrics["JS"]
 
             # Log the metrics
             pl_module.log("metrics/ndb_k", ndb_value, on_epoch=True)
             pl_module.log("metrics/jsd", jsd_value, on_epoch=True)
+
 
 # VAE-QWGAN Callback
 class GMMEvaluationCallback(Callback):
@@ -407,9 +440,9 @@ class GMMEvaluationCallback(Callback):
         self,
         gmm_components=40,
         save_gmm=False,
-        gmm_save_path='gmm_model.pkl',
+        gmm_save_path="gmm_model.pkl",
         ndb_jsd_args=None,
-        gan_images_args=None
+        gan_images_args=None,
     ):
         """
         Args:
@@ -426,13 +459,13 @@ class GMMEvaluationCallback(Callback):
         self.gmm_save_path = gmm_save_path
         self.z_samples = []
         self.real_images = []
-        
+
         # Initialize the existing callbacks with provided arguments
         if ndb_jsd_args is None:
             ndb_jsd_args = {}
         if gan_images_args is None:
             gan_images_args = {}
-       
+
         self.ndb_jsd_callback = NDB_JSD_EvaluationCallback(**ndb_jsd_args)
         self.gan_images_callback = GANImagesCallback(**gan_images_args)
 
@@ -452,34 +485,30 @@ class GMMEvaluationCallback(Callback):
             covmean = covmean.real
         fid_value = ssdiff + np.trace(sigma1 + sigma2 - 2 * covmean)
         return fid_value
-    
+
     def calculate_cos(self, v1, v2):
         v1 = v1.detach().cpu().numpy().reshape(-1, 784)
         v2 = v2.detach().cpu().numpy().reshape(-1, 784)
-        num = np.dot(v1, np.array(v2).T) 
-        denom = np.linalg.norm(v1, axis=1).reshape(-1, 1) * np.linalg.norm(v2, axis=1) 
+        num = np.dot(v1, np.array(v2).T)
+        denom = np.linalg.norm(v1, axis=1).reshape(-1, 1) * np.linalg.norm(v2, axis=1)
         res = num / denom
         res[np.isneginf(res)] = 0
         res = 0.5 + 0.5 * res
         cos_mean = np.mean(res)
         return cos_mean
-    
+
     def calculate_ssim(self, real_imgs, fake_imgs):
         real = real_imgs.detach().cpu().numpy().reshape(-1, 28, 28)
         fake = fake_imgs.detach().cpu().numpy().reshape(-1, 28, 28)
 
         ssim_values = []
         for i in range(len(real)):
-            ssim_val = structural_similarity(
-                real[i], 
-                fake[i],
-                data_range=1.0  
-            )
+            ssim_val = structural_similarity(real[i], fake[i], data_range=1.0)
             ssim_values.append(ssim_val)
 
         ssim_mean = np.mean(ssim_values)
         return ssim_mean
-    
+
     def calculate_psnr(self, real_imgs, fake_imgs):
         real = fake_imgs.detach().cpu().numpy().reshape(-1, 28, 28)
         fake = real_imgs.detach().cpu().numpy().reshape(-1, 28, 28)
@@ -491,7 +520,7 @@ class GMMEvaluationCallback(Callback):
 
         psnr_mean = np.mean(psnr_list)
         return psnr_mean
-    
+
     def on_validation_epoch_start(self, trainer, pl_module):
         """Reset internal states and callbacks at the start of the validation epoch."""
         if trainer.current_epoch == trainer.max_epochs - 1:
@@ -499,7 +528,9 @@ class GMMEvaluationCallback(Callback):
             self.real_images = []
             self.ndb_jsd_callback.on_validation_epoch_start(trainer, pl_module)
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs: ValidationResult, batch, batch_idx):
+    def on_validation_batch_end(
+        self, trainer, pl_module, outputs: ValidationResult, batch, batch_idx
+    ):
         """Accumulate latent variables and real images during validation."""
         if trainer.current_epoch == trainer.max_epochs - 1:
             z = outputs.encode_latent
@@ -513,13 +544,17 @@ class GMMEvaluationCallback(Callback):
             # Concatenate accumulated data
             real_images = torch.cat(self.real_images, dim=0)
             z_samples = torch.cat(self.z_samples, dim=0).cpu().numpy()
-            
+
             # Fit GMM to the latent variables
             N = z_samples.shape[0]
-            gmm = GaussianMixture(n_components=self.gmm_components, random_state=9).fit(z_samples)
+            gmm = GaussianMixture(n_components=self.gmm_components, random_state=9).fit(
+                z_samples
+            )
             disp_prior, _ = gmm.sample(N)
-            disp_prior = torch.tensor(disp_prior, dtype=torch.float32).to(pl_module.device)
-          
+            disp_prior = torch.tensor(disp_prior, dtype=torch.float32).to(
+                pl_module.device
+            )
+
             fake_images = pl_module.base_model.generator(disp_prior)
 
             # Save GMM model if save_gmm is True, Only save GMM on the last epoch
@@ -528,9 +563,8 @@ class GMMEvaluationCallback(Callback):
                 wandb.save(self.gmm_save_path)
                 print(f"GMM model saved at {self.gmm_save_path}")
 
-
             # MSE Evaluation
-            val_mse_disp = F.mse_loss(real_images, fake_images, reduction='sum') / N
+            val_mse_disp = F.mse_loss(real_images, fake_images, reduction="sum") / N
             pl_module.log("gmm_metrics/mse", val_mse_disp, on_epoch=True)
 
             fid_val = self.calculate_fid(real_images, fake_images)
@@ -538,7 +572,6 @@ class GMMEvaluationCallback(Callback):
             psnr_val = self.calculate_psnr(real_images, fake_images)
             ssim_val = self.calculate_ssim(real_images, fake_images)
 
-          
             pl_module.log("gmm_metrics/fid", fid_val, on_epoch=True)
             pl_module.log("gmm_metrics/cos_sim", cos_sim_val, on_epoch=True)
             pl_module.log("gmm_metrics/psnr", psnr_val, on_epoch=True)
@@ -548,7 +581,7 @@ class GMMEvaluationCallback(Callback):
             outputs = ValidationResult(
                 real_image=real_images,
                 fake_image=fake_images,
-                recon_image=None  # or set if applicable
+                recon_image=None,  # or set if applicable
             )
 
             # Wrap pl_module.log to add a prefix to metric names
@@ -563,9 +596,9 @@ class GMMEvaluationCallback(Callback):
             # Wrap trainer.logger.experiment.add_image to add a prefix to image tags
             original_add_image = trainer.logger.log_image
 
-            def prefixed_add_image(key, images,  **kwargs):
+            def prefixed_add_image(key, images, **kwargs):
                 prefixed_tag = f"gmm_metrics/{key}"
-                original_add_image(key = prefixed_tag, images = images, **kwargs)
+                original_add_image(key=prefixed_tag, images=images, **kwargs)
 
             trainer.logger.log_image = prefixed_add_image
 

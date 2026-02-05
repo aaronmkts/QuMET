@@ -1,17 +1,10 @@
-import numpy as np
+import logging
 import os
-import pickle
-import torch
-
-import colorlog
-import torch
 import subprocess
 
+import numpy as np
+import torch
 from torch import Tensor
-
-import logging
-
-import itertools
 
 use_cuda = torch.cuda.is_available()
 torch_cuda = torch.cuda if use_cuda else torch
@@ -59,7 +52,7 @@ def get_checkpoint_file(checkpoint_dir):
 
 def execute_cli(cmd, log_output: bool = True, log_file=None, cwd="."):
     if log_output:
-        logger.debug("{} (cwd = {})".format(subprocess.list2cmdline(cmd), cwd))
+        logger.debug(f"{subprocess.list2cmdline(cmd)} (cwd = {cwd})")
         with subprocess.Popen(
             cmd, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True, cwd=cwd
         ) as result:

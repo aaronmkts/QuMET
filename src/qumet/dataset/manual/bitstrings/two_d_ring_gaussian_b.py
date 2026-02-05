@@ -1,12 +1,13 @@
-import numpy as np
-from scipy.stats import multivariate_normal
-import torch
-from torch.utils.data import Dataset
-from ...utils import add_dataset_info
-import matplotlib.pyplot as plt
-from matplotlib import cm
-import itertools
 import math
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from matplotlib import cm
+from scipy.stats import multivariate_normal
+from torch.utils.data import Dataset
+
+from ...utils import add_dataset_info
 
 pi = math.pi
 
@@ -27,7 +28,7 @@ class TwoDRingGaussianDatasetB(Dataset):
         self.num_dim = 2
         self.num_discrete_values = int(2 ** (n_qubits / self.num_dim))
         self.coords = np.linspace(-3, 3, self.num_discrete_values)
-        self.size =  2560 * 10
+        self.size = 2560 * 10
         self.num_gauss = 8
 
         if split == "train":
@@ -39,7 +40,7 @@ class TwoDRingGaussianDatasetB(Dataset):
             raise RuntimeError(
                 f"split must be `train` or `validation`, but got {split}"
             )
-        
+
     def _generate_samples(self):
 
         means = self._means_ring()
@@ -62,9 +63,7 @@ class TwoDRingGaussianDatasetB(Dataset):
         prob_data = samples / np.sum(samples)
 
         index_list = list(range(num_samples))
-        sampled_integers = np.random.choice(
-            index_list, size=self.size, p=prob_data
-        )
+        sampled_integers = np.random.choice(index_list, size=self.size, p=prob_data)
         grid_bitstrings = np.array(list(map(self._int_to_binary, sampled_integers)))
 
         return grid_bitstrings, prob_data
@@ -86,7 +85,7 @@ class TwoDRingGaussianDatasetB(Dataset):
         means = np.array([np.array([i, j]) for i, j in means_list])
 
         return means
-    
+
     def _visualise(self, samples):
 
         mesh_x, mesh_y = np.meshgrid(self.coords, self.coords)
@@ -107,7 +106,7 @@ class TwoDRingGaussianDatasetB(Dataset):
         binary = integer.bitwise_and(mask).ne(0).float()
 
         return binary
-    
+
     def __len__(self):
         return self.size
 

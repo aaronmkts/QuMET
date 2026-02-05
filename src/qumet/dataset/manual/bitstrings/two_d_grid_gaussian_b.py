@@ -1,11 +1,14 @@
-import numpy as np
-from scipy.stats import multivariate_normal
-import torch
-from torch.utils.data import Dataset
-from ...utils import add_dataset_info
-import matplotlib.pyplot as plt
-from matplotlib import cm
 import itertools
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from matplotlib import cm
+from scipy.stats import multivariate_normal
+from torch.utils.data import Dataset
+
+from ...utils import add_dataset_info
+
 # Set the random seed for reproducibility
 seed = 42
 np.random.seed(seed)
@@ -23,7 +26,7 @@ class TwoDGridGaussianDatasetB(Dataset):
         self.num_dim = 2
         self.num_discrete_values = int(2 ** (n_qubits / self.num_dim))
         self.coords = np.linspace(-3, 3, self.num_discrete_values)
-        self.size =  2560 * 10
+        self.size = 2560 * 10
         self.num_gauss = 9
 
         if split == "train":
@@ -35,7 +38,7 @@ class TwoDGridGaussianDatasetB(Dataset):
             raise RuntimeError(
                 f"split must be `train` or `validation`, but got {split}"
             )
-        
+
     def _generate_samples(self):
 
         self.set_length = int(pow(self.num_gauss, 1 / 2))
@@ -64,9 +67,7 @@ class TwoDGridGaussianDatasetB(Dataset):
         prob_data = samples / np.sum(samples)
 
         index_list = list(range(num_samples))
-        sampled_integers = np.random.choice(
-            index_list, size=self.size, p=prob_data
-        )
+        sampled_integers = np.random.choice(index_list, size=self.size, p=prob_data)
         grid_bitstrings = np.array(list(map(self._int_to_binary, sampled_integers)))
 
         return grid_bitstrings, prob_data
@@ -91,7 +92,7 @@ class TwoDGridGaussianDatasetB(Dataset):
         binary = integer.bitwise_and(mask).ne(0).float()
 
         return binary
-    
+
     def __len__(self):
         return self.size
 

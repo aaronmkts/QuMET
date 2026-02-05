@@ -1,11 +1,8 @@
 import numpy as np
-from scipy.stats import multivariate_normal
-from torch.utils.data import Dataset
-from ..utils import add_dataset_info
-import matplotlib.pyplot as plt
-from matplotlib import cm
 import torch
+from torch.utils.data import Dataset
 
+from ..utils import add_dataset_info
 
 # Set the random seed for reproducibility
 
@@ -16,10 +13,17 @@ import torch
     available_splits=("train", "validation"),
     bitsring_generation=True,
     probs_generation=True,
-    continuous_generation=True
+    continuous_generation=True,
 )
 class TwoDGaussianDataset(Dataset):
-    def __init__(self, split="train", normaliser=None, discretisation=None, n_qubits=6, n_samples = 10000) -> None:
+    def __init__(
+        self,
+        split="train",
+        normaliser=None,
+        discretisation=None,
+        n_qubits=6,
+        n_samples=10000,
+    ) -> None:
         super().__init__()
         """
         Initialize the TwoDGaussianDataset.
@@ -30,14 +34,16 @@ class TwoDGaussianDataset(Dataset):
             discretisation: Discretization function.
             n_qubits (int): Number of qubits for discretization.
         """
-        
+
         self.n_qubits = n_qubits
         self.normaliser = normaliser
         self.reverse_lookup = normaliser.reverse_lookup if normaliser else None
         self.n_dim = 2
         self.n_samples = n_samples
-        self.discretisation = discretisation(n_qubits, n_dim=2) if discretisation else None
-        
+        self.discretisation = (
+            discretisation(n_qubits, n_dim=2) if discretisation else None
+        )
+
         if split == "train":
             self.data, self.distribution = self._generate_samples()
         elif split == "validation":
@@ -55,7 +61,7 @@ class TwoDGaussianDataset(Dataset):
         mean = np.array([0, 0])
 
         # Covariance matrix for each Gaussian (assuming isotropic Gaussians)
-        cov = np.diag([std ** 2, std ** 2])
+        cov = np.diag([std**2, std**2])
 
         # Generate samples from each Gaussian distribution
         samples = [np.random.multivariate_normal(mean, cov, self.n_samples)]
@@ -63,20 +69,30 @@ class TwoDGaussianDataset(Dataset):
         # Combine all samples into a single array for easier plotting
         all_samples = np.vstack(samples)
 
-        data = self.normaliser.fit_transform(all_samples) if self.normaliser else all_samples
+        data = (
+            self.normaliser.fit_transform(all_samples)
+            if self.normaliser
+            else all_samples
+        )
 
         if self.discretisation:
-            
+
             data, distribution = self._discretise_samples(data)
-    
+
             return data, distribution
         return data
 
     def _discretise_samples(self, data):
 
-        num_discrete_values = 2 ** (self.n_qubits // self.n_dim)  # discretisation per dimension
-        nns = tuple(num_discrete_values for _ in range(self.n_dim))  # siply (n,n) for 2 d and (n,n,n) for 3d data
-        nns_nq = nns + tuple((self.n_qubits,))  # (n,n, n_qubits) 8 by 8 grid with qubits appended
+        num_discrete_values = 2 ** (
+            self.n_qubits // self.n_dim
+        )  # discretisation per dimension
+        nns = tuple(
+            num_discrete_values for _ in range(self.n_dim)
+        )  # siply (n,n) for 2 d and (n,n,n) for 3d data
+        nns_nq = nns + tuple(
+            (self.n_qubits,)
+        )  # (n,n, n_qubits) 8 by 8 grid with qubits appended
 
         inverse_bins = np.zeros(nns_nq)  # empty matrix with shape ((n,n, n_qubits))
         for key, value in self.discretisation.items():
@@ -85,13 +101,13 @@ class TwoDGaussianDataset(Dataset):
 
         coordinates = np.floor(data * num_discrete_values).astype(int)
         train_dataset = np.array([inverse_bins[tuple(coord)] for coord in coordinates])
-        
+
         distribution = np.zeros(nns)
         for xy in coordinates:
             indices = tuple(xy[ii] for ii in range(self.n_dim))
             distribution[indices] += 1
         distribution /= np.sum(distribution)
-        distribution = np.array(distribution).reshape((num_discrete_values ** 2))
+        distribution = np.array(distribution).reshape(num_discrete_values**2)
         distribution = torch.tensor(distribution, dtype=torch.float32).unsqueeze(0)
         return train_dataset, distribution
 
@@ -105,5 +121,5 @@ class TwoDGaussianDataset(Dataset):
         pass
 
     def __getitem__(self, index):
-        
+
         return self.distribution[index, ...]

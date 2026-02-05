@@ -1,6 +1,8 @@
-from ..utils import QumetModelInfo
 from os import PathLike
+
+from ..utils import QumetModelInfo
 from .vae import get_vae
+
 # fmt: off
 
 VAE_MODELS = {
@@ -39,7 +41,7 @@ def get_vae_model(
     model_info: QumetModelInfo = VAE_MODELS[name]["info"]
 
     match task:
-        
+
         case "image_generation":
             assert (
                 model_info.observable_sampling

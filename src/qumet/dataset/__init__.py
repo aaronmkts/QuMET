@@ -1,14 +1,13 @@
 import os
 
+import lightning.pytorch as pl
 import torch
 import torchvision.transforms as tv_transforms
-import lightning.pytorch as pl
 from torch.utils.data import DataLoader
 
 from ..tools.registry import MAIN_CACHE_DIR
-from .vision import VISION_DATASET_MAPPING, get_vision_dataset, get_vision_dataset_cls
 from .manual import MANUAL_DATASET_MAPPING, get_manual_dataset, get_manual_dataset_cls
-
+from .vision import VISION_DATASET_MAPPING, get_vision_dataset, get_vision_dataset_cls
 from .vision.transforms.transformations import get_transform
 
 DATASET_CACHE_DIR = MAIN_CACHE_DIR / "dataset"
@@ -41,7 +40,6 @@ def get_dataset(
     num_workers: int = os.cpu_count(),
     model_name: str = None,
 ):
-
     """
     Args:
         name (str): name of the dataset
@@ -63,13 +61,21 @@ def get_dataset(
     name = name.lower()
     if name in MANUAL_DATASET_MAPPING:
 
-        dataset = get_manual_dataset(name = name, split = split, transform = transform,
-                                      discretise = discretise, n_samples = n_samples, n_qubits = n_qubits, 
-                                      model_name = model_name)
-        
+        dataset = get_manual_dataset(
+            name=name,
+            split=split,
+            transform=transform,
+            discretise=discretise,
+            n_samples=n_samples,
+            n_qubits=n_qubits,
+            model_name=model_name,
+        )
+
     elif name in VISION_DATASET_MAPPING:
         path = DATASET_CACHE_DIR / name
-        dataset = get_vision_dataset(name, path, split, n_samples, model_name, transform)
+        dataset = get_vision_dataset(
+            name, path, split, n_samples, model_name, transform
+        )
     else:
         raise ValueError(f"Dataset {name} is not supported")
     return dataset
@@ -92,7 +98,7 @@ class QuMETDataModule(pl.LightningDataModule):
         self,
         name: str,
         batch_size: int,
-        transform: str, 
+        transform: str,
         discretise: bool,
         n_samples: int,
         n_qubits: int,
@@ -100,7 +106,7 @@ class QuMETDataModule(pl.LightningDataModule):
         model_name: str = None,
     ) -> None:
         super().__init__()
-      
+
         self.name = name
         self.num_workers = num_workers
         self.n_samples = n_samples
@@ -117,14 +123,16 @@ class QuMETDataModule(pl.LightningDataModule):
         self.transform_instance = None
 
         self.batch_size = 1 if self.dataset_info.probs_generation else batch_size
- 
+
     def prepare_data(self) -> None:
-        
-        if self.transform in ['pca', 'vae']:
+
+        if self.transform in ["pca", "vae"]:
             match self.transform:
-                case 'pca':
-                    self.transform_instance = get_transform(self.transform, n_components = 40)
-                case 'vae':
+                case "pca":
+                    self.transform_instance = get_transform(
+                        self.transform, n_components=40
+                    )
+                case "vae":
                     pass
                 case _:
                     raise ValueError(f"Unknown transform {self.transform}")
@@ -135,17 +143,17 @@ class QuMETDataModule(pl.LightningDataModule):
                 num_workers=self.num_workers,
                 n_samples=self.n_samples,
                 n_qubits=self.n_qubits,
-                transform = self.transform,
-                discretise = self.discretise,
+                transform=self.transform,
+                discretise=self.discretise,
                 model_name=self.model_name,
             )
 
             all_data = []
             for img, _ in train_dataset:
                 all_data.append(img)
-            all_data = torch.stack(all_data) 
+            all_data = torch.stack(all_data)
             self.transform_instance.fit(all_data)
-        
+
         else:
             train_dataset = get_dataset(
                 self.name,
@@ -153,8 +161,8 @@ class QuMETDataModule(pl.LightningDataModule):
                 num_workers=self.num_workers,
                 n_samples=self.n_samples,
                 n_qubits=self.n_qubits,
-                transform = self.transform,
-                discretise = self.discretise,
+                transform=self.transform,
+                discretise=self.discretise,
                 model_name=self.model_name,
             )
 
@@ -164,18 +172,18 @@ class QuMETDataModule(pl.LightningDataModule):
             num_workers=self.num_workers,
             n_samples=self.n_samples,
             n_qubits=self.n_qubits,
-            transform = self.transform,
-            discretise = self.discretise,
+            transform=self.transform,
+            discretise=self.discretise,
             model_name=self.model_name,
         )
         test_dataset = get_dataset(
             self.name,
             split="test",
             num_workers=self.num_workers,
-            n_samples = self.n_samples,
+            n_samples=self.n_samples,
             n_qubits=self.n_qubits,
-            transform = self.transform,
-            discretise = self.discretise,
+            transform=self.transform,
+            discretise=self.discretise,
             model_name=self.model_name,
         )
         pred_dataset = get_dataset(
@@ -184,8 +192,8 @@ class QuMETDataModule(pl.LightningDataModule):
             num_workers=self.num_workers,
             n_samples=self.n_samples,
             n_qubits=self.n_qubits,
-            transform = self.transform,
-            discretise = self.discretise,
+            transform=self.transform,
+            discretise=self.discretise,
             model_name=self.model_name,
         )
 
@@ -210,8 +218,8 @@ class QuMETDataModule(pl.LightningDataModule):
                 num_workers=self.num_workers,
                 n_samples=self.n_samples,
                 n_qubits=self.n_qubits,
-                transform = transform,
-                discretise = self.discretise,
+                transform=transform,
+                discretise=self.discretise,
                 model_name=self.model_name,
             )
             if self.train_dataset is not None:
@@ -223,8 +231,8 @@ class QuMETDataModule(pl.LightningDataModule):
                 num_workers=self.num_workers,
                 n_samples=self.n_samples,
                 n_qubits=self.n_qubits,
-                transform = transform,
-                discretise = self.discretise,
+                transform=transform,
+                discretise=self.discretise,
                 model_name=self.model_name,
             )
             if self.val_dataset is not None:
@@ -236,8 +244,8 @@ class QuMETDataModule(pl.LightningDataModule):
                 num_workers=self.num_workers,
                 n_samples=self.n_samples,
                 n_qubits=self.n_qubits,
-                transform = transform,
-                discretise = self.discretise,
+                transform=transform,
+                discretise=self.discretise,
                 model_name=self.model_name,
             )
             if self.test_dataset is not None:
@@ -249,8 +257,8 @@ class QuMETDataModule(pl.LightningDataModule):
                 num_workers=self.num_workers,
                 n_samples=self.n_samples,
                 n_qubits=self.n_qubits,
-                transform = transform,
-                discretise = self.discretise,
+                transform=transform,
+                discretise=self.discretise,
                 model_name=self.model_name,
             )
             if self.pred_dataset is not None:
@@ -263,11 +271,11 @@ class QuMETDataModule(pl.LightningDataModule):
                 "probably because the train set does not have ground truth labels, "
                 "or the train dataset does not exist."
             )
-        
+
         return DataLoader(
             self.train_dataset,
-            batch_size= self.batch_size,
-            shuffle= True,
+            batch_size=self.batch_size,
+            shuffle=True,
             num_workers=self.num_workers,
         )
 
@@ -280,7 +288,7 @@ class QuMETDataModule(pl.LightningDataModule):
             )
         return DataLoader(
             self.val_dataset,
-            batch_size = self.batch_size,
+            batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
         )

@@ -1,17 +1,17 @@
 import gymnasium
 from gymnasium import register
+
 from .noiseless_envs import (
-    is_noiseless_environment,
-    get_noiseless_environment_info,
     get_noiseless_environment,
+    get_noiseless_environment_info,
+    is_noiseless_environment,
 )
 from .noisy_envs import (
-    is_noisy_environment,
-    get_noisy_environment_info,
     get_noisy_environment,
+    get_noisy_environment_info,
+    is_noisy_environment,
 )
-
-from .utils import QumetEnvironmentInfo, EnvironmentType, EnvironmentTaskType
+from .utils import EnvironmentTaskType, EnvironmentType, QumetEnvironmentInfo
 
 
 def get_environment_info(name: str) -> QumetEnvironmentInfo:

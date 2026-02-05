@@ -1,8 +1,11 @@
+import os
+
 from torch.utils.data import Dataset
 from torchvision import datasets
-import os
+
 from ..utils import add_dataset_info
 from .transforms import DataTransformationMixin
+
 
 @add_dataset_info(
     name="cifar10",
@@ -14,7 +17,13 @@ from .transforms import DataTransformationMixin
 )
 class Cifar10QuMET(datasets.CIFAR10, DataTransformationMixin):
     def __init__(
-        self, root: os.PathLike, train: bool, n_samples:int, transform: callable, download: bool, model_name:str
+        self,
+        root: os.PathLike,
+        train: bool,
+        n_samples: int,
+        transform: callable,
+        download: bool,
+        model_name: str,
     ) -> None:
         super().__init__(root, train=train, transform=transform, download=download)
 
@@ -33,12 +42,22 @@ class Cifar10QuMET(datasets.CIFAR10, DataTransformationMixin):
 
 
 def get_cifar_dataset(
-    name: str, path: os.PathLike, train: bool, transform: callable, n_samples: int, model_name: str 
+    name: str,
+    path: os.PathLike,
+    train: bool,
+    transform: callable,
+    n_samples: int,
+    model_name: str,
 ) -> Dataset:
     match name.lower():
         case "cifar10":
             dataset = Cifar10QuMET(
-                path, train=train, transform=transform, download=True, n_samples=n_samples, model_name=model_name
+                path,
+                train=train,
+                transform=transform,
+                download=True,
+                n_samples=n_samples,
+                model_name=model_name,
             )
         case _:
             raise ValueError(f"Unknown dataset {name}")

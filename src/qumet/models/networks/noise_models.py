@@ -1,6 +1,6 @@
 from functools import partial, wraps
-import pennylane as qml
 
+import pennylane as qml
 
 # noises = [None, qml.PhaseFlip, qml.PhaseDamping, qml.DepolarizingChannel, qml.AmplitudeDamping]
 
@@ -25,10 +25,14 @@ def add_noise_to_circuit(noise_dict, prob=0.01):
             for noise, gate in noise_dict.items():
                 c0 = qml.noise.op_eq(gate)  # Find every instance of the specified gate
                 n0 = qml.noise.partial_wires(noise, prob)
-                noise_model_dict[c0] = n0  # Add the condition and noise operation to the dictionary
+                noise_model_dict[c0] = (
+                    n0  # Add the condition and noise operation to the dictionary
+                )
 
             noise_model = qml.NoiseModel(noise_model_dict)
-            noisy_circuit = partial(qml.transforms.add_noise, noise_model=noise_model)(circuit)
+            noisy_circuit = partial(qml.transforms.add_noise, noise_model=noise_model)(
+                circuit
+            )
 
             return noisy_circuit(*args, **kwargs)
 
@@ -59,4 +63,3 @@ def add_noise_to_circuit(noise_dict, prob=0.01):
 #     noise_model = qml.NoiseModel(noise_model_dict)
 #
 #     return partial(qml.transforms.add_noise, noise_model=noise_model)(circuit)
-

@@ -1,13 +1,14 @@
-from .visualisation import GANImagesCallback, TSNEPlotCallback
 from .evaluation import (
+    CosSimilarityEvaluationCallback,
     FIDEvaluationCallback,
+    GMMEvaluationCallback,
     ISEvaluationCallback,
     NDB_JSD_EvaluationCallback,
-    CosSimilarityEvaluationCallback,
-    GMMEvaluationCallback,
     PSNRCallback,
-    SSIMCallback
+    SSIMCallback,
 )
+from .visualisation import GANImagesCallback, TSNEPlotCallback
+
 
 def select_callbacks(model_info, task, metrics_to_use=None, metric_init_args=None):
     """
@@ -29,34 +30,34 @@ def select_callbacks(model_info, task, metrics_to_use=None, metric_init_args=Non
     """
     # Mapping from class names to callback classes
     callback_classes = {
-        'GANImagesCallback': GANImagesCallback,
-        'FID': FIDEvaluationCallback,
-        'IS': ISEvaluationCallback,
-        'NDB_JSD': NDB_JSD_EvaluationCallback,
-        'GMMEvaluationCallback': GMMEvaluationCallback,
+        "GANImagesCallback": GANImagesCallback,
+        "FID": FIDEvaluationCallback,
+        "IS": ISEvaluationCallback,
+        "NDB_JSD": NDB_JSD_EvaluationCallback,
+        "GMMEvaluationCallback": GMMEvaluationCallback,
         "CosineSimilarity": CosSimilarityEvaluationCallback,
         "PSNR": PSNRCallback,
         "SSIM": SSIMCallback,
-        'TSNEPlotCallback': TSNEPlotCallback
+        "TSNEPlotCallback": TSNEPlotCallback,
     }
 
     # Mapping from model types and tasks to the corresponding callbacks
     # Define the shared callbacks dictionary
     shared_callbacks = {
-        'image_generation': {
-            'default': [
-                'GANImagesCallback',
-                'FID',
-                'IS',
-                'NDB_JSD',
-                'GMMEvaluationCallback',
-                'TSNEPlotCallback',
-                'CosineSimilarity',
-                'PSNR',
-                'SSIM'
+        "image_generation": {
+            "default": [
+                "GANImagesCallback",
+                "FID",
+                "IS",
+                "NDB_JSD",
+                "GMMEvaluationCallback",
+                "TSNEPlotCallback",
+                "CosineSimilarity",
+                "PSNR",
+                "SSIM",
             ],
-            'apqgan': [
-                'GMMEvaluationCallback',
+            "apqgan": [
+                "GMMEvaluationCallback",
                 # You can include other metrics specific to 'apqgan' here
             ],
         },
@@ -64,8 +65,8 @@ def select_callbacks(model_info, task, metrics_to_use=None, metric_init_args=Non
 
     # Define the metric_mapping with each model type as a separate key
     metric_mapping = {
-        'qgan': shared_callbacks,
-        'gan': shared_callbacks,
+        "qgan": shared_callbacks,
+        "gan": shared_callbacks,
         # Add other model types as needed
     }
 
@@ -90,23 +91,29 @@ def select_callbacks(model_info, task, metrics_to_use=None, metric_init_args=Non
 
     # Get applicable metrics
     # Start with default metrics
-    default_metrics = task_metrics_mapping.get('default', [])
+    default_metrics = task_metrics_mapping.get("default", [])
     # Get model-specific metrics, if any
     model_specific_metrics = task_metrics_mapping.get(model_name, [])
 
     # Combine default metrics with model-specific metrics, avoiding duplicates
-    applicable_metrics = default_metrics + [metric for metric in model_specific_metrics if metric not in default_metrics]
+    applicable_metrics = default_metrics + [
+        metric for metric in model_specific_metrics if metric not in default_metrics
+    ]
 
     # If metrics_to_use is provided, filter the applicable metrics
     if metrics_to_use is not None:
         # Validate that the selected metrics belong to the task and model type
-        invalid_metrics = [metric for metric in metrics_to_use if metric not in applicable_metrics]
+        invalid_metrics = [
+            metric for metric in metrics_to_use if metric not in applicable_metrics
+        ]
         if invalid_metrics:
             raise ValueError(
                 f"Metrics {invalid_metrics} are not valid for the task '{task}' with model '{model_name}'."
             )
         # Use the metrics in metrics_to_use, preserving the order specified
-        applicable_metrics = [metric for metric in metrics_to_use if metric in applicable_metrics]
+        applicable_metrics = [
+            metric for metric in metrics_to_use if metric in applicable_metrics
+        ]
     else:
         # If metrics_to_use is None, use the applicable_metrics as is
         pass
@@ -117,20 +124,26 @@ def select_callbacks(model_info, task, metrics_to_use=None, metric_init_args=Non
         init_args = metric_init_args.get(metric, {}) if metric_init_args else {}
 
         # Special handling for GMMEvaluationCallback to pass nested callback args
-        if metric == 'GMMEvaluationCallback':
+        if metric == "GMMEvaluationCallback":
             # Extract nested args for internal callbacks
-            ndb_jsd_args = init_args.get('NDB_JSD_EvaluationCallback', {})
-            gan_images_args = init_args.get('GANImagesCallback', {})
+            ndb_jsd_args = init_args.get("NDB_JSD_EvaluationCallback", {})
+            gan_images_args = init_args.get("GANImagesCallback", {})
 
             # Remove nested args from init_args to avoid conflicts
-            init_args = {k: v for k, v in init_args.items() if k not in ['NDB_JSD_EvaluationCallback', 'GANImagesCallback']}
+            init_args = {
+                k: v
+                for k, v in init_args.items()
+                if k not in ["NDB_JSD_EvaluationCallback", "GANImagesCallback"]
+            }
 
             # Instantiate GMMEvaluationCallback with nested args
-            callbacks.append(callback_classes[metric](
-                **init_args,
-                ndb_jsd_args=ndb_jsd_args,
-                gan_images_args=gan_images_args
-            ))
+            callbacks.append(
+                callback_classes[metric](
+                    **init_args,
+                    ndb_jsd_args=ndb_jsd_args,
+                    gan_images_args=gan_images_args,
+                )
+            )
         else:
             # Instantiate the callback with the provided initialization arguments
             callbacks.append(callback_classes[metric](**init_args))

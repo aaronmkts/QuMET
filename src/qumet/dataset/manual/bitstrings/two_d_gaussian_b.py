@@ -1,21 +1,23 @@
-import numpy as np
-from scipy.stats import multivariate_normal
-import torch
-from torch.utils.data import Dataset
-from ...utils import add_dataset_info
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
 from matplotlib import cm
+from scipy.stats import multivariate_normal
+from torch.utils.data import Dataset
+
+from ...utils import add_dataset_info
 
 # Set the random seed for reproducibility
 SEED = 42
 torch.manual_seed(SEED)
 np.random.seed(SEED)
 
+
 @add_dataset_info(
     name="2d_gaussian_b",
     dataset_source="manual",
     available_splits=("train", "validation"),
-    probs_generation= True
+    probs_generation=True,
 )
 class TwoDGaussianDatasetB(Dataset):
     def __init__(self, split="train", n_qubits=16) -> None:
@@ -36,7 +38,6 @@ class TwoDGaussianDatasetB(Dataset):
                 f"split must be `train` or `validation`, but got {split}"
             )
 
-        
     def _generate_samples(self):
 
         rv = multivariate_normal(mean=[0.0, 0.0], cov=[[1, 0], [0, 1]], seed=SEED)
@@ -47,7 +48,7 @@ class TwoDGaussianDatasetB(Dataset):
             ]
         )
         num_samples = len(grid_elements)
-        
+
         samples = rv.pdf(grid_elements)
         prob_data = samples / np.sum(samples)
 

@@ -1,11 +1,10 @@
-from typing import Dict
-from pennylane.qnn import TorchLayer as TorchConnector
-from pennylane import numpy as np
+from logging import getLogger
+
+import pennylane as qml
 import torch.jit
 import torch.nn as nn
-import pennylane as qml
-from torch import Tensor
-from logging import getLogger
+from pennylane import numpy as np
+
 from qumet.models.networks import add_noise_to_circuit
 
 logger = getLogger(__name__)
@@ -36,13 +35,17 @@ class QCBMGenerator(nn.Module):
         self.q_layer = self._construct_quantum_layer()
 
     def _construct_quantum_layer(self):
-        wshape = qml.StronglyEntanglingLayers.shape(n_layers=self.depth, n_wires=self.n_qubits)
+        wshape = qml.StronglyEntanglingLayers.shape(
+            n_layers=self.depth, n_wires=self.n_qubits
+        )
         weights = np.random.random(size=wshape)
-        self.weights = nn.Parameter(torch.tensor(weights, requires_grad=True, dtype=torch.float64))
+        self.weights = nn.Parameter(
+            torch.tensor(weights, requires_grad=True, dtype=torch.float64)
+        )
 
         self.q_device = qml.device(self.device, wires=self.n_qubits)
 
-        @qml.qnode(self.q_device, interface='torch', diff_method=self.diff_method)
+        @qml.qnode(self.q_device, interface="torch", diff_method=self.diff_method)
         @add_noise_to_circuit(noise_dict={qml.PhaseFlip: qml.Rot}, prob=0.01)
         def circuit(weights):
             qml.StronglyEntanglingLayers(
@@ -80,7 +83,7 @@ def _qcbm(config, task: str) -> QCBM:
     return model
 
 
-def get_qcbm(info: Dict) -> QCBM:
+def get_qcbm(info: dict) -> QCBM:
     task = "info.generation"
     logger.info(f"The following {config} loaded for task into QCBM")
     return _qcbm(config=config, task=task)

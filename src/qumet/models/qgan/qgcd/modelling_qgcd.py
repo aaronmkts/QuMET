@@ -2,20 +2,17 @@
 
 # Library imports
 import math
-import random
-import numpy as np
+
 import pennylane as qml
-from pennylane.templates import AngleEmbedding
-import sys
-from torch import Tensor
 
 # Pytorch imports
 import torch
 import torch.nn as nn
-from typing import Optional, Union
 from pennylane.qnn import TorchLayer as TorchConnector
+from pennylane.templates import AngleEmbedding
+from torch import Tensor
+
 from .configuration_qgcd import QGCDConfig, QmlMixin
-from pytorch_lightning.core import LightningModule
 
 _CONFIG_FOR_DOC = "QGCDConfig"
 
@@ -48,9 +45,9 @@ class Generator(nn.Module, QmlMixin):
         config: QGCDConfig = QGCDConfig,
         n_qubits: int = 6,
         depth: int = 4,
-        device: Optional[Union[str, qml.Device]] = "default.qubit",
+        device: str | qml.Device | None = "default.qubit",
     ) -> None:
-        super(Generator, self).__init__()
+        super().__init__()
         self.config = config
         self.n_qubits = n_qubits
         self.depth = depth

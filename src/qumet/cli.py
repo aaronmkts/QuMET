@@ -1,7 +1,7 @@
 """
 qmt: QuMET's command line interface
 
-The brains behind the qmt interface that allows users to train and test a supported model. 
+The brains behind the qmt interface that allows users to train and test a supported model.
 You'll find a list of the available models and datasets in QuMET README.md file.
 
 Feel free to browse this file and please flag any issues or feature requests here:
@@ -24,36 +24,34 @@ Internal Backlog:
    for checking extensions. The function would return a pre-configured callable.
 """
 
+import argparse
+import cProfile
 import logging
 import os
 import sys
 import time
-import argparse
+import warnings
 from argparse import SUPPRESS
-from typing import Sequence
-from pathlib import Path
+from collections.abc import Sequence
 from functools import partial
+from pathlib import Path
 
 import ipdb
-import cProfile
-import warnings
 
 # import pytorch_lightning as pl
 import lightning as pl
-from lightning.pytorch.loggers.wandb import WandbLogger
-from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 import optuna
-from tabulate import tabulate
 import torch
-import pennylane
 import torch.utils
 import torch.utils.checkpoint
+from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
+from lightning.pytorch.loggers.wandb import WandbLogger
+from tabulate import tabulate
 
 from . import models
 from .actions import train, validate
-from .dataset import QuMETDataModule, AVAILABLE_DATASETS, get_dataset_info
-from .tools import post_parse_load_config, load_config
-
+from .dataset import AVAILABLE_DATASETS, QuMETDataModule
+from .tools import post_parse_load_config
 
 # Housekeeping -------------------------------------------------------------------------
 # Use the third-party IPython debugger to handle breakpoints; this debugger features
@@ -100,7 +98,7 @@ LOGO = f"""
                     please refer to the docs.
 """
 TASKS = ["discrete_generation", "continuous_generaton", "image_generation"]
-TRANSFORM = ['minmax', 'pit', 'pca']
+TRANSFORM = ["minmax", "pit", "pca"]
 ACTIONS = ["train"]
 INFO_TYPE = ["all", "model", "dataset"]
 LOAD_TYPE = [
@@ -177,9 +175,9 @@ class QuMETCLI:
 
         self.logger = logging.getLogger("QuMET")
         parser = self._setup_parser()
-        
+
         args = parser.parse_intermixed_args(argv)
-      
+
         if args.to_debug:
             sys.excepthook = self._excepthook
             self.logger.setLevel(logging.DEBUG)
@@ -213,27 +211,27 @@ class QuMETCLI:
         # NOTE: The project name is set later on (if no configuration is provided), so
         # the merged argument table may show None, but this is not the case.
         self.args = post_parse_load_config(args, CLI_DEFAULTS)
-        
+
         # Housekeeping
         pl.seed_everything(self.args.seed)
 
         # Sanity check
         if not self.args.model or not self.args.dataset:
             raise ValueError("No model and/or dataset provided! These are required.")
-        
+
         (
             self.model,
             self.data_module,
             self.model_info,
         ) = self._setup_model_and_dataset()
-        
+
         self.output_dir, self.output_dir_sw = self._setup_folders()
         self.visualizer = self._setup_visualizer()
 
         if self.args.no_warnings:
             # Disable all warnings
             warnings.simplefilter("ignore")
-   
+
     def run(self):
         run_action_fn = None
         match self.args.action:
@@ -244,8 +242,7 @@ class QuMETCLI:
 
         if run_action_fn is None:
             raise ValueError(f"Unsupported action: {self.args.action}")
-        
-        
+
         if self.args.profile:
             prof = cProfile.runctx(
                 "run_action_fn()", globals(), locals(), sort="cumtime"
@@ -301,7 +298,6 @@ class QuMETCLI:
             "metrics": self.args.metrics_to_use,
             "metric_init_args": self.args.metric_init_args,
             "add_vae": self.args.add_vae,
-            
         }
 
         self.logger.info(f"##### WEIGHT DECAY ##### {self.args.weight_decay}")
@@ -342,7 +338,7 @@ class QuMETCLI:
 
         validate(**validate_params)
         self.logger.info("Validation is completed")
-        
+
     # Helpers --------------------------------------------------------------------------
     def _setup_parser(self):
         # NOTE: For a better developer experience, it's helpful to collapse all function
@@ -560,7 +556,7 @@ class QuMETCLI:
             help="number of qubits for data module. (default: %(default)s))",
             metavar="NUM",
         )
-        
+
         trainer_group.add_argument(
             "--add_vae",
             dest="add_vae",
@@ -679,7 +675,7 @@ class QuMETCLI:
 
         parser.set_defaults(**CLI_DEFAULTS)
         return parser
-                          
+
     def _setup_model_and_dataset(self):
 
         self.logger.info(f"Initialising model {self.args.model!r}...")
@@ -688,17 +684,17 @@ class QuMETCLI:
         # name, when called, the model instance function creates and returns an instance
         # of a specified model.
         # NOTE: See main/qumet/models/__init__.py for more information
-        
-        #dataset_info = get_dataset_info(self.args.dataset)
+
+        # dataset_info = get_dataset_info(self.args.dataset)
         model_info = models.get_model_info(self.args.model)
-        discretise = True if 'discrete' or 'probs' in self.args.task else False
+        discretise = True if "discrete" or "probs" in self.args.task else False
         self.logger.info(f"Initialising dataset {self.args.dataset!r}...")
         data_module = QuMETDataModule(
             name=self.args.dataset,
             batch_size=self.args.batch_size,
-            transform = self.args.transform,
-            discretise = discretise,
-            n_samples = self.args.n_samples,
+            transform=self.args.transform,
+            discretise=discretise,
+            n_samples=self.args.n_samples,
             n_qubits=self.args.n_qubits,
             num_workers=self.args.num_workers,
             model_name=self.args.model,
@@ -725,7 +721,7 @@ class QuMETCLI:
                 self.args.dataset,
                 time.strftime("%Y-%m-%d"),
             )
-            setattr(self.args, "project", project)
+            self.args.project = project
 
         output_dir = Path(self.args.project_dir) / project
         output_dir_sw = Path(output_dir) / "software"
@@ -745,15 +741,18 @@ class QuMETCLI:
         ipdb.post_mortem(etb)
 
     def _setup_visualizer(self):
-    
+
         visualizer = None
         match self.args.report_to:
             case "wandb":
                 visualizer = WandbLogger(
-                    project=self.args.project, save_dir=self.output_dir_sw,
-                    log_model = True, name = self.args.run_name, entity = 'qumet'
+                    project=self.args.project,
+                    save_dir=self.output_dir_sw,
+                    log_model=True,
+                    name=self.args.run_name,
+                    entity="qumet",
                 )
-             
+
                 visualizer.experiment.config.update(vars(self.args))
             case "tensorboard":
                 visualizer = TensorBoardLogger(
@@ -769,7 +768,7 @@ class QuMETCLI:
 # check if the path is a valid file path
 def _valid_filepath(path: str):
     if not os.path.exists(path):
-        raise argparse.ArgumentTypeError(f"file not found")
+        raise argparse.ArgumentTypeError("file not found")
     if not os.path.isfile(path):
         raise argparse.ArgumentTypeError(f"expected path to file, got {path!r}")
     return os.path.abspath(path)
@@ -782,7 +781,7 @@ def _valid_directory_path(path: str, create_dir: bool = False):
             f"expected path to directory, got file {path!r}"
         )
     if (not os.path.exists(path)) and (not create_dir):
-        raise argparse.ArgumentTypeError(f"directory not found")
+        raise argparse.ArgumentTypeError("directory not found")
     elif (not os.path.exists(path)) and create_dir:
         os.makedirs(path, exist_ok=True)
     return os.path.abspath(path)
@@ -791,7 +790,7 @@ def _valid_directory_path(path: str, create_dir: bool = False):
 # Returns the absolute path to a file or directory if it is indeed a valid path
 def _valid_file_or_directory_path(path: str):
     if not os.path.exists(path):
-        raise argparse.ArgumentTypeError(f"file or directory not found")
+        raise argparse.ArgumentTypeError("file or directory not found")
     return os.path.abspath(path)
 
 

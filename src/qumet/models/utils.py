@@ -10,7 +10,7 @@ class ModelType(Enum):
 
     QGAN = "qgan"
     GAN = "gan"
-    QCBM = 'qcbm'
+    QCBM = "qcbm"
     VAE = "vae"
 
 
@@ -38,7 +38,6 @@ class QumetModelInfo:
     # Generation models
     bitstring_sampling: bool = False
     observable_sampling: bool = False
-    
 
     def __post_init__(self):
         self.model_type = (
@@ -54,7 +53,9 @@ class QumetModelInfo:
 
         # Vision models
         if self.task_type == ModelTaskType.GENERATION:
-            assert self.bitstring_sampling + self.observable_sampling >= 1, "Must be a generative model"
+            assert (
+                self.bitstring_sampling + self.observable_sampling >= 1
+            ), "Must be a generative model"
 
     @property
     def is_generation_model(self):

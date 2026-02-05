@@ -1,13 +1,11 @@
 import sys
 from contextlib import closing
 from io import StringIO
-from typing import Dict, List, Optional, Union
 
-import pennylane as qml
-import gymnasium as gym
-import numpy as np
-from gymnasium import spaces
 import gymnasium
+import numpy as np
+import pennylane as qml
+from gymnasium import spaces
 from gymnasium.utils import seeding
 
 ############# STATE PREPERATION TOOLS #############
@@ -19,16 +17,16 @@ class QuantumArchSearchEnv(gymnasium.Env):
     def __init__(
         self,
         target: np.ndarray,
-        qubits: List[qml.wires.Wires],
-        state_observables: List[qml.operation],
-        action_gates: List[qml.operation],
+        qubits: list[qml.wires.Wires],
+        state_observables: list[qml.operation],
+        action_gates: list[qml.operation],
         fidelity_threshold: float,
         reward_penalty: float,
         max_timesteps: int,
-        error_observables: Optional[float] = None,
-        error_gates: Optional[float] = None,
+        error_observables: float | None = None,
+        error_gates: float | None = None,
     ):
-        super(QuantumArchSearchEnv, self).__init__()
+        super().__init__()
 
         # set parameters
         self.target = target
@@ -149,7 +147,7 @@ class QuantumArchSearchEnv(gymnasium.Env):
                 return outfile.getvalue()
 
 
-def get_default_gates(qubits: List[qml.wires.Wires]) -> List[qml.operation]:
+def get_default_gates(qubits: list[qml.wires.Wires]) -> list[qml.operation]:
     gates = []
     n_qubits = len(qubits)
     for idx, qubit in enumerate(qubits):
@@ -165,7 +163,7 @@ def get_default_gates(qubits: List[qml.wires.Wires]) -> List[qml.operation]:
     return gates
 
 
-def get_default_observables(qubits: List[qml.wires.Wires]) -> List[qml.operation]:
+def get_default_observables(qubits: list[qml.wires.Wires]) -> list[qml.operation]:
     observables = []
     for qubit in qubits:
         observables += [

@@ -1,6 +1,8 @@
 import torch
 from torchvision import transforms as tv_transforms
+
 from .base_transform import TransformBase
+
 
 class VAE_Transform(TransformBase):
     def __init__(self, vae_model):

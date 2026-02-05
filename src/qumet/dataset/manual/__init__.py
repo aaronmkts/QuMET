@@ -2,18 +2,26 @@ import os
 from pathlib import Path
 
 from .bars_and_stripes import BarsAndStripesDataset
+from .bitstrings import (
+    TwoDGaussianDatasetB,
+    TwoDGridGaussianDatasetB,
+    TwoDRingGaussianDatasetB,
+)
 from .transforms import get_manual_dataset_transform
 from .two_d_gaussian import TwoDGaussianDataset
 from .two_d_grid_gaussian import TwoDGridGaussianDataset
 from .two_d_ring_gaussian import TwoDRingGaussianDataset
-from .bitstrings import (
-    TwoDGaussianDatasetB,
-    TwoDGridGaussianDatasetB,
-    TwoDRingGaussianDatasetB)
 
-def get_manual_dataset(name: str, split: str, transform: str, discretise: bool,
-                       model_name: str, n_qubits: int, n_samples: int):
 
+def get_manual_dataset(
+    name: str,
+    split: str,
+    transform: str,
+    discretise: bool,
+    model_name: str,
+    n_qubits: int,
+    n_samples: int,
+):
     """
     Args:
         name (str): name of the dataset
@@ -30,11 +38,13 @@ def get_manual_dataset(name: str, split: str, transform: str, discretise: bool,
         "test",
         "pred",
     ], f"Unknown split {split}, should be one of train, validation, test, pred"
- 
-    normaliser, discretisation = get_manual_dataset_transform(name, transform, discretise, model_name)
+
+    normaliser, discretisation = get_manual_dataset_transform(
+        name, transform, discretise, model_name
+    )
 
     match name:
-        case 'bars_and_stripes':
+        case "bars_and_stripes":
             dataset_cls = BarsAndStripesDataset
         case "2d_gaussian":
             dataset_cls = TwoDGaussianDataset
@@ -77,7 +87,7 @@ MANUAL_DATASET_MAPPING = {
     "2d_ring_gaussian": TwoDRingGaussianDataset,
     "2d_gaussian_b": TwoDGaussianDatasetB,
     "2d_grid_gaussian_b": TwoDGridGaussianDatasetB,
-    "2d_ring_gaussian_b": TwoDRingGaussianDatasetB
+    "2d_ring_gaussian_b": TwoDRingGaussianDatasetB,
 }
 
 

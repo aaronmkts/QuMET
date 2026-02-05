@@ -1,9 +1,11 @@
-from .mnist import get_mnist_transform
-from .fashion_mnist import get_fashion_mnist_transform
-from .cifar import get_cifar10_transform
-from .utils import filter_by_labels, scale_data, PCA, n_samples
 import numpy as np
 import torch
+
+from .cifar import get_cifar10_transform
+from .fashion_mnist import get_fashion_mnist_transform
+from .mnist import get_mnist_transform
+from .utils import PCA, filter_by_labels, n_samples, scale_data
+
 
 class DataTransformationMixin:
 
@@ -12,11 +14,10 @@ class DataTransformationMixin:
         Filters the dataset to only include specified labels.
         """
         return filter_by_labels(self, labels)
-    
+
     def n_samples_(self, samples: int):
- 
+
         return n_samples(self, samples)
-    
 
     def fit_pca(self, n_components):
 
@@ -32,16 +33,17 @@ class DataTransformationMixin:
     def apply_pca(self, img):
 
         transformed_img = self.pca_model.transform(img)
-        
+
         return transformed_img
 
-  
     @staticmethod
     def scale_data(data, scale=None, dtype=np.float32):
         return scale_data(data, scale=scale, dtype=np.float32)
 
-    
-def get_vision_dataset_transform(name: str, train: bool, model_name: str, transform: None):
+
+def get_vision_dataset_transform(
+    name: str, train: bool, model_name: str, transform: None
+):
     """
     Args:
         name (str): name of the dataset

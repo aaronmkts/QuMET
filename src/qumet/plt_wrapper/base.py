@@ -1,12 +1,14 @@
-import lightning.pytorch as pl
-import torch
 import io
-import matplotlib.pyplot as plt
-from PIL import Image
-import torchvision
-# from torchmetrics.functional import accuracy
-from torchmetrics import Accuracy, MeanMetric
 from dataclasses import dataclass, field
+
+import lightning.pytorch as pl
+import matplotlib.pyplot as plt
+import torch
+import torchvision
+from PIL import Image
+
+# from torchmetrics.functional import accuracy
+
 
 class WrapperBase(pl.LightningModule):
     def __init__(
@@ -16,7 +18,7 @@ class WrapperBase(pl.LightningModule):
         weight_decay=0.0,
         epochs=1,
         optimizer=None,
-        freeze_modules=None
+        freeze_modules=None,
     ):
         super().__init__()
         self.model = model
@@ -25,24 +27,23 @@ class WrapperBase(pl.LightningModule):
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.epochs = epochs
         self.optimizer = optimizer
-        self.freeze_modules=freeze_modules
-        
+        self.freeze_modules = freeze_modules
 
     def forward(self, x):
         raise NotImplementedError()
-    
+
     def training_step(self, batch):
         raise NotImplementedError()
 
     def configure_optimizers(self):
         raise NotImplementedError()
 
-    def plot_to_image(self,figure ):
+    def plot_to_image(self, figure):
         """Converts the matplotlib plot specified by 'figure' to a PNG image and
         returns it. The supplied figure is closed and inaccessible after this call."""
         # Save the plot to a PNG in memory.
         buf = io.BytesIO()
-        plt.savefig(buf, format='jpeg')
+        plt.savefig(buf, format="jpeg")
         # Closing the figure prevents it from being displayed directly inside
         # the notebook.
         plt.close(figure)
@@ -52,8 +53,9 @@ class WrapperBase(pl.LightningModule):
         im = torchvision.transforms.ToTensor()(im)
         return im
 
+
 @dataclass
-class ValidationResult():
+class ValidationResult:
     others: dict = field(default_factory=dict)
     real_image: torch.Tensor = None
     fake_image: torch.Tensor = None

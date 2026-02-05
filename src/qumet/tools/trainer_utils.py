@@ -1,10 +1,5 @@
-import enum as Enum
-from torch.optim.lr_scheduler import LambdaLR
-from functools import partial
-from typing import Union, Optional
-from torch.optim import Optimizer
+
 import torch
-from accelerate import Accelerator
 
 
 def get_optimizer(

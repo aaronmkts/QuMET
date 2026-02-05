@@ -1,47 +1,52 @@
 import os
 import sys
-import numpy as np 
+
 import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
 import pandas as pd
+import seaborn as sns
 import torch
 
 # Adjust Python path
 os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
 sys.path.append(
     os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "..", "..", ".." , "..","src"
+        os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", "..", "src"
     )
 )
+from PIL import Image
 from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import GridSearchCV
+from torchvision import transforms as tv_transforms
+
 from qumet.dataset import get_dataset, get_dataset_info
 from qumet.models import get_model
 from qumet.tools.checkpoint_load import load_model
-from torchvision import transforms as tv_transforms
-from PIL import Image
 
 
 def _get_cifar10_bw28_transform(train: bool):
     transform_list = [
         tv_transforms.Grayscale(num_output_channels=1),
-        tv_transforms.Resize((28, 28), interpolation=tv_transforms.InterpolationMode.BICUBIC),
-        tv_transforms.ToTensor()
+        tv_transforms.Resize(
+            (28, 28), interpolation=tv_transforms.InterpolationMode.BICUBIC
+        ),
+        tv_transforms.ToTensor(),
     ]
     transform = tv_transforms.Compose(transform_list)
     return transform
+
+
 def main():
     # -------------------------------
     # 1. Load Dataset
     # -------------------------------
-    dataset = get_dataset('cifar10', 'train', 'min-max', False, 2600, 8)
+    dataset = get_dataset("cifar10", "train", "min-max", False, 2600, 8)
     from torchvision import transforms as tv_transforms
+
     transform = _get_cifar10_bw28_transform(train=True)
 
-    transformed_images = [
-    transform(Image.fromarray(img)) for img in dataset.data
-    ]
-    cifar10=torch.stack(transformed_images)
+    transformed_images = [transform(Image.fromarray(img)) for img in dataset.data]
+    cifar10 = torch.stack(transformed_images)
     # ------------------------------
     dataset_info = get_dataset_info("cifar10")
     mnist = cifar10.squeeze(1)
@@ -60,7 +65,7 @@ def main():
     with torch.no_grad():
         mu, log_var, z = model.vae_forward(mnist)
 
-    z_samples = z.cpu().numpy()  
+    z_samples = z.cpu().numpy()
 
     # -------------------------------
     # 4. Define BIC Scoring Function
@@ -75,7 +80,7 @@ def main():
         "n_components": range(1, 9),
         "covariance_type": ["spherical", "tied", "diag", "full"],
     }
-    
+
     grid_search = GridSearchCV(
         GaussianMixture(), param_grid=param_grid, scoring=gmm_bic_score
     )
@@ -108,7 +113,7 @@ def main():
     print(f"Best Number of Components: {best_n_components}")
     print(f"Best Covariance Type: {best_covariance}")
     bic_value = df[
-    (df["Number of components"] == 3) & (df["Type of covariance"] == "full")
+        (df["Number of components"] == 3) & (df["Type of covariance"] == "full")
     ]["BIC score"].values
     print(bic_value)
     # -------------------------------
@@ -116,10 +121,7 @@ def main():
     # -------------------------------
     plt.figure(figsize=(10, 6))
     ax_main = sns.barplot(
-        data=df,
-        x="Number of components",
-        y="BIC score",
-        hue="Type of covariance"
+        data=df, x="Number of components", y="BIC score", hue="Type of covariance"
     )
 
     # Customizing the font sizes
@@ -129,16 +131,16 @@ def main():
     ax_main.set_xticklabels(df["Number of components"].unique(), fontsize=18)
     ax_main.set_yticklabels(ax_main.get_yticks(), fontsize=18)
 
-        
     # Increase legend size
     plt.legend(title="Type of Covariance", title_fontsize=20, fontsize=18)
-    
-    ax_main.spines['top'].set_visible(False)   # Hide top spine
-    ax_main.spines['right'].set_visible(False) # Hide right spine
-    ax_main.spines['bottom'].set_linewidth(1.5) # Make bottom spine thicker
-    ax_main.spines['left'].set_linewidth(1.5)   # Make left spine thicker
+
+    ax_main.spines["top"].set_visible(False)  # Hide top spine
+    ax_main.spines["right"].set_visible(False)  # Hide right spine
+    ax_main.spines["bottom"].set_linewidth(1.5)  # Make bottom spine thicker
+    ax_main.spines["left"].set_linewidth(1.5)  # Make left spine thicker
     plt.tight_layout()
     plt.show()
+
 
 if __name__ == "__main__":
     main()

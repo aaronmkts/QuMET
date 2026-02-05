@@ -1,15 +1,17 @@
 from functools import partial
+
 import jax
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
+
 from .integral_transform import emp_integral_trans
-from typing import List
 
 # Transformation classes
 
+
 class MinMaxNormalizer:
-    def __init__(self, reverse_lookup = None, epsilon = 0):
+    def __init__(self, reverse_lookup=None, epsilon=0):
         self.reverse_lookup = reverse_lookup
         self.epsilon = epsilon
 
@@ -32,8 +34,8 @@ class MinMaxNormalizer:
         return data * self.max + self.min
 
 
-class PITNormalizer():
-    def __init__(self, reverse_lookup = None, epsilon = 0):
+class PITNormalizer:
+    def __init__(self, reverse_lookup=None, epsilon=0):
         self.reverse_lookup = reverse_lookup
         self.epsilon = epsilon
 
@@ -44,7 +46,9 @@ class PITNormalizer():
 
         epit.values[::] = [emp_integral_trans(row) for row in epit.values]
         epit = epit.transpose()
-        reverse_epit_lookup.values[::] = [np.sort(row) for row in reverse_epit_lookup.values]
+        reverse_epit_lookup.values[::] = [
+            np.sort(row) for row in reverse_epit_lookup.values
+        ]
 
         df = epit.copy()
         self.reverse_lookup = reverse_epit_lookup.values
@@ -58,25 +62,31 @@ class PITNormalizer():
 
         epit.values[::] = [emp_integral_trans(row) for row in epit.values]
         epit = epit.transpose()
-        reverse_epit_lookup.values[::] = [np.sort(row) for row in reverse_epit_lookup.values]
+        reverse_epit_lookup.values[::] = [
+            np.sort(row) for row in reverse_epit_lookup.values
+        ]
 
         df = epit.copy()
         return df.values / (1 + self.epsilon)
 
-    def _reverse_emp_integral_trans_single(self, values: jnp.ndarray) -> List[float]:
-    # assumes non ragged array
+    def _reverse_emp_integral_trans_single(self, values: jnp.ndarray) -> list[float]:
+        # assumes non ragged array
         values = values * (jnp.shape(self.reverse_lookup)[1] - 1)
         rows = jnp.shape(self.reverse_lookup)[0]
-    # if we are an integer do not use linear interpolation
+        # if we are an integer do not use linear interpolation
         valuesL = jnp.floor(values).astype(int)
         valuesH = jnp.ceil(values).astype(int)
-    # if we are an integer then floor and ceiling are the same
+        # if we are an integer then floor and ceiling are the same
         isIntMask = 1 - (valuesH - valuesL)
         rowIndexer = jnp.arange(rows)
-        resultL = self.reverse_lookup[([rowIndexer], [valuesL])]  # doing 2d lookup as [[index1.row, index2.row],[index1.column, index2.column]]
-        resultH = self.reverse_lookup[([rowIndexer], [valuesH])]  # where 2d index tuple would be (index1.row, index1.column)
-    # lookup int or do linear interpolation
-        return resultL * (isIntMask + values - valuesL) + resultH * (valuesH - values)    
+        resultL = self.reverse_lookup[
+            ([rowIndexer], [valuesL])
+        ]  # doing 2d lookup as [[index1.row, index2.row],[index1.column, index2.column]]
+        resultH = self.reverse_lookup[
+            ([rowIndexer], [valuesH])
+        ]  # where 2d index tuple would be (index1.row, index1.column)
+        # lookup int or do linear interpolation
+        return resultL * (isIntMask + values - valuesL) + resultH * (valuesH - values)
 
     @partial(jax.jit, static_argnums=(0,))
     def inverse_transform(self, data: np.ndarray) -> np.ndarray:
@@ -85,10 +95,9 @@ class PITNormalizer():
         # res = [self._reverse_emp_integral_trans_single(row) for row in data]
         return res[:, 0, :]
 
+
 def load_data(data_set, n_train=None, n_test=None):
-    train = np.load(data_set + '.npy')
+    train = np.load(data_set + ".npy")
     if n_train is not None:
         train = train[:n_train]
     return train, []
-
-

@@ -1,10 +1,11 @@
-import pennylane as qml
 import numpy as np
+import pennylane as qml
+
 from ...gyms.tools import (
     QuantumArchSearchEnv,
+    get_bell_state,
     get_default_gates,
     get_default_observables,
-    get_bell_state,
     get_ghz_state,
 )
 
@@ -22,7 +23,7 @@ class NoisyNQubitEnv(QuantumArchSearchEnv):
         qubits = qml.wires.Wires(range(n_qubits))
         state_observables = get_default_observables(qubits)
         action_gates = get_default_gates(qubits)
-        super(NoisyNQubitEnv, self).__init__(
+        super().__init__(
             target,
             qubits,
             state_observables,
@@ -45,7 +46,7 @@ class NoisyTwoQubitEnv(NoisyNQubitEnv):
         error_rate: float = 0.001,
     ):
         assert len(target) == 4, "Target must be of size 4"
-        super(NoisyTwoQubitEnv, self).__init__(
+        super().__init__(
             target, fidelity_threshold, reward_penalty, max_timesteps, error_rate
         )
 
@@ -60,6 +61,6 @@ class NoisyThreeQubitEnv(NoisyNQubitEnv):
         error_rate: float = 0.001,
     ):
         assert len(target) == 8, "Target must be of size 8"
-        super(NoisyThreeQubitEnv, self).__init__(
+        super().__init__(
             target, fidelity_threshold, reward_penalty, max_timesteps, error_rate
         )

@@ -1,5 +1,5 @@
-from .noisy_envs import *
 from ..utils import QumetEnvironmentInfo
+from .noisy_envs import *
 
 NOISY_ENVIRONMENTS = {
     "NoisyNQubitEnv": {

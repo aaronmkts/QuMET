@@ -1,9 +1,10 @@
-import torch
-from torchmetrics import Metric
+
 import numpy as np
-from sklearn.cluster import KMeans
+import torch
 from scipy.stats import norm
-import math
+from sklearn.cluster import KMeans
+from torchmetrics import Metric
+
 
 class NDB_JSD_Metric(Metric):
     def __init__(
@@ -13,7 +14,7 @@ class NDB_JSD_Metric(Metric):
         z_threshold=None,
         whitening=False,
         max_dims=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.number_of_bins = number_of_bins
@@ -24,8 +25,8 @@ class NDB_JSD_Metric(Metric):
         self.max_dims = max_dims
 
         # Add states to accumulate training and generated features
-        self.add_state('training_features', default=[], dist_reduce_fx='cat')
-        self.add_state('generated_features', default=[], dist_reduce_fx='cat')
+        self.add_state("training_features", default=[], dist_reduce_fx="cat")
+        self.add_state("generated_features", default=[], dist_reduce_fx="cat")
 
         # Variables to be initialized later
         self.training_mean = None
@@ -43,9 +44,9 @@ class NDB_JSD_Metric(Metric):
             features (torch.Tensor): The data features to update the state with.
             data_type (str): Type of data, either 'training' or 'generated'.
         """
-        if data_type == 'training':
+        if data_type == "training":
             self.training_features.append(features)
-        elif data_type == 'generated':
+        elif data_type == "generated":
             self.generated_features.append(features)
         else:
             raise ValueError("data_type must be 'training' or 'generated'")
@@ -61,15 +62,21 @@ class NDB_JSD_Metric(Metric):
         training_samples = torch.cat(self.training_features, dim=0)
         generated_samples = torch.cat(self.generated_features, dim=0)
 
-        training_samples_np = training_samples.reshape(training_samples.size(0), -1).cpu().numpy()
-        generated_samples_np = generated_samples.reshape(generated_samples.size(0), -1).cpu().numpy()
-       
+        training_samples_np = (
+            training_samples.reshape(training_samples.size(0), -1).cpu().numpy()
+        )
+        generated_samples_np = (
+            generated_samples.reshape(generated_samples.size(0), -1).cpu().numpy()
+        )
+
         # Construct bins using training samples
         self.construct_bins(training_samples_np)
 
         # Assign generated samples to bins and compute metric
         n_generated = generated_samples_np.shape[0]
-        generated_bin_proportions, _ = self.calculate_bin_proportions(generated_samples_np)
+        generated_bin_proportions, _ = self.calculate_bin_proportions(
+            generated_samples_np
+        )
 
         # Compute different bins
         different_bins = self.two_proportions_z_test(
@@ -82,9 +89,11 @@ class NDB_JSD_Metric(Metric):
         )
 
         ndb = np.count_nonzero(different_bins)
-        js = self.jensen_shannon_divergence(self.bin_proportions, generated_bin_proportions)
+        js = self.jensen_shannon_divergence(
+            self.bin_proportions, generated_bin_proportions
+        )
 
-        return {'NDB': ndb, 'JS': js}
+        return {"NDB": ndb, "JS": js}
 
     def construct_bins(self, training_samples):
         n, d = training_samples.shape
@@ -105,12 +114,16 @@ class NDB_JSD_Metric(Metric):
         self.used_d_indices = np.random.choice(d, d_used, replace=False)
 
         # Perform KMeans clustering
-        clusters = KMeans(n_clusters=k, max_iter=100, n_init='auto').fit(whitened_samples[:, self.used_d_indices])
+        clusters = KMeans(n_clusters=k, max_iter=100, n_init="auto").fit(
+            whitened_samples[:, self.used_d_indices]
+        )
 
         bin_centers = np.zeros([k, d])
 
         for i in range(k):
-            bin_centers[i, :] = np.mean(whitened_samples[clusters.labels_ == i, :], axis=0)
+            bin_centers[i, :] = np.mean(
+                whitened_samples[clusters.labels_ == i, :], axis=0
+            )
 
         # Organize bins by size
         _, label_counts = np.unique(clusters.labels_, return_counts=True)
@@ -121,7 +134,9 @@ class NDB_JSD_Metric(Metric):
 
     def calculate_bin_proportions(self, samples):
         if self.bin_centers is None:
-            raise ValueError("Bins have not been constructed. Make sure to call construct_bins first.")
+            raise ValueError(
+                "Bins have not been constructed. Make sure to call construct_bins first."
+            )
         n, d = samples.shape
         k = self.bin_centers.shape[0]
         D = np.zeros([n, k], dtype=samples.dtype)
@@ -160,7 +175,9 @@ class NDB_JSD_Metric(Metric):
         Calculates the symmetric Jensen–Shannon divergence between the two PDFs.
         """
         m = (p + q) * 0.5
-        return 0.5 * (NDB_JSD_Metric.kl_divergence(p, m) + NDB_JSD_Metric.kl_divergence(q, m))
+        return 0.5 * (
+            NDB_JSD_Metric.kl_divergence(p, m) + NDB_JSD_Metric.kl_divergence(q, m)
+        )
 
     @staticmethod
     def kl_divergence(p, q):

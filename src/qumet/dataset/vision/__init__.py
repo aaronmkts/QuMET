@@ -1,16 +1,24 @@
 import os
 from pathlib import Path
 
+from .cifar import Cifar10QuMET, get_cifar_dataset
+from .fashion_mnist import Fashion_MNISTQuMET, get_fashion_mnist_dataset
+from .mnist import MNISTQuMET, get_mnist_dataset
+from .transforms import get_vision_dataset_transform
+
 # Copyright (c) 2015-present, Facebook, Inc.
 # All rights reserved.
 
-from .mnist import get_mnist_dataset, MNISTQuMET
-from .fashion_mnist import get_fashion_mnist_dataset, Fashion_MNISTQuMET
-from .cifar import get_cifar_dataset, Cifar10QuMET
-from .transforms import get_vision_dataset_transform
 
 
-def get_vision_dataset(name: str, path: os.PathLike, split: str, n_samples:int, model_name: str, transform: str):
+def get_vision_dataset(
+    name: str,
+    path: os.PathLike,
+    split: str,
+    n_samples: int,
+    model_name: str,
+    transform: str,
+):
     """
     Args:
         name (str): name of the dataset
@@ -27,18 +35,26 @@ def get_vision_dataset(name: str, path: os.PathLike, split: str, n_samples:int, 
         "test",
         "pred",
     ], f"Unknown split {split}, should be one of train, validation, test, pred"
-    
+
     preprocessing = transform
     train = split == "train"
-    transform = get_vision_dataset_transform(name, train, model_name, preprocessing) #Torchvision transforms
+    transform = get_vision_dataset_transform(
+        name, train, model_name, preprocessing
+    )  # Torchvision transforms
 
     match name:
         case "mnist":
-            dataset = get_mnist_dataset(name, path, train, n_samples, transform, model_name)
+            dataset = get_mnist_dataset(
+                name, path, train, n_samples, transform, model_name
+            )
         case "fashion_mnist":
-            dataset = get_fashion_mnist_dataset(name, path, train, n_samples, transform, model_name)
+            dataset = get_fashion_mnist_dataset(
+                name, path, train, n_samples, transform, model_name
+            )
         case "cifar10":
-            dataset = get_cifar_dataset(name, path, train, transform, n_samples, model_name)
+            dataset = get_cifar_dataset(
+                name, path, train, transform, n_samples, model_name
+            )
 
     return dataset
 

@@ -2,6 +2,8 @@ def _get_bars_and_stripes_default_transform(transform: str, discretise: bool):
 
     normaliser, discretisation = None, None
     return normaliser, discretisation
+
+
 def get_bars_and_stripes_default_transform(transform: str, discretise: bool):
     return _get_bars_and_stripes_default_transform(transform, discretise)
 

@@ -1,23 +1,22 @@
 # Model Zoo for QuMET
 from os import PathLike
 
-from .qgan import (
-    is_qgan_model,
-    get_qgan_model,
-    get_qgan_model_info,
-)
-from .vae import (
-    is_vae_model,
-    get_vae_model,
-    get_vae_model_info,
-)
-
-from .qcbm import(
-    is_qcbm_model,
+from .qcbm import (
     get_qcbm_model,
     get_qcbm_model_info,
+    is_qcbm_model,
 )
-from .utils import QumetModelInfo, ModelType
+from .qgan import (
+    get_qgan_model,
+    get_qgan_model_info,
+    is_qgan_model,
+)
+from .utils import ModelType, QumetModelInfo
+from .vae import (
+    get_vae_model,
+    get_vae_model_info,
+    is_vae_model,
+)
 
 
 def get_model_info(name: str) -> QumetModelInfo:
@@ -32,7 +31,7 @@ def get_model_info(name: str) -> QumetModelInfo:
 
     else:
         raise ValueError(f"Model {name} not found")
-  
+
     return info
 
 

@@ -1,5 +1,5 @@
-from .qcbm_main import get_qcbm
 from ..utils import QumetModelInfo
+from .qcbm_main import get_qcbm
 
 # fmt: off
 QCBM_MODELS = {
@@ -22,9 +22,9 @@ def get_qcbm_model_info(name: str) -> QumetModelInfo:
 
 
 def get_qcbm_model(
-        name: str,
-        task: str,
-        dataset_info: dict,
+    name: str,
+    task: str,
+    dataset_info: dict,
 ):
     """
     Args:
@@ -54,5 +54,7 @@ def get_qcbm_model(
             raise ValueError(f"Task {task} is not supported for {name}")
 
     return model
+
+
 def get_qcbm_model_cls(name: str):
     raise NotImplementedError

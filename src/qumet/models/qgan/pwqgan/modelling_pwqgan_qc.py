@@ -1,14 +1,13 @@
-import pennylane as qml
-import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import math
 from logging import getLogger
+
+import numpy as np
+import pennylane as qml
+import torch
+import torch.nn as nn
 from pennylane.qnn import TorchLayer as TorchConnector
-from typing import Any, Callable, Dict, List, Optional, Type, Union
 from torch import Tensor
-from qw_map import arctan
+
 logger = getLogger(__name__)
 pi = math.pi
 
@@ -26,13 +25,14 @@ config = {
         "diff_method": "best",
         "n_generators": 14,
         "q_delta": 1,
-        'patch_shape': (2, 28),
-        'image_shape': image_shape,
+        "patch_shape": (2, 28),
+        "image_shape": image_shape,
     },
 }
 # fmt:on
 
-#DISCRIMINATOR
+# DISCRIMINATOR
+
 
 class Discriminator(nn.Module):
     def __init__(self, config, task):
@@ -55,7 +55,9 @@ class Discriminator(nn.Module):
         for m in self.model:
             if isinstance(m, nn.Linear):
                 # LeCun initialization
-                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='leaky_relu')
+                nn.init.kaiming_normal_(
+                    m.weight, mode="fan_in", nonlinearity="leaky_relu"
+                )
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
@@ -64,12 +66,13 @@ class Discriminator(nn.Module):
         x = self.model(x)
         return x
 
+
 class PWQGenerator(nn.Module):
     """Quantum generator class for the patch method"""
 
     def __init__(self, config, task):
         super().__init__()
-        
+
         name = "generator"
         generator_config = config[name]
 
@@ -83,18 +86,24 @@ class PWQGenerator(nn.Module):
         self.diff_method = generator_config["diff_method"]
         self.patch_shape = generator_config["patch_shape"]
         self.image_shape = generator_config["image_shape"]
-        self.q_device = qml.device(self.device, wires= self.n_qubits)
+        self.q_device = qml.device(self.device, wires=self.n_qubits)
         self._construct_quantum_layers()
-   
+
         # Adding a convolutional layer for sharpening
         self.conv_layer = nn.Sequential(
-        nn.Conv2d(in_channels=1, out_channels=1, kernel_size=3, padding=1, stride=1),
-        nn.LayerNorm([1, 28, 28]),  # Normalize across channels and spatial dimensions
-        nn.ReLU(),  # Non-linear activation for better contrast
+            nn.Conv2d(
+                in_channels=1, out_channels=1, kernel_size=3, padding=1, stride=1
+            ),
+            nn.LayerNorm(
+                [1, 28, 28]
+            ),  # Normalize across channels and spatial dimensions
+            nn.ReLU(),  # Non-linear activation for better contrast
         )
 
     def _construct_quantum_layers(self):
-        qnode = qml.QNode(self.circuit, self.q_device, interface="torch", diff_method=self.diff_method)
+        qnode = qml.QNode(
+            self.circuit, self.q_device, interface="torch", diff_method=self.diff_method
+        )
         weight_shapes = {"weights": (self.depth, self.n_qubits, 3)}
         self.q_layers = nn.ModuleList(
             [TorchConnector(qnode, weight_shapes) for _ in range(self.n_generators)]
@@ -102,66 +111,86 @@ class PWQGenerator(nn.Module):
 
     def partial_trace_and_postprocess(self, noise, q_layer):
         probs = q_layer(noise)
-        probsgiven0 = probs[:2**(self.n_qubits - self.n_a_qubits)]
+        probsgiven0 = probs[: 2 ** (self.n_qubits - self.n_a_qubits)]
         probsgiven0 /= torch.sum(probs)
-        
+
         # Post-Processing
-        post_processed_patch = (probsgiven0 / torch.max(probsgiven0))
+        post_processed_patch = probsgiven0 / torch.max(probsgiven0)
         return post_processed_patch
-    
+
     def circuit(self, inputs, weights):
 
         for i in range(self.n_qubits):
             qml.RY(inputs[i], wires=i)
-        
+
         for i in range(self.depth):
             for j in range(self.n_qubits):
                 qml.Rot(*weights[i][j], wires=j)
 
-            for j in range(self.n_qubits-1):
-                qml.CNOT(wires=[j, j+1])
+            for j in range(self.n_qubits - 1):
+                qml.CNOT(wires=[j, j + 1])
 
-            qml.CNOT(wires=[self.n_qubits-1, 0])
-        
+            qml.CNOT(wires=[self.n_qubits - 1, 0])
+
         return qml.probs(wires=list(range(self.n_qubits)))
-    
+
     def forward(self, x):
         special_shape = bool(self.patch_shape[0]) and bool(self.patch_shape[1])
-        patch_size = 2 ** (self.n_qubits - self.n_a_qubits )
+        patch_size = 2 ** (self.n_qubits - self.n_a_qubits)
         image_pixels = self.image_shape[2] ** 2
         pixels_per_patch = image_pixels // self.n_generators
 
-        if special_shape and self.patch_shape[0] * self.patch_shape[1] != pixels_per_patch:
+        if (
+            special_shape
+            and self.patch_shape[0] * self.patch_shape[1] != pixels_per_patch
+        ):
             raise ValueError("patch shape and patch size dont match!")
         output_images = torch.Tensor(x.size(0), 0)
 
         for q_layer in self.q_layers:
             patches = torch.Tensor(0, pixels_per_patch)
             for item in x:
-                sub_generator_out = self.partial_trace_and_postprocess(item, q_layer).float().unsqueeze(0)
+                sub_generator_out = (
+                    self.partial_trace_and_postprocess(item, q_layer)
+                    .float()
+                    .unsqueeze(0)
+                )
                 if pixels_per_patch < patch_size:
-                    sub_generator_out = sub_generator_out[:,:pixels_per_patch]
+                    sub_generator_out = sub_generator_out[:, :pixels_per_patch]
                 patches = torch.cat((patches, sub_generator_out))
             output_images = torch.cat((output_images, patches), 1)
 
         if special_shape:
             final_out = torch.zeros(x.size(0), *self.image_shape)
-            for i,img in enumerate(output_images):
-                for patches_done, j in enumerate(range(0, img.shape[0], pixels_per_patch)):
-                    patch = torch.reshape(img[j:j+pixels_per_patch], self.patch_shape)
-                    starting_h = ((patches_done * self.patch_shape[1]) // self.image_shape[2]) * self.patch_shape[0]
-                    starting_w = (patches_done * self.patch_shape[1]) % self.image_shape[2]
-                    final_out[i, 0, starting_h:starting_h+self.patch_shape[0], starting_w:starting_w+self.patch_shape[1]] = patch
+            for i, img in enumerate(output_images):
+                for patches_done, j in enumerate(
+                    range(0, img.shape[0], pixels_per_patch)
+                ):
+                    patch = torch.reshape(
+                        img[j : j + pixels_per_patch], self.patch_shape
+                    )
+                    starting_h = (
+                        (patches_done * self.patch_shape[1]) // self.image_shape[2]
+                    ) * self.patch_shape[0]
+                    starting_w = (
+                        patches_done * self.patch_shape[1]
+                    ) % self.image_shape[2]
+                    final_out[
+                        i,
+                        0,
+                        starting_h : starting_h + self.patch_shape[0],
+                        starting_w : starting_w + self.patch_shape[1],
+                    ] = patch
         else:
             final_out = output_images.view(output_images.shape[0], *self.image_shape)
         return final_out
-    
+
 
 class PQWGAN_QC(nn.Module):
     def __init__(self, config, task):
         super().__init__()
         # networks
-      
+
         self.discriminator = Discriminator(config, task)
         self.generator = PWQGenerator(config, task)
 
@@ -171,9 +200,11 @@ class PQWGAN_QC(nn.Module):
             imgs = imgs_batch.view(-1, 1, 28, 28)
         return imgs
 
+
 # ---------------------------------------
 # PatchGAN
 # ---------------------------------------
+
 
 def _pqwgan_qc(config, task: str) -> PQWGAN_QC:
 
@@ -181,7 +212,7 @@ def _pqwgan_qc(config, task: str) -> PQWGAN_QC:
     return model
 
 
-def get_pqwgan_qc(info: Dict) -> PQWGAN_QC:
+def get_pqwgan_qc(info: dict) -> PQWGAN_QC:
 
     task = "info.generation"
     logger.info(f"The following {config} loaded for task into PatchQuantumGenerator")

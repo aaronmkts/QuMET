@@ -1,13 +1,13 @@
+import itertools
+
 import numpy as np
+import torch
 from scipy.stats import multivariate_normal
 from torch.utils.data import Dataset
-from ..utils import add_dataset_info
-import matplotlib.pyplot as plt
-from matplotlib import cm
-import torch 
-import itertools
-# Set the random seed for reproducibility
 
+from ..utils import add_dataset_info
+
+# Set the random seed for reproducibility
 
 
 @add_dataset_info(
@@ -15,10 +15,17 @@ import itertools
     dataset_source="manual",
     available_splits=("train", "validation"),
     bitsring_generation=True,
-    continuous_generation=True
+    continuous_generation=True,
 )
 class TwoDGridGaussianDataset(Dataset):
-    def __init__(self, split="train", normaliser = None, discretisation = None, n_qubits=6, n_samples = 10000) -> None:
+    def __init__(
+        self,
+        split="train",
+        normaliser=None,
+        discretisation=None,
+        n_qubits=6,
+        n_samples=10000,
+    ) -> None:
         super().__init__()
         """
         Initialize the TwoDGaussianDataset.
@@ -35,7 +42,9 @@ class TwoDGridGaussianDataset(Dataset):
         self.reverse_lookup = normaliser.reverse_lookup if normaliser else None
         self.n_dim = 2
         self.n_samples = n_samples
-        self.discretisation = discretisation(n_qubits, n_dim=2) if discretisation else None
+        self.discretisation = (
+            discretisation(n_qubits, n_dim=2) if discretisation else None
+        )
         self.n_gauss = 9
 
         if split == "train":
@@ -66,9 +75,14 @@ class TwoDGridGaussianDataset(Dataset):
         rv = [multivariate_normal(mean=mean, cov=cov) for mean in means]
         # Generate samples
         samples = np.zeros((self.n_samples, 2))
-        component_indices = np.hstack([np.full(n_samples_per_gauss + (1 if i < extra_samples else 0), i) for i in range(self.n_gauss)])
+        component_indices = np.hstack(
+            [
+                np.full(n_samples_per_gauss + (1 if i < extra_samples else 0), i)
+                for i in range(self.n_gauss)
+            ]
+        )
         np.random.shuffle(component_indices)
-        
+
         for i, component_index in enumerate(component_indices):
             samples[i] = rv[component_index].rvs()
 
@@ -77,15 +91,21 @@ class TwoDGridGaussianDataset(Dataset):
         if self.discretisation:
             data, distribution = self._discretise_samples(data)
             return data, distribution
-        return data 
+        return data
 
     def _discretise_samples(self, data):
-        
-        num_discrete_values = int(2 ** (self.n_qubits / self.n_dim)) #discretisation per dimension
-        nns = tuple(num_discrete_values for _ in range(self.n_dim)) #siply (n,n) for 2 d and (n,n,n) for 3d data
-        nns_nq = nns + tuple((self.n_qubits,)) #(n,n, n_qubits) 8 by 8 grid with qubits appended
 
-        inverse_bins = np.zeros(nns_nq) #empty matrix with shape ((n,n, n_qubits))
+        num_discrete_values = int(
+            2 ** (self.n_qubits / self.n_dim)
+        )  # discretisation per dimension
+        nns = tuple(
+            num_discrete_values for _ in range(self.n_dim)
+        )  # siply (n,n) for 2 d and (n,n,n) for 3d data
+        nns_nq = nns + tuple(
+            (self.n_qubits,)
+        )  # (n,n, n_qubits) 8 by 8 grid with qubits appended
+
+        inverse_bins = np.zeros(nns_nq)  # empty matrix with shape ((n,n, n_qubits))
         for key, value in self.discretisation.items():
             id_n = value[0]
             inverse_bins[id_n] = np.array([int(bit) for bit in key])
@@ -100,10 +120,10 @@ class TwoDGridGaussianDataset(Dataset):
         # Add a small value to empty elements
 
         distribution /= np.sum(distribution)
-        distribution = np.array(distribution).reshape((num_discrete_values ** 2))
-   
+        distribution = np.array(distribution).reshape(num_discrete_values**2)
+
         return train_dataset, distribution
-    
+
     def __len__(self):
         return self.n_samples
 
