@@ -6,3 +6,16 @@ get-pip.py
 **/qumet_output/
 **/.main_cache/
 **/.qumet_cache/
+
+# Code quality tools
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
+
+# Documentation
+docs/_build/
+docs/.doctrees/
