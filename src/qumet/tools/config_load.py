@@ -1,11 +1,24 @@
+"""Configuration file loading and merging for QuMET.
+
+This module handles loading TOML configuration files and merging configuration
+values with CLI arguments according to precedence rules.
+"""
 
 import toml
 from tabulate import tabulate
 
 
 def convert_str_na_to_none(d):
-    """
-    Since toml does not support None, we use "NA" to represent None.
+    """Convert 'NA' strings to None in nested data structures.
+    
+    Since TOML does not support None values, 'NA' is used as a placeholder.
+    This function recursively converts 'NA' strings back to None.
+    
+    Args:
+        d: Data structure (dict, list, tuple, or scalar) to process.
+    
+    Returns:
+        Processed data structure with 'NA' strings converted to None.
     """
     if isinstance(d, dict):
         for k, v in d.items():
@@ -23,9 +36,16 @@ def convert_str_na_to_none(d):
 
 
 def convert_none_to_str_na(d):
-    """
-    Since toml does not support None, we use "NA" to represent None.
-    Otherwise the none-value key will be missing in the toml file.
+    """Convert None values to 'NA' strings in nested data structures.
+    
+    Since TOML does not support None values, this function converts None
+    to 'NA' strings before saving to TOML format.
+    
+    Args:
+        d: Data structure (dict, list, tuple, or scalar) to process.
+    
+    Returns:
+        Processed data structure with None values converted to 'NA' strings.
     """
     if isinstance(d, dict):
         for k, v in d.items():
@@ -43,7 +63,14 @@ def convert_none_to_str_na(d):
 
 
 def load_config(config_path):
-    """Load from a toml config file and convert "NA" to None."""
+    """Load configuration from a TOML file.
+    
+    Args:
+        config_path: Path to the TOML configuration file.
+    
+    Returns:
+        dict: Configuration dictionary with 'NA' strings converted to None.
+    """
     with open(config_path) as f:
         config = toml.load(f)
     config = convert_str_na_to_none(config)
@@ -51,18 +78,33 @@ def load_config(config_path):
 
 
 def save_config(config, config_path):
-    """Convert None to "NA" and save to a toml config file."""
+    """Save configuration to a TOML file.
+    
+    Args:
+        config: Configuration dictionary to save.
+        config_path: Path where the TOML file will be saved.
+    """
     config = convert_none_to_str_na(config)
     with open(config_path, "w") as f:
         toml.dump(config, f)
 
 
 def post_parse_load_config(args, defaults):
-    """
-    Load and merge arguments from a toml configuration file. If the configuration key
-    matches the "dest" value of an existing CLI argument, we use precedence to determine
-    which argument value to choose (i.e. default < configuration < manual overrides).
-    These arguments are then visualised in a table. :)
+    """Load and merge configuration with CLI arguments.
+    
+    Merges arguments from a TOML configuration file with CLI arguments using
+    the precedence rule: default < configuration < manual overrides.
+    Displays a formatted table showing the effective values.
+    
+    Args:
+        args: Parsed command-line arguments namespace.
+        defaults: Dictionary of default argument values.
+    
+    Returns:
+        argparse.Namespace: Updated arguments with merged configuration values.
+    
+    Raises:
+        ValueError: If configuration file doesn't have .toml extension.
     """
     if args.config and not args.config.endswith(".toml"):
         raise ValueError(f"expected .toml configuration file, got {args.config}")

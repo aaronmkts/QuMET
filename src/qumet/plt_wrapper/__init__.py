@@ -1,3 +1,9 @@
+"""PyTorch Lightning model wrappers for QuMET.
+
+This module provides wrapper classes for different model types and tasks,
+integrating models with PyTorch Lightning training framework.
+"""
+
 from .qcbm import QCBMProbsGenModelWrapper
 from .qgan import (
     APQGANWrapper,
@@ -16,6 +22,22 @@ from .vaeqgan_wrapper import VAEGANWrapper
 
 
 def get_model_wrapper(model_info, task: str, add_vae: bool = False):
+    """Get the appropriate PyTorch Lightning wrapper for a model.
+    
+    Selects the correct wrapper class based on model type, task, and
+    whether VAE encoding should be added.
+    
+    Args:
+        model_info: Model metadata including type and name.
+        task: Task type (e.g., 'image_generation', 'discrete_generation').
+        add_vae: Whether to add VAE encoder to the model. Defaults to False.
+    
+    Returns:
+        type: Wrapper class for the specified model and task.
+    
+    Raises:
+        ValueError: If the wrapper is not supported for the given configuration.
+    """
 
     if add_vae:
         if (

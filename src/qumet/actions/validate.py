@@ -1,3 +1,9 @@
+"""Validation action for QuMET models.
+
+This module provides the validation function for evaluating trained quantum
+machine learning models using PyTorch Lightning.
+"""
+
 import logging
 import os
 
@@ -25,6 +31,26 @@ def validate(
     load_name,
     load_type,
 ):
+    """Validate a trained quantum machine learning model.
+    
+    Sets up PyTorch Lightning trainer and runs validation on the model using
+    a checkpoint file or pretrained weights.
+    
+    Args:
+        model: Model instance to validate.
+        model_info: Model metadata and configuration.
+        data_module: DataModule for loading validation data.
+        dataset_info: Dataset metadata and configuration.
+        task: Task type (e.g., 'discrete_generation').
+        optimizer: Optimizer name ('adam', etc.).
+        learning_rate: Learning rate (used for optimizer setup).
+        plt_trainer_args: Arguments for PyTorch Lightning Trainer.
+        auto_requeue: Whether to enable SLURM auto-requeue.
+        save_path: Directory path for outputs.
+        visualizer: Logger for experiment tracking (WandB/TensorBoard).
+        load_name: Path to checkpoint file to load.
+        load_type: Type of checkpoint ('pt' or 'pl').
+    """
     if save_path is not None:
         if not os.path.isdir(save_path):
             os.makedirs(save_path)

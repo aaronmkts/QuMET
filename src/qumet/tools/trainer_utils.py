@@ -1,3 +1,8 @@
+"""Training utilities for QuMET models.
+
+This module provides optimizer configuration and initialization utilities
+for training quantum machine learning models.
+"""
 
 import torch
 
@@ -8,6 +13,23 @@ def get_optimizer(
     learning_rate: float,
     weight_decay: float,
 ):
+    """Get a configured optimizer for model training.
+    
+    Sets up optimizer with parameter groups that apply different weight decay
+    to different parameter types (excluding bias and LayerNorm weights).
+    
+    Args:
+        model: Model whose parameters will be optimized.
+        optimizer: Optimizer name ('adam', 'adamw', or 'sgd').
+        learning_rate: Learning rate for optimization.
+        weight_decay: Weight decay for regularization (not applied to bias/LayerNorm).
+    
+    Returns:
+        torch.optim.Optimizer: Configured optimizer instance.
+    
+    Raises:
+        ValueError: If optimizer name is not supported.
+    """
     no_decay = ["bias", "LayerNorm.weight"]
     optimizer_grouped_parameters = [
         {

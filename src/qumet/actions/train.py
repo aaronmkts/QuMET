@@ -1,3 +1,9 @@
+"""Training action for QuMET models.
+
+This module provides the main training function for quantum machine learning models
+using PyTorch Lightning as the training framework.
+"""
+
 import logging
 import os
 from pathlib import Path
@@ -32,6 +38,29 @@ def train(
     metric_init_args,
     add_vae,
 ):
+    """Train a quantum machine learning model.
+    
+    Sets up PyTorch Lightning trainer with callbacks, checkpointing, and logging,
+    then trains the model on the provided dataset.
+    
+    Args:
+        model: Model instance to train.
+        model_info: Model metadata and configuration.
+        data_module: DataModule for loading training and validation data.
+        task: Task type (e.g., 'discrete_generation').
+        optimizer: Optimizer name ('adam', etc.).
+        learning_rate: Learning rate for optimization.
+        weight_decay: Weight decay for regularization.
+        plt_trainer_args: Arguments for PyTorch Lightning Trainer.
+        auto_requeue: Whether to enable SLURM auto-requeue.
+        save_path: Directory path to save checkpoints.
+        visualizer: Logger for experiment tracking (WandB/TensorBoard).
+        load_name: Path to checkpoint file to load before training.
+        load_type: Type of checkpoint ('pt' or 'pl').
+        metrics: List of metrics to compute during training.
+        metric_init_args: Initialization arguments for metrics.
+        add_vae: Whether to add VAE encoder to the model.
+    """
     if save_path is not None:
         # if save_path is None, the model will not be saved
         if not os.path.isdir(save_path):
