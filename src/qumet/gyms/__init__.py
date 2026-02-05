@@ -1,3 +1,10 @@
+"""Gymnasium environments for reinforcement learning with quantum circuits.
+
+This module provides custom Gymnasium environments for training quantum circuit
+architectures using reinforcement learning, including both noiseless and noisy
+quantum simulation environments.
+"""
+
 import gymnasium
 from gymnasium import register
 
@@ -15,6 +22,17 @@ from .utils import EnvironmentTaskType, EnvironmentType, QumetEnvironmentInfo
 
 
 def get_environment_info(name: str) -> QumetEnvironmentInfo:
+    """Get metadata for a Gymnasium environment.
+    
+    Args:
+        name: Name of the environment.
+    
+    Returns:
+        QumetEnvironmentInfo: Environment metadata and configuration.
+    
+    Raises:
+        ValueError: If the environment is not found.
+    """
     if is_noiseless_environment(name):
         info = get_noiseless_environment_info(name)
     elif is_noisy_environment(name):
@@ -30,6 +48,19 @@ def get_environment(
     task: str,
     dataset_info: dict = None,
 ):
+    """Get an environment class for a specific task.
+    
+    Args:
+        name: Name of the environment.
+        task: Task type (e.g., 'state_preperation').
+        dataset_info: Optional dataset metadata for environment configuration.
+    
+    Returns:
+        type: Environment class configured for the specified task.
+    
+    Raises:
+        ValueError: If the environment type is not supported.
+    """
     environment_info = get_environment_info(name)
 
     environment_kwargs = {
@@ -52,11 +83,28 @@ def get_environment(
 
 
 class QuMETGymnasium:
+    """Factory for creating and registering QuMET Gymnasium environments.
+    
+    Handles registration of custom quantum circuit environments with OpenAI Gym
+    and provides methods to instantiate them.
+    
+    Attributes:
+        name: Environment name.
+        config: Configuration dictionary for the environment.
+        environment_info: Environment metadata.
+    """
+    
     def __init__(
         self,
         name: str,
         config: dict,
     ) -> None:
+        """Initialize the QuMET Gymnasium factory.
+        
+        Args:
+            name: Name of the environment to create.
+            config: Configuration parameters for the environment.
+        """
 
         self.name = name
         self.config = config
@@ -64,6 +112,14 @@ class QuMETGymnasium:
         self.register_gym()
 
     def register_gym(self):
+        """Register the environment with Gymnasium.
+        
+        Registers the appropriate environment class based on environment type
+        and task type with OpenAI Gym.
+        
+        Raises:
+            ValueError: If environment type or task type is not supported.
+        """
 
         match self.environment_info.task_type:
             case EnvironmentTaskType.STATE_PREPERATION:
@@ -119,11 +175,21 @@ class QuMETGymnasium:
                 )
 
     def make_gym(self):
+        """Create a Gymnasium environment instance.
+        
+        Returns:
+            gymnasium.Env: Instantiated Gymnasium environment.
+        """
         environment = gymnasium.make(self.name, **self.config)
 
         return environment
 
     def make_environment(self):
+        """Create an environment instance directly without Gymnasium.
+        
+        Returns:
+            Environment instance configured with the provided config.
+        """
         self.task = self.environment_info.task_type.value
 
         environment_cls = get_environment(name=self.name, task=self.task)

@@ -1,3 +1,9 @@
+"""Callback selection and initialization for QuMET training.
+
+This module provides utilities for selecting and configuring PyTorch Lightning
+callbacks based on model type, task, and evaluation metrics.
+"""
+
 from .evaluation import (
     CosSimilarityEvaluationCallback,
     FIDEvaluationCallback,
@@ -11,24 +17,27 @@ from .visualisation import GANImagesCallback, TSNEPlotCallback
 
 
 def select_callbacks(model_info, task, metrics_to_use=None, metric_init_args=None):
-    """
-    Selects and returns a list of callbacks based on the model type, model name, dataset information, and task.
-    Optionally, it can initialize only a subset of metrics and provide initialization arguments.
-
-    Parameters:
-    - model_info (object): Contains 'model_type' and 'name' attributes.
-    - dataset_info (object): Contains metadata about the dataset, such as its name.
-    - task (str): The type of task being solved (e.g., 'image_generation').
-    - metrics_to_use (list, optional): List of metric names to be used.
-    - metric_init_args (dict, optional): Dictionary of initialization arguments for each metric callback.
-
+    """Select and initialize callbacks based on model type and task.
+    
+    Creates a list of appropriate evaluation and visualization callbacks for
+    the given model and task configuration, with optional metric filtering
+    and custom initialization arguments.
+    
+    Args:
+        model_info: Model metadata containing 'model_type' and 'name' attributes.
+        task: Task type (e.g., 'image_generation').
+        metrics_to_use: Optional list of metric names to use. If None, uses
+            all default metrics for the task.
+        metric_init_args: Optional dictionary of initialization arguments for
+            each metric callback, keyed by metric name.
+    
     Returns:
-    - List[Callback]: A list of instantiated callbacks relevant to the training configuration.
-
+        list: List of instantiated callback objects.
+    
     Raises:
-    - ValueError: If any selected metrics don't belong to the appropriate task for the model type.
+        ValueError: If model type or task is unsupported, or if selected metrics
+            don't belong to the appropriate task for the model type.
     """
-    # Mapping from class names to callback classes
     callback_classes = {
         "GANImagesCallback": GANImagesCallback,
         "FID": FIDEvaluationCallback,
