@@ -170,7 +170,28 @@ CLI_DEFAULTS = {
 
 # Main ---------------------------------------------------------------------------------
 class QuMETCLI:
+    """QuMET Command Line Interface.
+    
+    The main CLI class that handles argument parsing, model/dataset initialization,
+    and execution of training or validation actions for quantum machine learning models.
+    
+    Attributes:
+        logger: Logger instance for CLI operations.
+        args: Parsed and merged command-line arguments.
+        model: Initialized model instance.
+        data_module: Dataset data module for training/validation.
+        model_info: Model metadata and configuration.
+        output_dir: Root output directory for the project.
+        output_dir_sw: Software-specific output directory.
+        visualizer: Logger instance for experiment tracking (WandB or TensorBoard).
+    """
+    
     def __init__(self, argv: Sequence[str] | None = None):
+        """Initialize the QuMET CLI.
+        
+        Args:
+            argv: Command-line arguments to parse. If None, uses sys.argv.
+        """
         super().__init__()
 
         self.logger = logging.getLogger("QuMET")
@@ -233,6 +254,7 @@ class QuMETCLI:
             warnings.simplefilter("ignore")
 
     def run(self):
+        """Execute the CLI action (train or validate)."""
         run_action_fn = None
         match self.args.action:
             case "train":
@@ -252,6 +274,11 @@ class QuMETCLI:
 
     # Actions --------------------------------------------------------------------------
     def _run_train(self):
+        """Execute the training action.
+        
+        Sets up the PyTorch Lightning trainer, configures training parameters,
+        and initiates model training on the specified dataset.
+        """
         self.logger.info(f"Training model {self.args.model!r}...")
 
         plt_trainer_args = {
@@ -306,6 +333,14 @@ class QuMETCLI:
         self.logger.info("Training is completed")
 
     def _run_validate(self):
+        """Execute the validation action.
+        
+        Sets up the PyTorch Lightning trainer and runs validation on the model
+        using a checkpoint file.
+        
+        Raises:
+            ValueError: If no checkpoint is provided and model is not pretrained.
+        """
         self.logger.info(f"Validating model {self.args.model!r}...")
 
         plt_trainer_args = {
@@ -341,6 +376,14 @@ class QuMETCLI:
 
     # Helpers --------------------------------------------------------------------------
     def _setup_parser(self):
+        """Set up the command-line argument parser.
+        
+        Configures all CLI arguments including main arguments, general options,
+        trainer options, runtime environment settings, and project options.
+        
+        Returns:
+            argparse.ArgumentParser: Configured argument parser.
+        """
         # NOTE: For a better developer experience, it's helpful to collapse all function
         # calls by shift clicking the collapse button in the gutter on IDEs. ;) Also,
         # when creating a new argument, DO NOT use default in the function call; instead
@@ -677,6 +720,17 @@ class QuMETCLI:
         return parser
 
     def _setup_model_and_dataset(self):
+        """Initialize the model and dataset module.
+        
+        Retrieves model information, creates the data module, and instantiates
+        the model based on CLI arguments.
+        
+        Returns:
+            tuple: A tuple containing:
+                - model: Initialized model instance.
+                - data_module: QuMETDataModule for data loading.
+                - model_info: Model metadata and configuration.
+        """
 
         self.logger.info(f"Initialising model {self.args.model!r}...")
 
@@ -707,6 +761,16 @@ class QuMETCLI:
         return model, data_module, model_info
 
     def _setup_folders(self):
+        """Set up output directories for the project.
+        
+        Creates project directories based on configuration or generates a default
+        project name from model, task, dataset, and timestamp.
+        
+        Returns:
+            tuple: A tuple containing:
+                - output_dir: Root project directory path.
+                - output_dir_sw: Software-specific output directory path.
+        """
         project = None
         if self.args.project is not None:
             project = self.args.project
@@ -732,6 +796,16 @@ class QuMETCLI:
         return output_dir, output_dir_sw
 
     def _excepthook(self, etype, evalue, etb):
+        """Custom exception hook for enhanced debugging.
+        
+        Provides formatted tracebacks and launches post-mortem debugging for
+        non-fatal exceptions when debug mode is enabled.
+        
+        Args:
+            etype: Exception type.
+            evalue: Exception value.
+            etb: Exception traceback.
+        """
         from IPython.core import ultratb
 
         ultratb.FormattedTB()(etype, evalue, etb)
@@ -741,6 +815,17 @@ class QuMETCLI:
         ipdb.post_mortem(etb)
 
     def _setup_visualizer(self):
+        """Set up experiment tracking visualizer.
+        
+        Configures either WandB or TensorBoard logger for experiment tracking
+        based on CLI arguments.
+        
+        Returns:
+            Logger: Configured logger instance (WandbLogger or TensorBoardLogger).
+        
+        Raises:
+            ValueError: If unsupported reporting tool is specified.
+        """
 
         visualizer = None
         match self.args.report_to:
@@ -765,8 +850,18 @@ class QuMETCLI:
 
 
 # Custom types ---------------------------------------------------------------------
-# check if the path is a valid file path
 def _valid_filepath(path: str):
+    """Validate and return absolute path to an existing file.
+    
+    Args:
+        path: Path string to validate.
+    
+    Returns:
+        str: Absolute path to the file.
+    
+    Raises:
+        argparse.ArgumentTypeError: If file doesn't exist or path is not a file.
+    """
     if not os.path.exists(path):
         raise argparse.ArgumentTypeError("file not found")
     if not os.path.isfile(path):
@@ -774,8 +869,20 @@ def _valid_filepath(path: str):
     return os.path.abspath(path)
 
 
-# Returns the absolute path to a directory if it is indeed a valid path
 def _valid_directory_path(path: str, create_dir: bool = False):
+    """Validate and return absolute path to a directory.
+    
+    Args:
+        path: Directory path string to validate.
+        create_dir: If True, create the directory if it doesn't exist.
+    
+    Returns:
+        str: Absolute path to the directory.
+    
+    Raises:
+        argparse.ArgumentTypeError: If path is a file or directory not found
+            when create_dir is False.
+    """
     if os.path.isfile(path):
         raise argparse.ArgumentTypeError(
             f"expected path to directory, got file {path!r}"
@@ -787,15 +894,35 @@ def _valid_directory_path(path: str, create_dir: bool = False):
     return os.path.abspath(path)
 
 
-# Returns the absolute path to a file or directory if it is indeed a valid path
 def _valid_file_or_directory_path(path: str):
+    """Validate and return absolute path to a file or directory.
+    
+    Args:
+        path: Path string to validate.
+    
+    Returns:
+        str: Absolute path to the file or directory.
+    
+    Raises:
+        argparse.ArgumentTypeError: If path doesn't exist.
+    """
     if not os.path.exists(path):
         raise argparse.ArgumentTypeError("file or directory not found")
     return os.path.abspath(path)
 
 
-# Returns None for values less than or equal to 0
 def _positive_int(s: str) -> int | None:
+    """Parse a positive integer from string.
+    
+    Args:
+        s: String to parse as integer.
+    
+    Returns:
+        int or None: Parsed integer if positive, None otherwise.
+    
+    Raises:
+        argparse.ArgumentError: If string is not a valid integer.
+    """
     try:
         v = int(s)
     except ValueError:
@@ -810,6 +937,17 @@ def _positive_int(s: str) -> int | None:
 
 
 def _int(s: str) -> int | None:
+    """Parse an integer from string.
+    
+    Args:
+        s: String to parse as integer.
+    
+    Returns:
+        int or None: Parsed integer value.
+    
+    Raises:
+        argparse.ArgumentError: If string is not a valid integer.
+    """
     try:
         v = int(s)
     except ValueError:
@@ -820,27 +958,50 @@ def _int(s: str) -> int | None:
 
 # Custom actions -------------------------------------------------------------------
 class ShowVersionAction(argparse.Action):
+    """Custom action to display QuMET version and logo."""
+    
     def __init__(self, option_strings, dest, help):
-        """
-        Pretty print the version number with the QuMET logo and exit.
-        For more details: https://docs.python.org/3/library/argparse.html#action
+        """Initialize the version action.
+        
+        Args:
+            option_strings: Command-line option strings that trigger this action.
+            dest: Destination attribute name.
+            help: Help message for this option.
         """
         super().__init__(option_strings, dest, nargs=0, help=help)
 
     def __call__(self, parser, *_):
+        """Display version information and exit.
+        
+        Args:
+            parser: ArgumentParser instance.
+        """
         print(LOGO)
         parser.exit()
 
 
 class ShowInfoAction(argparse.Action):
+    """Custom action to display information about supported models and datasets."""
+    
     def __init__(self, option_strings, dest=SUPPRESS, const=None, **kwargs):
-        """
-        Pretty print the version number with the QuMET logo and exit.
-        For more details: https://docs.python.org/3/library/argparse.html#action
+        """Initialize the info action.
+        
+        Args:
+            option_strings: Command-line option strings that trigger this action.
+            dest: Destination attribute name.
+            const: Constant value when option is specified without arguments.
+            **kwargs: Additional keyword arguments for Action.
         """
         super().__init__(option_strings, dest, nargs="?", const=const, **kwargs)
 
     def __call__(self, parser, _, values, *__):
+        """Display model and/or dataset information and exit.
+        
+        Args:
+            parser: ArgumentParser instance.
+            _: Namespace (unused).
+            values: Command-line value for this option.
+        """
         choice = values if values is not None else self.default
 
         if choice in ["model", "all"]:
@@ -851,6 +1012,13 @@ class ShowInfoAction(argparse.Action):
         parser.exit()
 
     def _generate_table(self, data, title, cols=3):
+        """Generate and print a formatted table.
+        
+        Args:
+            data: List of items to display in the table.
+            title: Title to display above the table.
+            cols: Number of columns for the table layout. Defaults to 3.
+        """
         table = []
 
         rows = (len(data) + cols - 1) // cols

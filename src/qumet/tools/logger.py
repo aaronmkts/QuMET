@@ -1,10 +1,12 @@
+"""Logging configuration for QuMET.
+
+This module provides colored logging functionality for the QuMET framework,
+including verbosity controls and child logger creation.
+"""
+
 import logging
 
 from colorlog import ColoredFormatter
-
-# -------------------------------
-# QuMET Logger
-# -------------------------------
 
 
 formatter = ColoredFormatter(
@@ -30,6 +32,15 @@ root_logger.addHandler(handler)
 
 
 def set_logging_verbosity(level: str = "info"):
+    """Set the logging verbosity level for QuMET.
+    
+    Args:
+        level: Logging level string. Must be one of: 'debug', 'info',
+            'warning', 'error', or 'critical'. Defaults to 'info'.
+    
+    Raises:
+        ValueError: If an unknown logging level is provided.
+    """
     level = level.lower()
     match level:
         case "debug":
@@ -50,4 +61,12 @@ def set_logging_verbosity(level: str = "info"):
 
 
 def get_logger(name: str):
+    """Get a child logger for a specific module or component.
+    
+    Args:
+        name: Name of the module or component for the logger.
+    
+    Returns:
+        logging.Logger: A child logger instance with the specified name.
+    """
     return root_logger.getChild(name)
