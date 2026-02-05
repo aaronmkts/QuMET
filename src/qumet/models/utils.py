@@ -10,7 +10,7 @@ from enum import Enum
 
 class ModelType(Enum):
     """Enumeration of supported model architectures.
-    
+
     Attributes:
         QGAN: Quantum Generative Adversarial Network.
         GAN: Classical Generative Adversarial Network.
@@ -26,7 +26,7 @@ class ModelType(Enum):
 
 class ModelTaskType(Enum):
     """Enumeration of model task types.
-    
+
     Attributes:
         GENERATION: Unsupervised learning task to generate new data samples.
     """
@@ -37,7 +37,7 @@ class ModelTaskType(Enum):
 @dataclass
 class QumetModelInfo:
     """Model metadata and configuration for QuMET models.
-    
+
     Attributes:
         name: Model identifier name.
         model_type: Type of model architecture (QGAN, QCBM, VAE, etc.).
@@ -73,7 +73,7 @@ class QumetModelInfo:
     @property
     def is_generation_model(self):
         """Check if the model is a generation model.
-        
+
         Returns:
             bool: True if the model performs generation tasks.
         """

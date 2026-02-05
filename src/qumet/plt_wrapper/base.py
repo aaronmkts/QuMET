@@ -16,10 +16,10 @@ from PIL import Image
 
 class WrapperBase(pl.LightningModule):
     """Base class for all QuMET PyTorch Lightning wrappers.
-    
+
     Provides common functionality for wrapping models with PyTorch Lightning,
     including learning rate management, optimizer configuration, and visualization.
-    
+
     Attributes:
         model: Wrapped model instance.
         learning_rate: Learning rate for optimization.
@@ -29,7 +29,7 @@ class WrapperBase(pl.LightningModule):
         optimizer: Optimizer name.
         freeze_modules: Modules to freeze during training.
     """
-    
+
     def __init__(
         self,
         model,
@@ -40,7 +40,7 @@ class WrapperBase(pl.LightningModule):
         freeze_modules=None,
     ):
         """Initialize the wrapper base.
-        
+
         Args:
             model: Model to wrap.
             learning_rate: Learning rate for optimization. Defaults to 5e-4.
@@ -60,10 +60,10 @@ class WrapperBase(pl.LightningModule):
 
     def forward(self, x):
         """Forward pass through the model.
-        
+
         Args:
             x: Input tensor.
-        
+
         Raises:
             NotImplementedError: Must be implemented by subclasses.
         """
@@ -71,10 +71,10 @@ class WrapperBase(pl.LightningModule):
 
     def training_step(self, batch):
         """Execute one training step.
-        
+
         Args:
             batch: Batch of training data.
-        
+
         Raises:
             NotImplementedError: Must be implemented by subclasses.
         """
@@ -82,7 +82,7 @@ class WrapperBase(pl.LightningModule):
 
     def configure_optimizers(self):
         """Configure optimizers for training.
-        
+
         Raises:
             NotImplementedError: Must be implemented by subclasses.
         """
@@ -90,10 +90,10 @@ class WrapperBase(pl.LightningModule):
 
     def plot_to_image(self, figure):
         """Convert a matplotlib figure to a PyTorch tensor image.
-        
+
         Args:
             figure: Matplotlib figure to convert.
-        
+
         Returns:
             torch.Tensor: Image tensor in CHW format.
         """
@@ -109,10 +109,10 @@ class WrapperBase(pl.LightningModule):
 @dataclass
 class ValidationResult:
     """Container for validation step results.
-    
+
     Stores various outputs from a validation step including images, distributions,
     and latent representations.
-    
+
     Attributes:
         others: Dictionary for additional custom results.
         real_image: Real images from the dataset.
@@ -123,7 +123,7 @@ class ValidationResult:
         real_distribution: Probability distribution of real data.
         fake_distribution: Probability distribution of generated data.
     """
-    
+
     others: dict = field(default_factory=dict)
     real_image: torch.Tensor = None
     fake_image: torch.Tensor = None

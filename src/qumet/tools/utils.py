@@ -21,10 +21,10 @@ logger = logging.getLogger(__name__)
 
 def is_tensor(x):
     """Check if input is a PyTorch tensor.
-    
+
     Args:
         x: Input to check.
-    
+
     Returns:
         bool: True if input is a tensor.
     """
@@ -33,10 +33,10 @@ def is_tensor(x):
 
 def to_numpy(x):
     """Convert a PyTorch tensor to numpy array.
-    
+
     Args:
         x: PyTorch tensor to convert.
-    
+
     Returns:
         np.ndarray: Numpy array on CPU.
     """
@@ -47,10 +47,10 @@ def to_numpy(x):
 
 def to_numpy_if_tensor(x):
     """Convert to numpy if input is a tensor, otherwise return as-is.
-    
+
     Args:
         x: Input to potentially convert.
-    
+
     Returns:
         np.ndarray or original type: Numpy array if input was tensor.
     """
@@ -61,10 +61,10 @@ def to_numpy_if_tensor(x):
 
 def to_tensor(x):
     """Convert a numpy array to PyTorch tensor on configured device.
-    
+
     Args:
         x: Numpy array to convert.
-    
+
     Returns:
         torch.Tensor: Tensor on the configured device.
     """
@@ -73,10 +73,10 @@ def to_tensor(x):
 
 def to_tensor_if_numpy(x):
     """Convert to tensor if input is numpy array, otherwise return as-is.
-    
+
     Args:
         x: Input to potentially convert.
-    
+
     Returns:
         torch.Tensor or original type: Tensor if input was numpy array.
     """
@@ -87,7 +87,7 @@ def to_tensor_if_numpy(x):
 
 def copy_weights(src_weight: Tensor, tgt_weight: Tensor):
     """Copy weights from source tensor to target tensor.
-    
+
     Args:
         src_weight: Source weight tensor.
         tgt_weight: Target weight tensor to copy into.
@@ -98,10 +98,10 @@ def copy_weights(src_weight: Tensor, tgt_weight: Tensor):
 
 def get_checkpoint_file(checkpoint_dir):
     """Find a checkpoint file in the specified directory.
-    
+
     Args:
         checkpoint_dir: Directory to search for checkpoint files.
-    
+
     Returns:
         str or None: Filename of first .ckpt file found, or None.
     """
@@ -112,13 +112,13 @@ def get_checkpoint_file(checkpoint_dir):
 
 def execute_cli(cmd, log_output: bool = True, log_file=None, cwd="."):
     """Execute a CLI command with optional logging.
-    
+
     Args:
         cmd: Command to execute as a list of strings.
         log_output: Whether to log command output. Defaults to True.
         log_file: Optional file path to write output to.
         cwd: Working directory for command execution. Defaults to '.'.
-    
+
     Returns:
         int: Command return code.
     """
@@ -152,13 +152,13 @@ def execute_cli(cmd, log_output: bool = True, log_file=None, cwd="."):
 
 def parse_accelerator(accelerator: str):
     """Parse accelerator string to PyTorch device.
-    
+
     Args:
         accelerator: Accelerator type ('auto', 'gpu', or 'cpu').
-    
+
     Returns:
         torch.device: PyTorch device object.
-    
+
     Raises:
         RuntimeError: If accelerator type is not supported.
     """

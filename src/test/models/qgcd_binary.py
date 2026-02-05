@@ -8,12 +8,12 @@ sys.path.append(
 
 import toml
 import torch.nn as nn
-from qumet.models.qgan.efficient_su2.configuration_qgan_bitstring import (
-    QGCD_Binary_Config,
-)
 
 from qumet.dataset import QuMETDataModule
 from qumet.models import get_model
+from qumet.models.qgan.efficient_su2.configuration_qgan_bitstring import (
+    QGCD_Binary_Config,
+)
 from qumet.models.qgan.efficient_su2.modelling_efficient_su2 import (
     Binary_Discriminator,
     Binary_Generator,

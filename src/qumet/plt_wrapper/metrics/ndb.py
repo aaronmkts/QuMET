@@ -220,9 +220,7 @@ class NDB:
         plt.legend(loc="best")
         plt.ylim((0.0, min(ymax, np.max(self.bin_proportions) * 4.0)))
         plt.grid(True)
-        plt.title(
-            f"Binning Proportions Evaluation Results for {K} bins (NDB : JS)"
-        )
+        plt.title(f"Binning Proportions Evaluation Results for {K} bins (NDB : JS)")
         plt.show()
 
     def __calculate_bin_proportions(self, samples):

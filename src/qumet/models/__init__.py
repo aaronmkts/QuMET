@@ -26,13 +26,13 @@ from .vae import (
 
 def get_model_info(name: str) -> QumetModelInfo:
     """Retrieve model metadata and configuration.
-    
+
     Args:
         name: Name of the model to query.
-    
+
     Returns:
         QumetModelInfo: Model metadata including type and capabilities.
-    
+
     Raises:
         ValueError: If the model name is not recognized.
     """
@@ -57,15 +57,15 @@ def get_model(
     dataset_info: dict = {},
 ):
     """Get an instantiated model by name and task.
-    
+
     Args:
         name: Name of the model to instantiate.
         task: Task type for the model (e.g., 'discrete_generation').
         dataset_info: Optional dataset metadata for model configuration.
-    
+
     Returns:
         Model instance configured for the specified task.
-    
+
     Raises:
         ValueError: If the model type is not supported.
     """

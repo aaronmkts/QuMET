@@ -22,7 +22,7 @@ def get_vision_dataset(
     transform: str,
 ):
     """Load a vision dataset with specified configuration.
-    
+
     Args:
         name: Name of the vision dataset ('mnist', 'fashion_mnist', 'cifar10').
         path: Path to store/load the dataset.
@@ -30,10 +30,10 @@ def get_vision_dataset(
         n_samples: Number of samples to load.
         model_name: Optional model name for model-dependent transforms.
         transform: Transform type to apply ('minmax', 'pit', etc.).
-    
+
     Returns:
         torch.utils.data.Dataset: Configured vision dataset with transforms.
-    
+
     Raises:
         AssertionError: If split is not one of the valid options.
     """
@@ -76,13 +76,13 @@ VISION_DATASET_MAPPING = {
 
 def get_vision_dataset_cls(name: str):
     """Get the dataset class for a vision dataset.
-    
+
     Args:
         name: Name of the vision dataset.
-    
+
     Returns:
         type: Dataset class for the specified dataset.
-    
+
     Raises:
         AssertionError: If dataset name is not recognized.
     """

@@ -1,6 +1,5 @@
 "Hybrid classical-quantum generative adversial network configuration"
 
-
 import pennylane as qml
 
 

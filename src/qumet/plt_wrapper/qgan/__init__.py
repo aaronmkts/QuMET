@@ -20,10 +20,10 @@ from .probs_gen import QGANProbsGenModelWrapper
 
 def denorm(x):
     """Denormalize tensor values from [-1, 1] to [0, 1] range.
-    
+
     Args:
         x: Input tensor with values in [-1, 1] range.
-    
+
     Returns:
         torch.Tensor: Denormalized tensor clamped to [0, 1].
     """

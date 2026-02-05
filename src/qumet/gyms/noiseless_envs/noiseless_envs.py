@@ -42,9 +42,7 @@ class NoiselessTwoQubitEnv(NoiselessNQubitEnv):
         max_timesteps: int = 20,
     ):
         assert len(target) == 4, "Target must be of size 4"
-        super().__init__(
-            target, fidelity_threshold, reward_penalty, max_timesteps
-        )
+        super().__init__(target, fidelity_threshold, reward_penalty, max_timesteps)
 
 
 class NoiselessThreeQubitEnv(NoiselessNQubitEnv):

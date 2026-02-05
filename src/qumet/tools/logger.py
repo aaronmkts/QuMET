@@ -8,7 +8,6 @@ import logging
 
 from colorlog import ColoredFormatter
 
-
 formatter = ColoredFormatter(
     "%(log_color)s%(levelname)-8s%(reset)s %(blue)s%(message)s",
     datefmt=None,
@@ -33,11 +32,11 @@ root_logger.addHandler(handler)
 
 def set_logging_verbosity(level: str = "info"):
     """Set the logging verbosity level for QuMET.
-    
+
     Args:
         level: Logging level string. Must be one of: 'debug', 'info',
             'warning', 'error', or 'critical'. Defaults to 'info'.
-    
+
     Raises:
         ValueError: If an unknown logging level is provided.
     """
@@ -62,10 +61,10 @@ def set_logging_verbosity(level: str = "info"):
 
 def get_logger(name: str):
     """Get a child logger for a specific module or component.
-    
+
     Args:
         name: Name of the module or component for the logger.
-    
+
     Returns:
         logging.Logger: A child logger instance with the specified name.
     """

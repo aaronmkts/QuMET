@@ -1,4 +1,3 @@
-"""Classical GAN baseline model.
-"""
+"""Classical GAN baseline model."""
 
 from .gan import get_gan

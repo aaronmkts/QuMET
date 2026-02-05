@@ -40,10 +40,10 @@ NOISELESS_ENVIRONMENTS = {
 
 def is_noiseless_environment(name: str) -> bool:
     """Check if an environment name is a registered noiseless environment.
-    
+
     Args:
         name: Environment name to check.
-    
+
     Returns:
         bool: True if the environment is registered.
     """
@@ -52,13 +52,13 @@ def is_noiseless_environment(name: str) -> bool:
 
 def get_noiseless_environment_info(name: str) -> QumetEnvironmentInfo:
     """Get metadata for a noiseless environment.
-    
+
     Args:
         name: Name of the noiseless environment.
-    
+
     Returns:
         QumetEnvironmentInfo: Environment metadata and configuration.
-    
+
     Raises:
         ValueError: If the environment is not supported.
     """
@@ -73,15 +73,15 @@ def get_noiseless_environment(
     dataset_info: dict = None,
 ):
     """Get a noiseless environment class for a specific task.
-    
+
     Args:
         name: Name of the noiseless environment.
         task: Task type (e.g., 'state_preperation').
         dataset_info: Optional dataset metadata for environment configuration.
-    
+
     Returns:
         type: Environment class configured for the specified task.
-    
+
     Raises:
         ValueError: If the environment or task is not supported.
         AssertionError: If the environment doesn't support the specified task.

@@ -10,7 +10,7 @@ from enum import Enum
 
 class DatasetSource(Enum):
     """Enumeration of dataset sources.
-    
+
     Attributes:
         MANUAL: Manual dataset from QuMET.
         HF_DATASETS: Dataset from HuggingFace datasets library.
@@ -26,7 +26,7 @@ class DatasetSource(Enum):
 
 class DatasetSplit(Enum):
     """Enumeration of dataset splits.
-    
+
     Attributes:
         TRAIN: Training split.
         VALIDATION: Validation split.
@@ -43,7 +43,7 @@ class DatasetSplit(Enum):
 @dataclass
 class QuMETDatasetInfo:
     """Comprehensive dataset metadata for QuMET datasets.
-    
+
     Attributes:
         name: Dataset name.
         dataset_source: Source of the dataset (MANUAL, HF_DATASETS, etc.).
@@ -99,7 +99,7 @@ class QuMETDatasetInfo:
     @property
     def train_split_available(self):
         """Check if training split is available.
-        
+
         Returns:
             bool: True if training split is available.
         """
@@ -108,7 +108,7 @@ class QuMETDatasetInfo:
     @property
     def validation_split_available(self):
         """Check if validation split is available.
-        
+
         Returns:
             bool: True if validation split is available.
         """
@@ -117,7 +117,7 @@ class QuMETDatasetInfo:
     @property
     def test_split_available(self):
         """Check if test split is available.
-        
+
         Returns:
             bool: True if test split is available.
         """
@@ -126,7 +126,7 @@ class QuMETDatasetInfo:
     @property
     def pred_split_available(self):
         """Check if prediction split is available.
-        
+
         Returns:
             bool: True if prediction split is available.
         """
@@ -134,13 +134,13 @@ class QuMETDatasetInfo:
 
     def __getitem__(self, key: str):
         """Get dataset info attribute by key.
-        
+
         Args:
             key: Attribute key to retrieve.
-        
+
         Returns:
             Attribute value.
-        
+
         Raises:
             KeyError: If key is not found in dataset info.
         """
@@ -163,10 +163,10 @@ def add_dataset_info(
     num_features: int = None,
 ):
     """Decorator factory for adding dataset info to a dataset class.
-    
+
     This decorator attaches a QuMETDatasetInfo instance to a dataset class,
     providing metadata about the dataset's capabilities and structure.
-    
+
     Args:
         name: Dataset name.
         dataset_source: Source of the dataset (DatasetSource enum).
@@ -178,17 +178,17 @@ def add_dataset_info(
         num_classes: Number of classes for classification tasks.
         image_size: Image dimensions for vision datasets.
         num_features: Number of features in the dataset.
-    
+
     Returns:
         Callable: Decorator function that adds dataset info to a class.
     """
 
     def _add_dataset_info_to_cls(cls: type):
         """Add dataset info to the provided class.
-        
+
         Args:
             cls: Dataset class to decorate.
-        
+
         Returns:
             type: Decorated dataset class with info attribute.
         """

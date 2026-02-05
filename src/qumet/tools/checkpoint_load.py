@@ -13,13 +13,13 @@ logger = logging.getLogger(__name__)
 
 def load_lightning_ckpt_to_unwrapped_model(checkpoint: str, model: torch.nn.Module):
     """Load a PyTorch Lightning checkpoint into an unwrapped PyTorch model.
-    
+
     Handles the mapping of Lightning's wrapped state dict keys to the base model.
-    
+
     Args:
         checkpoint: Path to the Lightning checkpoint file.
         model: PyTorch model to load the checkpoint into.
-    
+
     Returns:
         torch.nn.Module: Model with loaded checkpoint weights.
     """
@@ -39,11 +39,11 @@ def load_lightning_ckpt_to_unwrapped_model(checkpoint: str, model: torch.nn.Modu
 
 def load_unwrapped_ckpt(checkpoint: str, model: torch.nn.Module):
     """Load a PyTorch state dict checkpoint into a model.
-    
+
     Args:
         checkpoint: Path to the PyTorch checkpoint file.
         model: PyTorch model to load the checkpoint into.
-    
+
     Returns:
         torch.nn.Module: Model with loaded checkpoint weights.
     """
@@ -59,16 +59,16 @@ def load_model(
     load_name: str, load_type: str = "pl", model: torch.nn.Module = None
 ) -> torch.nn.Module:
     """Load a PyTorch or Lightning checkpoint into a model.
-    
+
     Args:
         load_name: Path to the checkpoint file.
         load_type: Checkpoint type, either 'pt' (PyTorch) or 'pl' (Lightning).
             Defaults to 'pl'.
         model: Model instance to load the checkpoint into.
-    
+
     Returns:
         torch.nn.Module: Model with loaded checkpoint weights.
-    
+
     Raises:
         ValueError: If load_type is not 'pt' or 'pl'.
     """

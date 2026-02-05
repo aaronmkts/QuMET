@@ -10,13 +10,13 @@ from tabulate import tabulate
 
 def convert_str_na_to_none(d):
     """Convert 'NA' strings to None in nested data structures.
-    
+
     Since TOML does not support None values, 'NA' is used as a placeholder.
     This function recursively converts 'NA' strings back to None.
-    
+
     Args:
         d: Data structure (dict, list, tuple, or scalar) to process.
-    
+
     Returns:
         Processed data structure with 'NA' strings converted to None.
     """
@@ -37,13 +37,13 @@ def convert_str_na_to_none(d):
 
 def convert_none_to_str_na(d):
     """Convert None values to 'NA' strings in nested data structures.
-    
+
     Since TOML does not support None values, this function converts None
     to 'NA' strings before saving to TOML format.
-    
+
     Args:
         d: Data structure (dict, list, tuple, or scalar) to process.
-    
+
     Returns:
         Processed data structure with None values converted to 'NA' strings.
     """
@@ -64,10 +64,10 @@ def convert_none_to_str_na(d):
 
 def load_config(config_path):
     """Load configuration from a TOML file.
-    
+
     Args:
         config_path: Path to the TOML configuration file.
-    
+
     Returns:
         dict: Configuration dictionary with 'NA' strings converted to None.
     """
@@ -79,7 +79,7 @@ def load_config(config_path):
 
 def save_config(config, config_path):
     """Save configuration to a TOML file.
-    
+
     Args:
         config: Configuration dictionary to save.
         config_path: Path where the TOML file will be saved.
@@ -91,18 +91,18 @@ def save_config(config, config_path):
 
 def post_parse_load_config(args, defaults):
     """Load and merge configuration with CLI arguments.
-    
+
     Merges arguments from a TOML configuration file with CLI arguments using
     the precedence rule: default < configuration < manual overrides.
     Displays a formatted table showing the effective values.
-    
+
     Args:
         args: Parsed command-line arguments namespace.
         defaults: Dictionary of default argument values.
-    
+
     Returns:
         argparse.Namespace: Updated arguments with merged configuration values.
-    
+
     Raises:
         ValueError: If configuration file doesn't have .toml extension.
     """

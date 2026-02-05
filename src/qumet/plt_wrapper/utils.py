@@ -10,15 +10,15 @@ import torch.autograd as autograd
 
 def compute_gradient_penalty(critic, real_samples, fake_samples):
     """Calculate the gradient penalty loss for WGAN-GP.
-    
+
     Computes gradient penalty to enforce Lipschitz constraint on the critic
     for Wasserstein GAN with Gradient Penalty training.
-    
+
     Args:
         critic: Critic/discriminator network.
         real_samples: Real data samples tensor of shape (B, C, W, H).
         fake_samples: Generated/fake data samples of same shape as real_samples.
-    
+
     Returns:
         torch.Tensor: Scalar gradient penalty loss value.
     """

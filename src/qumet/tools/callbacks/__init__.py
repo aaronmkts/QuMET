@@ -18,11 +18,11 @@ from .visualisation import GANImagesCallback, TSNEPlotCallback
 
 def select_callbacks(model_info, task, metrics_to_use=None, metric_init_args=None):
     """Select and initialize callbacks based on model type and task.
-    
+
     Creates a list of appropriate evaluation and visualization callbacks for
     the given model and task configuration, with optional metric filtering
     and custom initialization arguments.
-    
+
     Args:
         model_info: Model metadata containing 'model_type' and 'name' attributes.
         task: Task type (e.g., 'image_generation').
@@ -30,10 +30,10 @@ def select_callbacks(model_info, task, metrics_to_use=None, metric_init_args=Non
             all default metrics for the task.
         metric_init_args: Optional dictionary of initialization arguments for
             each metric callback, keyed by metric name.
-    
+
     Returns:
         list: List of instantiated callback objects.
-    
+
     Raises:
         ValueError: If model type or task is unsupported, or if selected metrics
             don't belong to the appropriate task for the model type.

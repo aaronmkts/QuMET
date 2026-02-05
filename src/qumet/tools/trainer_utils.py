@@ -14,19 +14,19 @@ def get_optimizer(
     weight_decay: float,
 ):
     """Get a configured optimizer for model training.
-    
+
     Sets up optimizer with parameter groups that apply different weight decay
     to different parameter types (excluding bias and LayerNorm weights).
-    
+
     Args:
         model: Model whose parameters will be optimized.
         optimizer: Optimizer name ('adam', 'adamw', or 'sgd').
         learning_rate: Learning rate for optimization.
         weight_decay: Weight decay for regularization (not applied to bias/LayerNorm).
-    
+
     Returns:
         torch.optim.Optimizer: Configured optimizer instance.
-    
+
     Raises:
         ValueError: If optimizer name is not supported.
     """

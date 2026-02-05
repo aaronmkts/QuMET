@@ -10,14 +10,14 @@ from .vae_transform import VAE_Transform
 
 def get_transform(transform_name, **kwargs):
     """Get a transformation instance by name.
-    
+
     Args:
         transform_name: Name of the transform ('pca' or 'vae').
         **kwargs: Additional arguments to pass to the transform constructor.
-    
+
     Returns:
         Transform instance.
-    
+
     Raises:
         ValueError: If transform name is not recognized.
     """

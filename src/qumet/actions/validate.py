@@ -32,10 +32,10 @@ def validate(
     load_type,
 ):
     """Validate a trained quantum machine learning model.
-    
+
     Sets up PyTorch Lightning trainer and runs validation on the model using
     a checkpoint file or pretrained weights.
-    
+
     Args:
         model: Model instance to validate.
         model_info: Model metadata and configuration.

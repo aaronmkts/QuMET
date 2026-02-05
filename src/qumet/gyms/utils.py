@@ -10,7 +10,7 @@ from enum import Enum
 
 class EnvironmentType(Enum):
     """Enumeration of quantum environment simulation types.
-    
+
     Attributes:
         NOISELESS: Ideal quantum simulation without noise.
         NOISY: Quantum simulation with noise models.
@@ -22,7 +22,7 @@ class EnvironmentType(Enum):
 
 class EnvironmentTaskType(Enum):
     """Enumeration of environment task types.
-    
+
     Attributes:
         STATE_PREPERATION: Preparing quantum circuits for specific quantum states.
     """
@@ -33,7 +33,7 @@ class EnvironmentTaskType(Enum):
 @dataclass
 class QumetEnvironmentInfo:
     """Environment metadata for QuMET Gymnasium environments.
-    
+
     Attributes:
         name: Environment name.
         environment_type: Type of quantum simulation (NOISELESS or NOISY).
@@ -65,7 +65,7 @@ class QumetEnvironmentInfo:
     @property
     def is_state_preperation_environment(self):
         """Check if the environment is for state preparation tasks.
-        
+
         Returns:
             bool: True if the environment performs state preparation.
         """

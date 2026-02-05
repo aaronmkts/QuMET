@@ -29,7 +29,7 @@ def get_manual_dataset(
     n_samples: int,
 ):
     """Load a manual quantum dataset with specified configuration.
-    
+
     Args:
         name: Name of the manual dataset.
         split: Dataset split ('train', 'validation', 'test', or 'pred').
@@ -38,11 +38,11 @@ def get_manual_dataset(
         model_name: Optional model name for model-dependent transforms.
         n_qubits: Number of qubits for quantum circuits.
         n_samples: Number of samples to generate.
-    
+
     Returns:
         Dataset: Configured manual dataset with transforms, or None if split
             is not available for the dataset.
-    
+
     Raises:
         AssertionError: If split is not one of the valid options.
         ValueError: If dataset name is not recognized.
@@ -110,13 +110,13 @@ MANUAL_DATASET_MAPPING = {
 
 def get_manual_dataset_cls(name: str):
     """Get the dataset class for a manual dataset.
-    
+
     Args:
         name: Name of the manual dataset.
-    
+
     Returns:
         type: Dataset class for the specified dataset.
-    
+
     Raises:
         AssertionError: If dataset name is not recognized.
     """

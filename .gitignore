@@ -19,3 +19,4 @@ htmlcov/
 # Documentation
 docs/_build/
 docs/.doctrees/
+docs/build/docs/build/

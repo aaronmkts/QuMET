@@ -39,10 +39,10 @@ def train(
     add_vae,
 ):
     """Train a quantum machine learning model.
-    
+
     Sets up PyTorch Lightning trainer with callbacks, checkpointing, and logging,
     then trains the model on the provided dataset.
-    
+
     Args:
         model: Model instance to train.
         model_info: Model metadata and configuration.

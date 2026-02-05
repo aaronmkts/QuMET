@@ -22,10 +22,10 @@ VAE_MODELS = {
 # fmt:on
 def is_vae_model(name: str) -> bool:
     """Check if a model name is a registered VAE model.
-    
+
     Args:
         name: Model name to check.
-    
+
     Returns:
         bool: True if the model is a registered VAE.
     """
@@ -34,13 +34,13 @@ def is_vae_model(name: str) -> bool:
 
 def get_vae_model_info(name: str) -> QumetModelInfo:
     """Get metadata for a VAE model.
-    
+
     Args:
         name: Name of the VAE model.
-    
+
     Returns:
         QumetModelInfo: Model metadata and configuration.
-    
+
     Raises:
         ValueError: If the model is not supported.
     """
@@ -55,15 +55,15 @@ def get_vae_model(
     dataset_info: dict,
 ):
     """Get an instantiated VAE model for a specific task.
-    
+
     Args:
         name: Name of the VAE model.
         task: Task type (e.g., 'image_generation').
         dataset_info: Dataset metadata for model configuration.
-    
+
     Returns:
         Model instance configured for the specified task.
-    
+
     Raises:
         ValueError: If the model is not supported or task is incompatible.
         AssertionError: If the model doesn't support the specified task type.
@@ -88,10 +88,10 @@ def get_vae_model(
 
 def get_qgan_model_cls(name: str):
     """Get the model class for a VAE model.
-    
+
     Args:
         name: Name of the VAE model.
-    
+
     Raises:
         NotImplementedError: This function is not yet implemented.
     """

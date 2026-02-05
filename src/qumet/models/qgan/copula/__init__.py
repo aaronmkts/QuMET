@@ -1,3 +1,1 @@
-"""Copula-based quantum GAN model.
-"""
-
+"""Copula-based quantum GAN model."""

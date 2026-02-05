@@ -15,17 +15,17 @@ from .utils import PCA, filter_by_labels, n_samples, scale_data
 
 class DataTransformationMixin:
     """Mixin class providing common data transformation methods.
-    
+
     Provides utilities for filtering labels, sampling, and applying PCA
     transformations to dataset instances.
     """
 
     def filter_labels(self, labels: list):
         """Filter the dataset to only include specified labels.
-        
+
         Args:
             labels: List of label values to keep.
-        
+
         Returns:
             Filtered dataset.
         """
@@ -33,10 +33,10 @@ class DataTransformationMixin:
 
     def n_samples_(self, samples: int):
         """Limit the dataset to a specified number of samples.
-        
+
         Args:
             samples: Number of samples to keep.
-        
+
         Returns:
             Dataset with limited samples.
         """
@@ -45,7 +45,7 @@ class DataTransformationMixin:
 
     def fit_pca(self, n_components):
         """Fit PCA transformation to the dataset.
-        
+
         Args:
             n_components: Number of principal components to keep.
         """
@@ -58,10 +58,10 @@ class DataTransformationMixin:
 
     def apply_pca(self, img):
         """Apply fitted PCA transformation to an image.
-        
+
         Args:
             img: Input image tensor.
-        
+
         Returns:
             torch.Tensor: PCA-transformed image.
         """
@@ -73,12 +73,12 @@ class DataTransformationMixin:
     @staticmethod
     def scale_data(data, scale=None, dtype=np.float32):
         """Scale data to a specified range.
-        
+
         Args:
             data: Input data to scale.
             scale: Target scale range [min, max]. Defaults to None.
             dtype: Output data type. Defaults to np.float32.
-        
+
         Returns:
             Scaled data array.
         """
@@ -89,16 +89,16 @@ def get_vision_dataset_transform(
     name: str, train: bool, model_name: str, transform: None
 ):
     """Get transformation pipeline for a vision dataset.
-    
+
     Args:
         name: Name of the vision dataset.
         train: Whether this is for training (affects augmentation).
         model_name: Optional model name for model-dependent transforms.
         transform: Pre-configured transform (if callable) or transform type string.
-    
+
     Returns:
         Callable transform function or transform instance.
-    
+
     Raises:
         ValueError: If dataset name is not recognized.
     """
