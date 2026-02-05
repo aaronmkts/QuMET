@@ -1,15 +1,32 @@
+"""Utility functions for PyTorch Lightning wrappers.
+
+This module provides utility functions for computing gradient penalties
+and other training-related operations.
+"""
+
 import torch
 import torch.autograd as autograd
 
 
-def compute_gradient_penalty(critic, real_samples, fake_samples):  # , device):
-    """Calculates the gradient penalty loss for WGAN GP"""
+def compute_gradient_penalty(critic, real_samples, fake_samples):
+    """Calculate the gradient penalty loss for WGAN-GP.
+    
+    Computes gradient penalty to enforce Lipschitz constraint on the critic
+    for Wasserstein GAN with Gradient Penalty training.
+    
+    Args:
+        critic: Critic/discriminator network.
+        real_samples: Real data samples tensor of shape (B, C, W, H).
+        fake_samples: Generated/fake data samples of same shape as real_samples.
+    
+    Returns:
+        torch.Tensor: Scalar gradient penalty loss value.
+    """
     batch_size, C, W, H = real_samples.shape
     epsilon = torch.rand(batch_size, 1, 1, 1).repeat(1, C, W, H).type_as(real_samples)
     interpolated_images = epsilon * real_samples + ((1 - epsilon) * fake_samples)
     interpolated_scores = critic(interpolated_images)
 
-    # Get gradient w.r.t. interpolates
     gradients = autograd.grad(
         inputs=interpolated_images,
         outputs=interpolated_scores,

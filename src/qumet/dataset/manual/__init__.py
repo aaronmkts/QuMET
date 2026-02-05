@@ -1,3 +1,9 @@
+"""Manual quantum datasets for QuMET.
+
+This module provides access to manually constructed quantum datasets including
+bars and stripes patterns, 2D Gaussian distributions, and their bitstring variants.
+"""
+
 import os
 from pathlib import Path
 
@@ -22,13 +28,24 @@ def get_manual_dataset(
     n_qubits: int,
     n_samples: int,
 ):
-    """
+    """Load a manual quantum dataset with specified configuration.
+    
     Args:
-        name (str): name of the dataset
-        model_name (Optional[str, None]): name of the model. Some pretrained models have
-        model-dependent transforms for training and evaluation.
+        name: Name of the manual dataset.
+        split: Dataset split ('train', 'validation', 'test', or 'pred').
+        transform: Transform type to apply.
+        discretise: Whether to discretise the data.
+        model_name: Optional model name for model-dependent transforms.
+        n_qubits: Number of qubits for quantum circuits.
+        n_samples: Number of samples to generate.
+    
     Returns:
-        dataset (torch.utils.data.Dataset): dataset (with transforms)
+        Dataset: Configured manual dataset with transforms, or None if split
+            is not available for the dataset.
+    
+    Raises:
+        AssertionError: If split is not one of the valid options.
+        ValueError: If dataset name is not recognized.
     """
 
     ori_split = split
@@ -92,5 +109,16 @@ MANUAL_DATASET_MAPPING = {
 
 
 def get_manual_dataset_cls(name: str):
+    """Get the dataset class for a manual dataset.
+    
+    Args:
+        name: Name of the manual dataset.
+    
+    Returns:
+        type: Dataset class for the specified dataset.
+    
+    Raises:
+        AssertionError: If dataset name is not recognized.
+    """
     assert name in MANUAL_DATASET_MAPPING, f"Unknown dataset {name}"
     return MANUAL_DATASET_MAPPING[name.lower()]

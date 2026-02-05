@@ -1,3 +1,9 @@
+"""Vision datasets for QuMET.
+
+This module provides access to computer vision datasets including MNIST,
+Fashion-MNIST, and CIFAR-10 with QuMET-specific preprocessing and transforms.
+"""
+
 import os
 from pathlib import Path
 
@@ -5,10 +11,6 @@ from .cifar import Cifar10QuMET, get_cifar_dataset
 from .fashion_mnist import Fashion_MNISTQuMET, get_fashion_mnist_dataset
 from .mnist import MNISTQuMET, get_mnist_dataset
 from .transforms import get_vision_dataset_transform
-
-# Copyright (c) 2015-present, Facebook, Inc.
-# All rights reserved.
-
 
 
 def get_vision_dataset(
@@ -19,15 +21,21 @@ def get_vision_dataset(
     model_name: str,
     transform: str,
 ):
-    """
+    """Load a vision dataset with specified configuration.
+    
     Args:
-        name (str): name of the dataset
-        path (str): path to the dataset
-        train (bool): whether the dataset is used for training
-        model_name (Optional[str, None]): name of the model. Some pretrained models have
-        model-dependent transforms for training and evaluation.
+        name: Name of the vision dataset ('mnist', 'fashion_mnist', 'cifar10').
+        path: Path to store/load the dataset.
+        split: Dataset split ('train', 'validation', 'test', or 'pred').
+        n_samples: Number of samples to load.
+        model_name: Optional model name for model-dependent transforms.
+        transform: Transform type to apply ('minmax', 'pit', etc.).
+    
     Returns:
-        dataset (torch.utils.data.Dataset): dataset (with transforms)
+        torch.utils.data.Dataset: Configured vision dataset with transforms.
+    
+    Raises:
+        AssertionError: If split is not one of the valid options.
     """
     assert split in [
         "train",
@@ -67,5 +75,16 @@ VISION_DATASET_MAPPING = {
 
 
 def get_vision_dataset_cls(name: str):
+    """Get the dataset class for a vision dataset.
+    
+    Args:
+        name: Name of the vision dataset.
+    
+    Returns:
+        type: Dataset class for the specified dataset.
+    
+    Raises:
+        AssertionError: If dataset name is not recognized.
+    """
     assert name in VISION_DATASET_MAPPING, f"Unknown dataset {name}"
     return VISION_DATASET_MAPPING[name.lower()]
