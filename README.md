@@ -13,6 +13,17 @@ The main QuMET module contains tools for quantum circuit construction and standa
 - Quantum Algorithm Implementation: QuMET includes implementations of key quantum machine learning algorithms, such as quantum generative adversarial networks, quantum variational autoencoders and more.
 - Hybrid Classical-Quantum Models: Combine classical and quantum components to build hybrid models for machine learning tasks.
 
+## Research Memory Boundary
+
+QuMET is treated as the PhD testing-platform/software-quality stream. Keep this repository focused on platform documentation: installation, usage, tests, packaging, configuration, examples, and JOSS-facing reproducibility.
+
+Long-form PhD research memory belongs in Obsidian instead:
+
+- PhD stream note: `Research/PhD/QuMET.md`
+- Use that note for theory, experiment interpretation, algorithm-review notes, and cross-stream synthesis.
+
+See `docs/research-memory-boundary.md` for the repository/Obsidian split.
+
 This repo contains the following directories:
 * `src/qumet` - QuMET's software stack
 * `scripts` - Installation scripts  
