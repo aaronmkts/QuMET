@@ -3,20 +3,19 @@ import sys
 
 os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
 sys.path.append(
-    os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", "src"
-    )
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", "src")
 )
 
+import time
+from pathlib import Path
+
+import pytorch_lightning as pl
 import torch.nn as nn
+from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
+
 from qumet.actions.train import train
 from qumet.dataset import QuMETDataModule, get_dataset_info
 from qumet.models import get_model, get_model_info
-
-import pytorch_lightning as pl
-from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
-import time
-from pathlib import Path
 
 
 def main():
@@ -55,8 +54,8 @@ def main():
     model_name = "qcbm"
     model_info = get_model_info(model_name)
 
-    task = "probs_generation" #image_generation discrete_generation
-    dataset_name = "bars_and_stripes" #bars_and_stripes
+    task = "probs_generation"  # image_generation discrete_generation
+    dataset_name = "bars_and_stripes"  # bars_and_stripes
 
     # Training params
     batch_size = 512
@@ -79,7 +78,7 @@ def main():
         num_workers=num_workers,
         n_qubits=n_qubits,
         transform=None,
-        discretise=False
+        discretise=False,
     )
     dataset_info = get_dataset_info(dataset_name)
     model = get_model(model_name, task, dataset_info)

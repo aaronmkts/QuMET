@@ -1,26 +1,20 @@
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
-from sklearn.manifold import TSNE
-from sklearn.mixture import GaussianMixture
-import sys
 import os
+import sys
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
 os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
 sys.path.append(
-     os.path.join(
-         os.path.dirname(os.path.realpath(__file__)), "..", "..", ".." ,"src"
-     )
-    )
-import seaborn as sns
-from qumet.dataset import QuMETDataModule
-from qumet.models import get_model, get_model_info
-from qumet.dataset import get_dataset, get_dataset_info
-import torch.optim as optim
-from qumet.tools.checkpoint_load import *
-import wandb
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", "src")
+)
 import re
+
+import wandb
+
+from qumet.tools.checkpoint_load import *
+
+
 def split_seed_from_name(run_name: str):
     """
     Splits off the '_seedXX' and optional '_TLv1' parts of a run name, if present.
@@ -30,7 +24,7 @@ def split_seed_from_name(run_name: str):
          'vaeqwgan_mnist017_seed42_TLv1' -> ('vaeqwgan_mnist017_TL', '42')
     If no seed found, returns (run_name, None).
     """
-    pattern = r'^(.*)_seed(\d+)(_TLv\d+)?$'
+    pattern = r"^(.*)_seed(\d+)(_TLv\d+)?$"
     match = re.match(pattern, run_name)
     if match:
         group = match.group(1)  # everything before _seed
@@ -42,7 +36,7 @@ def split_seed_from_name(run_name: str):
         return run_name, None
 
 
-''' 
+r''' 
 def split_seed_from_name(run_name: str):
     """
     Splits off the last '_seedXX' part of a run name, if present.
@@ -64,10 +58,24 @@ def split_seed_from_name(run_name: str):
 
 api = wandb.Api()
 columns_to_ignore = [
-    'TSNE/epoch_12', 'TSNE/epoch_4', 'TSNE/epoch_7', 'TSNE/epoch_14',
-    'TSNE/epoch_1', 'TSNE/epoch_10', 'TSNE/epoch_11', 'TSNE/epoch_6',
-    'TSNE/epoch_5', 'TSNE/epoch_9', 'TSNE/epoch_8', 'TSNE/epoch_2',
-    'TSNE/epoch_13', 'TSNE/epoch_0', 'TSNE/epoch_3', 'images/real', 'images/sample', 'images/recon'
+    "TSNE/epoch_12",
+    "TSNE/epoch_4",
+    "TSNE/epoch_7",
+    "TSNE/epoch_14",
+    "TSNE/epoch_1",
+    "TSNE/epoch_10",
+    "TSNE/epoch_11",
+    "TSNE/epoch_6",
+    "TSNE/epoch_5",
+    "TSNE/epoch_9",
+    "TSNE/epoch_8",
+    "TSNE/epoch_2",
+    "TSNE/epoch_13",
+    "TSNE/epoch_0",
+    "TSNE/epoch_3",
+    "images/real",
+    "images/sample",
+    "images/recon",
 ]
 
 runs = api.runs("qumet/QMI-ModeCollapse")
@@ -76,28 +84,36 @@ dfs = []
 for run in runs:
     run_df = run.history(samples=5000)
     run_name = run.config.get("run_name", "unknown")
-    run_df['run_name'] = run_name
-    run_df['run_id'] = run.id
+    run_df["run_name"] = run_name
+    run_df["run_id"] = run.id
     dfs.append(run_df)
 
 all_runs_df = pd.concat(dfs, ignore_index=True)
-filtered_df = all_runs_df.drop(columns=columns_to_ignore, errors='ignore')
+filtered_df = all_runs_df.drop(columns=columns_to_ignore, errors="ignore")
 
 # Corrected unpacking with new split_seed_from_name
-filtered_df["experiment_group"], filtered_df["seed"] = zip(*filtered_df["run_name"].apply(split_seed_from_name))
+filtered_df["experiment_group"], filtered_df["seed"] = zip(
+    *filtered_df["run_name"].apply(split_seed_from_name)
+)
 
-column = 'wasserstein_distance'
+column = "wasserstein_distance"
 filtered_df = filtered_df.dropna(subset=[column])
 filtered_df = filtered_df.sort_values(by="_step")
 
-agg_df = filtered_df.groupby(["experiment_group", "_step"], as_index=False)[column].agg(["mean", "std"]).reset_index()
+agg_df = (
+    filtered_df.groupby(["experiment_group", "_step"], as_index=False)[column]
+    .agg(["mean", "std"])
+    .reset_index()
+)
 
 # Correctly normalize epochs per group
-agg_df["epoch"] = 0  
+agg_df["epoch"] = 0
 for group in agg_df["experiment_group"].unique():
     group_mask = agg_df["experiment_group"] == group
     max_step_group = agg_df.loc[group_mask, "_step"].max()
-    agg_df.loc[group_mask, "epoch"] = agg_df.loc[group_mask, "_step"] / max_step_group * 15
+    agg_df.loc[group_mask, "epoch"] = (
+        agg_df.loc[group_mask, "_step"] / max_step_group * 15
+    )
 
 
 def plot_metric_with_std(
@@ -108,51 +124,46 @@ def plot_metric_with_std(
     group_labels=None,
     xlabel="Epoch",
     ylabel=None,
-    plot_title=None
+    plot_title=None,
 ):
 
     if group_labels is None:
         group_labels = {}
-    
+
     plt.figure(figsize=(12, 8))
-    
+
     for group in allowed_groups:
         subset = agg_data[agg_data["experiment_group"] == group]
         if subset.empty:
             continue  # skip if no data for this group
-        
+
         color = colors.get(group, None)
         label = group_labels.get(group, group)  # custom label if available
 
         # Plot mean vs. epoch
-        plt.plot(
-            subset["epoch"],
-            subset["mean"],
-            color=color,
-            label=label,
-            linewidth=2
-        )
+        plt.plot(subset["epoch"], subset["mean"], color=color, label=label, linewidth=2)
         # Fill between mean ± std
         plt.fill_between(
             subset["epoch"],
             subset["mean"] - subset["std"],
             subset["mean"] + subset["std"],
             color=color,
-            alpha=0.3
+            alpha=0.3,
         )
 
     # Force x-axis to show 0..15 (epochs)
     plt.xlim(0, 15)
     # Optional: show integer ticks from 0..15
     plt.xticks(range(16))
-    
-    plt.xlabel(xlabel, fontsize=30)
-    plt.ylabel(ylabel if ylabel else metric_column.replace("_", " ").title(), fontsize=30)
 
-    
+    plt.xlabel(xlabel, fontsize=30)
+    plt.ylabel(
+        ylabel if ylabel else metric_column.replace("_", " ").title(), fontsize=30
+    )
+
     plt.grid(True)
     plt.legend(fontsize=30, loc="upper right")
-    
+
     # Customize spines and tick parameters
     ax = plt.gca()
     ax.spines["top"].set_visible(False)
@@ -164,17 +175,17 @@ def plot_metric_with_std(
     plt.show()
 
 
-
-
-allowed_groups = ["vaeqwgan_mnist017",
-                   "pqwgan_mnist017_gaussian", 
-                   "pqwgan_mnist017_uniform",
-                   "gan_mnist017_uniform",]
+allowed_groups = [
+    "vaeqwgan_mnist017",
+    "pqwgan_mnist017_gaussian",
+    "pqwgan_mnist017_uniform",
+    "gan_mnist017_uniform",
+]
 
 colors = {
-    "vaeqwgan_mnist017": "#225ea8",          # e.g., VAE-QWGAN
-    "pqwgan_mnist017_gaussian": "#a1dab4",    # e.g., Gaussian prior
-    "pqwgan_mnist017_uniform": "#41b6c4",      # If you want to add Uniform later
+    "vaeqwgan_mnist017": "#225ea8",  # e.g., VAE-QWGAN
+    "pqwgan_mnist017_gaussian": "#a1dab4",  # e.g., Gaussian prior
+    "pqwgan_mnist017_uniform": "#41b6c4",  # If you want to add Uniform later
     "gan_mnist017_uniform": "#ff8a33",
 }
 
@@ -195,6 +206,7 @@ plot_metric_with_std(
     ylabel="Wasserstein Distance",
 )
 
+
 def get_final_metrics(agg_data, allowed_groups):
     """
     For each experiment group in allowed_groups, get the row with the maximum _step,
@@ -206,13 +218,16 @@ def get_final_metrics(agg_data, allowed_groups):
         if not group_data.empty:
             # Find the row with the maximum _step in this group
             final_row = group_data.loc[group_data["_step"].idxmax()]
-            final_metrics.append({
-                "experiment_group": group,
-                "final_epoch": final_row["epoch"],
-                "final_mean": final_row["mean"],
-                "final_std": final_row["std"]
-            })
+            final_metrics.append(
+                {
+                    "experiment_group": group,
+                    "final_epoch": final_row["epoch"],
+                    "final_mean": final_row["mean"],
+                    "final_std": final_row["std"],
+                }
+            )
     return pd.DataFrame(final_metrics)
+
 
 # Using the aggregated DataFrame (agg_df) from your previous code
 final_metrics_df = get_final_metrics(agg_df, allowed_groups)

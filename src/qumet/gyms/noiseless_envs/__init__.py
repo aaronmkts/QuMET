@@ -1,5 +1,11 @@
-from .noiseless_envs import *
+"""Noiseless quantum circuit environments for reinforcement learning.
+
+This module provides ideal (noiseless) quantum simulation environments for
+training quantum circuit architectures with reinforcement learning.
+"""
+
 from ..utils import QumetEnvironmentInfo
+from .noiseless_envs import *
 
 NOISELESS_ENVIRONMENTS = {
     "NoiselessNQubitEnv": {
@@ -33,10 +39,29 @@ NOISELESS_ENVIRONMENTS = {
 
 
 def is_noiseless_environment(name: str) -> bool:
+    """Check if an environment name is a registered noiseless environment.
+
+    Args:
+        name: Environment name to check.
+
+    Returns:
+        bool: True if the environment is registered.
+    """
     return name in NOISELESS_ENVIRONMENTS
 
 
 def get_noiseless_environment_info(name: str) -> QumetEnvironmentInfo:
+    """Get metadata for a noiseless environment.
+
+    Args:
+        name: Name of the noiseless environment.
+
+    Returns:
+        QumetEnvironmentInfo: Environment metadata and configuration.
+
+    Raises:
+        ValueError: If the environment is not supported.
+    """
     if name not in NOISELESS_ENVIRONMENTS:
         raise ValueError(f"Manual environment {name} is not supported")
     return NOISELESS_ENVIRONMENTS[name]["info"]
@@ -47,11 +72,19 @@ def get_noiseless_environment(
     task: str,
     dataset_info: dict = None,
 ):
-    """
+    """Get a noiseless environment class for a specific task.
+
     Args:
-        name: The name of the environment.
-        task: The task type.
-        dataset_info: The dataset info.
+        name: Name of the noiseless environment.
+        task: Task type (e.g., 'state_preperation').
+        dataset_info: Optional dataset metadata for environment configuration.
+
+    Returns:
+        type: Environment class configured for the specified task.
+
+    Raises:
+        ValueError: If the environment or task is not supported.
+        AssertionError: If the environment doesn't support the specified task.
     """
     if name not in NOISELESS_ENVIRONMENTS:
         raise ValueError(f"Manual environment {name} is not supported")

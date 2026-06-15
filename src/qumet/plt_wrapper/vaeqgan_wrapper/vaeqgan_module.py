@@ -1,22 +1,24 @@
+import lightning.pytorch as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import lightning.pytorch as pl
-from typing import Dict, Any
+
 from ..base import ValidationResult
 from ..utils import compute_gradient_penalty
+
 
 class VAEGANWrapper(pl.LightningModule):
     """
     A generic VAE-GAN wrapper that decouples the VAE functionality
     (encoder, reparameterization, VAE losses) from any given GAN model.
-    
+
     Requirements for `base_model`:
       - Must have `base_model.generator` (nn.Module)
       - Must have `base_model.discriminator` (nn.Module)
-      
+
     The `encoder` can be a separate module or part of `base_model`.
     """
+
     def __init__(
         self,
         base_model: nn.Module,
@@ -24,7 +26,8 @@ class VAEGANWrapper(pl.LightningModule):
         learning_rate=1e-4,
         weight_decay=0.0,
         epochs=100,
-        optimizer=None):
+        optimizer=None,
+    ):
         """
         Args:
             base_model: A GAN model (with .generator and .discriminator).
@@ -37,9 +40,11 @@ class VAEGANWrapper(pl.LightningModule):
             n_critic: Number of critic (discriminator) steps per generator step.
             optimizer_type: Type of optimizer to use ("adam", "sgd", etc.).
         """
-   
+
         super().__init__()
-        self.save_hyperparameters(ignore=["base_model", "encoder"])  # (optional) track hyperparams
+        self.save_hyperparameters(
+            ignore=["base_model", "encoder"]
+        )  # (optional) track hyperparams
         self.automatic_optimization = False
         self.base_model = base_model
         self.encoder = encoder
@@ -56,7 +61,6 @@ class VAEGANWrapper(pl.LightningModule):
         # Extract any needed shape info from config
         self.z_dim = self.encoder.z_dim
 
-        
     def forward(self, z):
 
         return self.base_model.generator(z)
@@ -81,7 +85,7 @@ class VAEGANWrapper(pl.LightningModule):
         Compute KL divergence for standard normal prior.
         """
         prior_loss = 1 + log_var - mu.pow(2) - log_var.exp()
-        kl_divergence = torch.mean(-0.5 * torch.sum(prior_loss, dim = 1))
+        kl_divergence = torch.mean(-0.5 * torch.sum(prior_loss, dim=1))
         return kl_divergence
 
     def training_step(self, batch, batch_idx):
@@ -89,7 +93,7 @@ class VAEGANWrapper(pl.LightningModule):
         Perform a single training step for the VAE-GAN, updating the discriminator, encoder, and generator.
 
         This method processes a batch of real data and executes the following steps:
-        
+
         1. **Discriminator Update:**
         - Encodes real data to obtain latent vectors (mu, log_var).
         - Samples latent vectors `z` using the reparameterization trick.
@@ -98,10 +102,10 @@ class VAEGANWrapper(pl.LightningModule):
         - Computes adversarial loss with gradient penalty.
         - Backpropagates and updates discriminator weights.
         - Logs discriminator loss and Wasserstein distance.
-        
+
         2. **Encoder and Generator Update (Conditionally):**
         - Every `n_critic` steps, the encoder and generator are updated:
-            
+
             a. **Encoder Update:**
                 - Re-encodes real data and regenerates fake data.
                 - Computes reconstruction loss (MSE) between reconstructed and real data.
@@ -109,7 +113,7 @@ class VAEGANWrapper(pl.LightningModule):
                 - Combines reconstruction and KL divergence losses.
                 - Backpropagates and updates encoder weights.
                 - Logs encoder-specific losses.
-            
+
             b. **Generator Update:**
                 - Re-encodes real data and regenerates fake data.
                 - Passes fake data through the discriminator.
@@ -126,22 +130,28 @@ class VAEGANWrapper(pl.LightningModule):
         real_data, _ = batch
         batch_size = real_data.size(0)
         optE, optG, optD = self.optimizers()
-  
+
         # Generate fake-data using noise input
         mu, log_var = self.encode(real_data)
         z = self.reparametrize(mu, log_var)
         fake_data = self.base_model.generator(z)
-        
+
         # Training the discriminator
         self.toggle_optimizer(optD)
         optD.zero_grad()
-            
-        real_validity  = self.base_model.discriminator(real_data)
-        fake_validity  = self.base_model.discriminator(fake_data.detach())
 
-            # Adversarial loss
-        gradient_penalty = compute_gradient_penalty(self.base_model.discriminator, real_data, fake_data)
-        d_loss = -torch.mean(real_validity) + torch.mean(fake_validity) + self.lambda_gp * gradient_penalty
+        real_validity = self.base_model.discriminator(real_data)
+        fake_validity = self.base_model.discriminator(fake_data.detach())
+
+        # Adversarial loss
+        gradient_penalty = compute_gradient_penalty(
+            self.base_model.discriminator, real_data, fake_data
+        )
+        d_loss = (
+            -torch.mean(real_validity)
+            + torch.mean(fake_validity)
+            + self.lambda_gp * gradient_penalty
+        )
 
         wasserstein_distance = torch.mean(real_validity) - torch.mean(fake_validity)
 
@@ -152,27 +162,27 @@ class VAEGANWrapper(pl.LightningModule):
         optD.step()
         self.untoggle_optimizer(optD)
 
-        if batch_idx!= 0 and batch_idx % (self.n_critic) == 0:
-        
+        if batch_idx != 0 and batch_idx % (self.n_critic) == 0:
+
             # Train the encoder
             self.toggle_optimizer(optE)
             optE.zero_grad()
-            
+
             # Recompute recon_imgs for the encoder
             mu, log_var = self.encode(real_data)
             z = self.reparametrize(mu, log_var)
             recon_imgs = self.base_model.generator(z)
-            
-            recon_loss = F.mse_loss(recon_imgs, real_data, reduction='sum') / batch_size
-            prior_loss = self.normal_kl_div(mu, log_var) 
 
-            errE =  prior_loss + recon_loss
+            recon_loss = F.mse_loss(recon_imgs, real_data, reduction="sum") / batch_size
+            prior_loss = self.normal_kl_div(mu, log_var)
+
+            errE = prior_loss + recon_loss
             self.manual_backward(errE)
             optE.step()
 
-            self.log('encoder/prior_loss', prior_loss)
-            self.log('encoder/recon_loss', recon_loss)
-            self.log('encoder/total_loss', errE, prog_bar=True)
+            self.log("encoder/prior_loss", prior_loss)
+            self.log("encoder/recon_loss", recon_loss)
+            self.log("encoder/total_loss", errE, prog_bar=True)
 
             self.untoggle_optimizer(optE)
 
@@ -182,39 +192,41 @@ class VAEGANWrapper(pl.LightningModule):
             mu, log_var = self.encode(real_data)
             z = self.reparametrize(mu, log_var)
             fake_data = self.base_model.generator(z)
-           
+
             # Loss measures generator's ability to fool the discriminator,Train on fake images
-            recon_loss = F.mse_loss(fake_data, real_data, reduction='sum') / batch_size
+            recon_loss = F.mse_loss(fake_data, real_data, reduction="sum") / batch_size
             fake_validity = self.base_model.discriminator(fake_data)
-    
+
             g_loss = -torch.mean(fake_validity) + self.recon_weight * recon_loss
-        
+
             self.manual_backward(g_loss)
             optG.step()
 
             self.log("generator/fake_validity", -fake_validity.mean())
             self.log("generator/recon_loss", recon_loss)
             self.log("generator/total_loss", g_loss, prog_bar=True)
-  
-            self.untoggle_optimizer(optG) 
-    
+
+            self.untoggle_optimizer(optG)
+
     def validation_step(self, batch, batch_idx):
-        '''
+        """
         Validation step for the model
-        '''
-        
+        """
+
         real_imgs, labels = batch
-        
+
         mu, log_var = self.encode(real_imgs)
         z = self.reparametrize(mu, log_var)
         fake_imgs = self.base_model.generator(z)
-        
-        N = real_imgs.size(0)
-        val_recon_loss = F.mse_loss(real_imgs, fake_imgs, reduction='sum') / N
 
-        self.log('metrics/val_mse_reduction', val_recon_loss, on_epoch=True)
-    
-        return ValidationResult(real_image=real_imgs, fake_image=fake_imgs, encode_latent=z, label=labels)
+        N = real_imgs.size(0)
+        val_recon_loss = F.mse_loss(real_imgs, fake_imgs, reduction="sum") / N
+
+        self.log("metrics/val_mse_reduction", val_recon_loss, on_epoch=True)
+
+        return ValidationResult(
+            real_image=real_imgs, fake_image=fake_imgs, encode_latent=z, label=labels
+        )
 
     def configure_optimizers(self):
         """
@@ -225,26 +237,35 @@ class VAEGANWrapper(pl.LightningModule):
                 self.encoder.parameters(),
                 lr=self.lrE,
                 weight_decay=self.weight_decay,
-                betas=(0.0, 0.9)
+                betas=(0.0, 0.9),
             )
             optG = torch.optim.Adam(
                 self.base_model.generator.parameters(),
                 lr=self.lrG,
                 weight_decay=self.weight_decay,
-                betas=(0.0, 0.9)
+                betas=(0.0, 0.9),
             )
             optD = torch.optim.Adam(
                 self.base_model.discriminator.parameters(),
                 lr=self.lrD,
                 weight_decay=self.weight_decay,
-                betas=(0.0, 0.9)
+                betas=(0.0, 0.9),
             )
         elif self.optimizer == "sgd":
-            optE = torch.optim.SGD(self.encoder.parameters(), lr=self.lrE, weight_decay=self.weight_decay)
-            optG = torch.optim.SGD(self.base_model.generator.parameters(), lr=self.lrG, weight_decay=self.weight_decay)
-            optD = torch.optim.SGD(self.base_model.discriminator.parameters(), lr=self.lrD, weight_decay=self.weight_decay)
+            optE = torch.optim.SGD(
+                self.encoder.parameters(), lr=self.lrE, weight_decay=self.weight_decay
+            )
+            optG = torch.optim.SGD(
+                self.base_model.generator.parameters(),
+                lr=self.lrG,
+                weight_decay=self.weight_decay,
+            )
+            optD = torch.optim.SGD(
+                self.base_model.discriminator.parameters(),
+                lr=self.lrD,
+                weight_decay=self.weight_decay,
+            )
         else:
             raise ValueError(f"Unsupported optimizer type {self.optimizer_type}")
 
         return [optE, optG, optD], []
-

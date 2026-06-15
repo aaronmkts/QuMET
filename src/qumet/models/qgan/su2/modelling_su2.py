@@ -1,19 +1,17 @@
-from typing import Dict
-from pennylane.qnn import TorchLayer as TorchConnector
-from pennylane import numpy as np
+import math
+import warnings
+from logging import getLogger
+
+import pennylane as qml
 import torch.jit
 import torch.nn as nn
-import pennylane as qml
-from torch import Tensor
-from logging import getLogger
-#from pennylane import broadcast
-from pennylane.wires import Wires
-from typing import Optional as _Optional
-import warnings
 import torch.overrides
-from torch.nn.init import calculate_gain, _calculate_correct_fan
-from copy import deepcopy
-import math 
+from pennylane import numpy as np
+
+# from pennylane import broadcast
+from pennylane.wires import Wires
+from torch import Tensor
+from torch.nn.init import _calculate_correct_fan, calculate_gain
 
 logger = getLogger(__name__)
 
@@ -21,7 +19,7 @@ logger = getLogger(__name__)
 n_qubits = 8
 config = {
     "discriminator": {
-        "input_size": 2 ** n_qubits,
+        "input_size": 2**n_qubits,
     },
     "generator": {
         "device": "default.qubit",
@@ -32,16 +30,15 @@ config = {
     },
 }
 
-pi = math.pi 
+pi = math.pi
 
 
-
-#Discriminator
+# Discriminator
 class Probs_Discriminator(nn.Module):
     """Fully connected classical discriminator"""
 
     def __init__(self, config, task):
-        super(Probs_Discriminator, self).__init__()
+        super().__init__()
         name = "discriminator"
         self.input_size = config[name]["input_size"]
 
@@ -57,16 +54,18 @@ class Probs_Discriminator(nn.Module):
             nn.LeakyReLU(),
             # Third hidden layer (64 -> num_output_features)
             nn.Linear(64, 1),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
         self.model.apply(self.init_weights)
 
-    def alt_kaiming_uniform_(self, tensor: torch.Tensor,
+    def alt_kaiming_uniform_(
+        self,
+        tensor: torch.Tensor,
         a: float = 0,
         mode: str = "fan_in",
         nonlinearity: str = "leaky_relu",
-        generator: _Optional[torch.Generator] = None,
+        generator: torch.Generator | None = None,
     ):
         if torch.overrides.has_torch_function_variadic(tensor):
             return torch.overrides.handle_torch_function(
@@ -76,7 +75,8 @@ class Probs_Discriminator(nn.Module):
                 a=a,
                 mode=mode,
                 nonlinearity=nonlinearity,
-                generator=generator)
+                generator=generator,
+            )
 
         if 0 in tensor.shape:
             warnings.warn("Initializing zero-element tensors is a no-op")
@@ -84,19 +84,18 @@ class Probs_Discriminator(nn.Module):
         fan = _calculate_correct_fan(tensor, mode)
         gain = calculate_gain(nonlinearity, a)
         std = gain / math.sqrt(fan)
-        std = 2*std
+        std = 2 * std
         bound = math.sqrt(3.0) * std  # Calculate uniform bounds from standard deviation
         with torch.no_grad():
             return tensor.uniform_(-bound, bound, generator=generator)
-        
+
     def init_weights(self, layer):
         if isinstance(layer, nn.Linear):
-            self.alt_kaiming_uniform_(layer.weight, 
-                                     mode = 'fan_out', 
-                                     a = math.sqrt(5))
-           
+            self.alt_kaiming_uniform_(layer.weight, mode="fan_out", a=math.sqrt(5))
+
     def forward(self, input: Tensor) -> Tensor:
         return self.model(input)
+
 
 class SU2Generator(nn.Module):
     def __init__(self, config, task):
@@ -116,58 +115,61 @@ class SU2Generator(nn.Module):
         sequence = []
         for layer in range(2):
             block = wires[layer : len(wires) - layer]
-                    
+
             sequence += [block.subset([i, i + 1]) for i in range(0, len(block) - 1, 2)]
         return sequence
 
-    def _entangling_layer(self, entangler: str, pattern: str, wires:int):
+    def _entangling_layer(self, entangler: str, pattern: str, wires: int):
         match entangler:
-            case 'CNOT':
+            case "CNOT":
                 entangling_operation = qml.CNOT
-            case 'CZ':
+            case "CZ":
                 entangling_operation = qml.CZ
 
-        broadcast(unitary= entangling_operation, pattern = pattern, wires = wires) 
+        broadcast(unitary=entangling_operation, pattern=pattern, wires=wires)
 
     def _angle_layer(self, q_weights, wires):
-            
-        def template(q_weights_y,q_weights_z,  wires):
-            qml.RY(q_weights_y, wires = wires)
-            qml.RZ(q_weights_z, wires = wires)
 
-        broadcast(unitary = template, pattern = 'single', wires = wires, parameters=q_weights)
+        def template(q_weights_y, q_weights_z, wires):
+            qml.RY(q_weights_y, wires=wires)
+            qml.RZ(q_weights_z, wires=wires)
+
+        broadcast(unitary=template, pattern="single", wires=wires, parameters=q_weights)
 
     def _construct_quantum_layer(self):
         wires = list(range(self.n_qubits))
 
-
-        weights = np.random.random(size=(self.n_qubits,2))
-        self.weights_0 = nn.Parameter(torch.tensor(weights, requires_grad=True, dtype=torch.float32))
+        weights = np.random.random(size=(self.n_qubits, 2))
+        self.weights_0 = nn.Parameter(
+            torch.tensor(weights, requires_grad=True, dtype=torch.float32)
+        )
 
         weights = np.random.random(size=(self.depth, self.n_qubits, 2))
-        self.weights_i = nn.Parameter(torch.tensor(weights, requires_grad=True, dtype=torch.float32))
+        self.weights_i = nn.Parameter(
+            torch.tensor(weights, requires_grad=True, dtype=torch.float32)
+        )
 
         self.q_device = qml.device(self.device, wires=self.n_qubits, shots=self.shots)
-        @qml.qnode(self.q_device,  interface='torch', diff_method=self.diff_method)
+
+        @qml.qnode(self.q_device, interface="torch", diff_method=self.diff_method)
         def circuit(q_weights_0, q_weights_i):
             """Builds the circuit to be fed to the connector as a QML node"""
-            
+
             sequence = self._wires_pairwise(Wires(wires))
             self._angle_layer(q_weights_0, wires)
-        
+
             def _subroutine(q_weights_i, wires):
                 qml.Barrier(wires)
-                self._entangling_layer(entangler = 'CNOT', pattern = sequence, wires = wires)
+                self._entangling_layer(entangler="CNOT", pattern=sequence, wires=wires)
                 qml.Barrier(wires)
                 self._angle_layer(q_weights_i, wires)
-                
-            
-            qml.layer(_subroutine, self.depth, q_weights_i, wires = wires)
+
+            qml.layer(_subroutine, self.depth, q_weights_i, wires=wires)
 
             return qml.probs()
-        
+
         return circuit
-    
+
     def forward(self):
         circuit = self.q_layer
         prob_distribution = circuit(self.weights_0, self.weights_i)
@@ -196,7 +198,7 @@ def _su2(config, task: str) -> SU2:
     return model
 
 
-def get_su2(info: Dict) -> SU2:
+def get_su2(info: dict) -> SU2:
     task = "info.generation"
     logger.info(f"The following {config} loaded for task into QCBM")
     return _su2(config=config, task=task)

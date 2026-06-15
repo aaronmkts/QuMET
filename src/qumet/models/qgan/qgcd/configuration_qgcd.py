@@ -1,16 +1,15 @@
 "Hybrid classical-quantum generative adversial network configuration"
 
-from typing import Union
 import pennylane as qml
 
 
 class QmlMixin:
     """Mixin for models built on top of Pennylane (QML)"""
 
-    _device: Union[str, qml.Device]
+    _device: str | qml.Device
     _n_qubits: int
 
-    def _set_qml_device(self, device: Union[str, qml.Device]):
+    def _set_qml_device(self, device: str | qml.Device):
         """
         Internal method to set a pennylane device according to its type
 
@@ -36,7 +35,7 @@ class QmlMixin:
         return self._device
 
     @device.setter
-    def device(self, backend: Union[str, qml.Device]):
+    def device(self, backend: str | qml.Device):
         self._device = backend
 
     @property

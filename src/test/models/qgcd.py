@@ -3,20 +3,20 @@ import sys
 
 os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
 sys.path.append(
-     os.path.join(
-         os.path.dirname(os.path.realpath(__file__)), "..", "..", ".." ,"src"
-     )
-    )
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..", "src")
+)
 
+import time
+from pathlib import Path
+
+import pytorch_lightning as pl
 import torch.nn as nn
+from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
+
 from qumet.actions.train import train
 from qumet.dataset import QuMETDataModule, get_dataset_info
 from qumet.models import get_model, get_model_info
 
-import pytorch_lightning as pl
-from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
-import time
-from pathlib import Path
 
 def main():
 
@@ -26,36 +26,37 @@ def main():
             case "tensorboard":
                 visualizer = TensorBoardLogger(
                     save_dir=save_path.joinpath("tensorboard")
-                    )
+                )
             case _:
                 raise ValueError(f"unsupported reporting tool {visualiser}")
         return visualizer
+
     def _setup_folders(task, dataset_name):
         ROOT = Path(__file__).parent.parent.parent.absolute()
-            # No project name is given; so we construct one structured as follows:
-            # {MODEL-NAME}_{TASK-TYPE}_{DATASET-NAME}_{TIMESTAMP}
-            # NOTE: We set the attribute in args so that any subsequent routine has
-            # access to the name of the project. :)
+        # No project name is given; so we construct one structured as follows:
+        # {MODEL-NAME}_{TASK-TYPE}_{DATASET-NAME}_{TIMESTAMP}
+        # NOTE: We set the attribute in args so that any subsequent routine has
+        # access to the name of the project. :)
         project = "{}_{}_{}".format(
             task,
             dataset_name,
             time.strftime("%Y-%m-%d"),
-            )
+        )
 
         output_dir = Path(os.path.join(ROOT, "qumet_output")) / project
         output_dir_sw = Path(output_dir) / "software"
         output_dir_sw.mkdir(parents=True, exist_ok=True)
 
-
         return output_dir_sw
-    #Model
+
+    # Model
     model_name = "qgcd_probs"
     model_info = get_model_info(model_name)
 
     task = "generation"
     dataset_name = "2d_gaussian"
-    
-    #Training params
+
+    # Training params
     batch_size = 64
     n_qubits = 6
     num_workers = int(os.cpu_count() / 2)
@@ -70,16 +71,16 @@ def main():
     visualizer = _setup_visualizer(report_to, output_dir_sw)
 
     data_module = QuMETDataModule(
-        model_name= None,
+        model_name=None,
         name=dataset_name,
         batch_size=batch_size,
-        num_workers = num_workers,
-        n_qubits=n_qubits
+        num_workers=num_workers,
+        n_qubits=n_qubits,
     )
     dataset_info = get_dataset_info(dataset_name)
     model = get_model(model_name, task, dataset_info)
 
-    #plt_trainer args
+    # plt_trainer args
     max_epochs: int = 50
     max_steps: int = -1
     num_devices: int = 1
@@ -101,7 +102,7 @@ def main():
         "accumulate_grad_batches": accumulate_grad_batches,
         "log_every_n_steps": log_every_n_steps,
     }
-    
+
     train_params = {
         "model": model,
         "model_info": model_info,
@@ -118,7 +119,7 @@ def main():
         "load_name": load_name,
         "load_type": load_type,
     }
-    
+
     train(**train_params)
 
 

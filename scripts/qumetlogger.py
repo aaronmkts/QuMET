@@ -1,6 +1,10 @@
 #! /usr/bin/env python3
 # This script configures the logger in qumet
-import sys, os, time, logging, colorlog, functools
+import functools
+import logging
+import os
+
+import colorlog
 
 
 def getLogger(name: str, logFile: str = "", console: bool = True) -> logging.Logger:

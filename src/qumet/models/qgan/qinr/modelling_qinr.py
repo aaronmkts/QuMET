@@ -1,14 +1,12 @@
-import pennylane as qml
-import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import math
 from logging import getLogger
-from pennylane.qnn import TorchLayer as TorchConnector
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+
+import numpy as np
+import pennylane as qml
+import torch
+import torch.nn as nn
 from torch import Tensor
-from qw_map import arctan
+
 logger = getLogger(__name__)
 pi = math.pi
 
@@ -18,16 +16,18 @@ image_shape = (1, 28, 28)
 config = {
     "discriminator": {"image_shape": image_shape},
     "generator": {
-        'image_shape': image_shape,
-        'in_features': 6,
-        'hidden_features': 6,
-        'hidden_layers': 2,
-        'out_features': 1,
-        'spectrum_layer': 2,
-        'use_noise': 0,
-        'outermost_linear': True,
+        "image_shape": image_shape,
+        "in_features": 6,
+        "hidden_features": 6,
+        "hidden_layers": 2,
+        "out_features": 1,
+        "spectrum_layer": 2,
+        "use_noise": 0,
+        "outermost_linear": True,
     },
 }
+
+
 # fmt:on
 class Discriminator(nn.Module):
     def __init__(self, config, task):
@@ -50,7 +50,9 @@ class Discriminator(nn.Module):
         for m in self.model:
             if isinstance(m, nn.Linear):
                 # LeCun initialization
-                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='leaky_relu')
+                nn.init.kaiming_normal_(
+                    m.weight, mode="fan_in", nonlinearity="leaky_relu"
+                )
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
@@ -58,7 +60,8 @@ class Discriminator(nn.Module):
         x = x.view(x.shape[0], -1)
         x = self.model(x)
         return x
-    
+
+
 class QuantumLayer(nn.Module):
     def __init__(self, in_features, spectrum_layer, use_noise):
         super().__init__()
@@ -69,10 +72,14 @@ class QuantumLayer(nn.Module):
 
         def _circuit(inputs, weights1, weights2):
             for i in range(self.n_layer):
-                qml.StronglyEntanglingLayers(weights1[i], wires=range(self.in_features), imprimitive=qml.ops.CZ)
+                qml.StronglyEntanglingLayers(
+                    weights1[i], wires=range(self.in_features), imprimitive=qml.ops.CZ
+                )
                 for j in range(self.in_features):
                     qml.RZ(inputs[j], wires=j)
-            qml.StronglyEntanglingLayers(weights2, wires=range(self.in_features), imprimitive=qml.ops.CZ)
+            qml.StronglyEntanglingLayers(
+                weights2, wires=range(self.in_features), imprimitive=qml.ops.CZ
+            )
 
             if self.use_noise != 0:
                 for i in range(self.in_features):
@@ -84,10 +91,15 @@ class QuantumLayer(nn.Module):
                 res.append(qml.expval(qml.PauliZ(i)))
             return res
 
-        torch_device = qml.device('default.qubit', wires=in_features)
-        weight_shape = {"weights1": (self.n_layer, 2, in_features, 3), "weights2": (2, in_features, 3)}
+        torch_device = qml.device("default.qubit", wires=in_features)
+        weight_shape = {
+            "weights1": (self.n_layer, 2, in_features, 3),
+            "weights2": (2, in_features, 3),
+        }
 
-        self.qnode = qml.QNode(_circuit, torch_device, diff_method="backprop", interface="torch")
+        self.qnode = qml.QNode(
+            _circuit, torch_device, diff_method="backprop", interface="torch"
+        )
 
         self.qnn = qml.qnn.TorchLayer(self.qnode, weight_shape)
 
@@ -104,18 +116,20 @@ class QuantumLayer(nn.Module):
 
 
 class HybridLayer(nn.Module):
-    def __init__(self, in_features, out_features, spectrum_layer, use_noise, bias=True, idx=0):
+    def __init__(
+        self, in_features, out_features, spectrum_layer, use_noise, bias=True, idx=0
+    ):
         super().__init__()
         self.idx = idx
         self.clayer = nn.Linear(in_features, out_features, bias=bias)
         self.norm = nn.BatchNorm1d(out_features)
         self.qlayer = QuantumLayer(out_features, spectrum_layer, use_noise)
-        
+
     def forward(self, x):
         x1 = self.clayer(x)
         out = self.qlayer(x1)
         return out
-    
+
 
 class Generator(nn.Module):
     def __init__(self, config, taks):
@@ -130,21 +144,32 @@ class Generator(nn.Module):
         outermost_linear = config[name]["outermost_linear"]
         self.n_qubits = config[name]["hidden_features"]
 
-
         super().__init__()
 
         self.net = []
-        self.net.append(HybridLayer(in_features, hidden_features, spectrum_layer, use_noise, idx=1))
+        self.net.append(
+            HybridLayer(in_features, hidden_features, spectrum_layer, use_noise, idx=1)
+        )
 
         for i in range(hidden_layers):
-            self.net.append(HybridLayer(hidden_features, hidden_features, spectrum_layer, use_noise, idx=i + 2))
+            self.net.append(
+                HybridLayer(
+                    hidden_features,
+                    hidden_features,
+                    spectrum_layer,
+                    use_noise,
+                    idx=i + 2,
+                )
+            )
 
         if outermost_linear:
             final_linear = nn.Linear(hidden_features, 128)
 
         else:
-            final_linear = HybridLayer(hidden_features, out_features, spectrum_layer, use_noise)
-       
+            final_linear = HybridLayer(
+                hidden_features, out_features, spectrum_layer, use_noise
+            )
+
         final_linear_1 = nn.Linear(128, 512)
         final_linear_2 = nn.Linear(512, 256)
         final_linear_3 = nn.Linear(256, int(np.prod(image_shape)))
@@ -160,15 +185,15 @@ class Generator(nn.Module):
         coords = coords.clone().detach().requires_grad_(True)
         output = self.net(coords)
         final_out_new = output.view(output.shape[0], *image_shape)
-        
+
         return final_out_new
-    
+
 
 class QINR(nn.Module):
     def __init__(self, config, task):
         super().__init__()
         # networks
-      
+
         self.discriminator = Discriminator(config, task)
         self.generator = Generator(config, task)
 
@@ -177,10 +202,12 @@ class QINR(nn.Module):
             imgs_batch = self.generator(z)
             imgs = imgs_batch.view(-1, 1, 28, 28)
         return imgs
-    
+
+
 # ---------------------------------------
 # QINR QGAN
 # ---------------------------------------
+
 
 def _qinr_qc(config, task: str) -> QINR:
 
@@ -188,7 +215,7 @@ def _qinr_qc(config, task: str) -> QINR:
     return model
 
 
-def get_qinr_qc(info: Dict) -> QINR:
+def get_qinr_qc(info: dict) -> QINR:
 
     task = "info.generation"
     logger.info(f"The following {config} loaded for task into QINR QGAN")

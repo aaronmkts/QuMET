@@ -1,10 +1,12 @@
+import os
+
+from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import datasets
-import os
+
 from ..utils import add_dataset_info
 from .transforms import DataTransformationMixin
-import torch
-from PIL import Image
+
 
 @add_dataset_info(
     name="mnist",
@@ -16,13 +18,19 @@ from PIL import Image
 )
 class MNISTQuMET(datasets.MNIST, DataTransformationMixin):
     def __init__(
-        self, root: os.PathLike, train: bool, n_samples:int, transform: callable, download: bool, model_name: str
+        self,
+        root: os.PathLike,
+        train: bool,
+        n_samples: int,
+        transform: callable,
+        download: bool,
+        model_name: str,
     ) -> None:
         super().__init__(root, train=train, transform=transform, download=download)
 
         self.model_name = model_name
 
-        filter_labels = [0,1]
+        filter_labels = [0, 1]
 
         if filter_labels:
             self.filter_labels(filter_labels)
@@ -46,11 +54,11 @@ class MNISTQuMET(datasets.MNIST, DataTransformationMixin):
 
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image
-        img = Image.fromarray(img.numpy(), mode='L')
+        img = Image.fromarray(img.numpy(), mode="L")
 
         if self.transform is not None:
             img = self.transform(img)
-        
+
         if self.target_transform is not None:
             target = self.target_transform(target)
 
@@ -58,11 +66,23 @@ class MNISTQuMET(datasets.MNIST, DataTransformationMixin):
 
 
 def get_mnist_dataset(
-    name: str, path: os.PathLike, train: bool, n_samples:int, transform: callable, model_name: str
+    name: str,
+    path: os.PathLike,
+    train: bool,
+    n_samples: int,
+    transform: callable,
+    model_name: str,
 ) -> Dataset:
     match name.lower():
         case "mnist":
-            dataset = MNISTQuMET(path, train=train, transform=transform, n_samples = n_samples, model_name = model_name, download=True)
+            dataset = MNISTQuMET(
+                path,
+                train=train,
+                transform=transform,
+                n_samples=n_samples,
+                model_name=model_name,
+                download=True,
+            )
 
         case _:
             raise ValueError(f"Unknown dataset {name}")

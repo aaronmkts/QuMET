@@ -1,15 +1,10 @@
-import torch
-import torch.nn as nn
-from torchmetrics import KLDivergence
-import matplotlib.pyplot as plt
-from matplotlib import cm
-import numpy as np
-import math
-import collections
-from scipy.linalg import sqrtm
-from ..base import WrapperBase
 from abc import abstractmethod
-from torchvision.utils import save_image, make_grid
+
+import torch
+from torchvision.utils import make_grid
+
+from ..base import WrapperBase
+
 
 class VAEImageGenerationModelWrapper(WrapperBase):
     def __init__(
@@ -40,7 +35,6 @@ class VAEImageGenerationModelWrapper(WrapperBase):
     def training_step(self, batch):
         pass
 
-
     def configure_optimizers(self):
         # Use self.trainer.model.parameters() instead of self.parameters() to support FullyShared (Model paralleled) training
         match self.optimizer.lower():
@@ -57,13 +51,12 @@ class VAEImageGenerationModelWrapper(WrapperBase):
 
             case "sgd":
 
-                optG = torch.optim.SGD(self.model.parameters(),
-                                        lr=self.learning_rate)
+                optG = torch.optim.SGD(self.model.parameters(), lr=self.learning_rate)
             case _:
                 raise ValueError(f"Unsupported optimizer name {self.optimizer}")
 
         return [optG], []
-    
+
     def gaussian_likelihood(self, mean, logscale, sample):
         scale = torch.exp(logscale)
         dist = torch.distributions.Normal(mean, scale)
@@ -86,33 +79,35 @@ class VAEImageGenerationModelWrapper(WrapperBase):
         log_pz = p.log_prob(z)
 
         # kl
-        kl = (log_qzx - log_pz)
+        kl = log_qzx - log_pz
         kl = kl.sum(-1)
         return kl
-  
+
+
 class VAEWrapper(VAEImageGenerationModelWrapper):
-    def __init__(self,
+    def __init__(
+        self,
         model,
         dataset_info,
         learning_rate=1e-4,
         weight_decay=0.0,
         epochs=100,
-        optimizer=None):
-        super().__init__(model, dataset_info, learning_rate, 
-                         weight_decay, epochs, optimizer)
-    
+        optimizer=None,
+    ):
+        super().__init__(
+            model, dataset_info, learning_rate, weight_decay, epochs, optimizer
+        )
+
     def loss_function(self, mu, std, x, x_hat, z):
-        #Reconstruction loss
-        recon_loss = self.gaussian_likelihood(x_hat, self.model.log_scale, x)   
-        #KL divergence
+        # Reconstruction loss
+        recon_loss = self.gaussian_likelihood(x_hat, self.model.log_scale, x)
+        # KL divergence
         kl = self.kl_divergence(z, mu, std)
-        #ELBO
+        # ELBO
         elbo = kl - recon_loss
 
-        return {'elbo': elbo.mean(),
-                'kl': kl.mean(),
-                'recon_loss': recon_loss.mean()}
-    
+        return {"elbo": elbo.mean(), "kl": kl.mean(), "recon_loss": recon_loss.mean()}
+
     def training_step(self, batch):
 
         x, _ = batch
@@ -121,22 +116,37 @@ class VAEWrapper(VAEImageGenerationModelWrapper):
 
         total_loss = self.loss_function(mu, std, x, x_hat, z)
 
-        self.log('train_kl_loss', total_loss['kl'], on_step=True,
-                    on_epoch=True, prog_bar=False)
-        self.log('train_recon_loss', total_loss['recon_loss'], on_step=True,
-                    on_epoch=True, prog_bar=False)
-        self.log('train_loss', total_loss['elbo'], on_step=True,
-                    on_epoch=True, prog_bar=True)
- 
-        return total_loss['elbo']
+        self.log(
+            "train_kl_loss",
+            total_loss["kl"],
+            on_step=True,
+            on_epoch=True,
+            prog_bar=False,
+        )
+        self.log(
+            "train_recon_loss",
+            total_loss["recon_loss"],
+            on_step=True,
+            on_epoch=True,
+            prog_bar=False,
+        )
+        self.log(
+            "train_loss", total_loss["elbo"], on_step=True, on_epoch=True, prog_bar=True
+        )
+
+        return total_loss["elbo"]
 
     def validation_step(self, batch):
 
         x, _ = batch
-        
+
         mu, std, x_hat, z = self.model.forward(x)
         total_loss = self.loss_function(mu, std, x, x_hat, z)
-        self.log('val_loss', total_loss['elbo'], on_step=True, on_epoch=True, prog_bar=True)
-        self.log('val_kl_epoch', total_loss['kl'], on_step=True, on_epoch=True, prog_bar=True)
+        self.log(
+            "val_loss", total_loss["elbo"], on_step=True, on_epoch=True, prog_bar=True
+        )
+        self.log(
+            "val_kl_epoch", total_loss["kl"], on_step=True, on_epoch=True, prog_bar=True
+        )
 
-        self.logger.experiment.add_image('Normalized Inputs', make_grid(x[:8]))
+        self.logger.experiment.add_image("Normalized Inputs", make_grid(x[:8]))

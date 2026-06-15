@@ -1,10 +1,10 @@
 import os
-import numpy as np
-from sklearn.cluster import KMeans
-from scipy.stats import norm
-from matplotlib import pyplot as plt
 import pickle as pkl
 
+import numpy as np
+from matplotlib import pyplot as plt
+from scipy.stats import norm
+from sklearn.cluster import KMeans
 
 
 class NDB:
@@ -83,9 +83,7 @@ class NDB:
         d_used = d if self.max_dims is None else min(d, self.max_dims)
         self.used_d_indices = np.random.choice(d, d_used, replace=False)
         print(
-            "Performing K-Means clustering of {} samples in dimension {} / {} to {} clusters ...".format(
-                n, d_used, d, k
-            )
+            f"Performing K-Means clustering of {n} samples in dimension {d_used} / {d} to {k} clusters ..."
         )
         print("Can take a couple of minutes...")
         if n // k > 1000:
@@ -147,7 +145,7 @@ class NDB:
         }
 
         if model_label:
-            print("Results for {} samples from {}: ".format(n, model_label), end="")
+            print(f"Results for {n} samples from {model_label}: ", end="")
             self.cached_results[model_label] = results
             if self.results_file:
                 # print('Storing result to', self.results_file)
@@ -199,7 +197,7 @@ class NDB:
             height=train_se * 2.0,
             bottom=self.bin_proportions - train_se,
             width=1.0,
-            label="Train$\pm$SE",
+            label=r"Train$\pm$SE",
             color="gray",
         )
 
@@ -222,9 +220,7 @@ class NDB:
         plt.legend(loc="best")
         plt.ylim((0.0, min(ymax, np.max(self.bin_proportions) * 4.0)))
         plt.grid(True)
-        plt.title(
-            "Binning Proportions Evaluation Results for {} bins (NDB : JS)".format(K)
-        )
+        plt.title(f"Binning Proportions Evaluation Results for {K} bins (NDB : JS)")
         plt.show()
 
     def __calculate_bin_proportions(self, samples):
@@ -237,7 +233,7 @@ class NDB:
         k = self.bin_centers.shape[0]
         D = np.zeros([n, k], dtype=samples.dtype)
 
-        print("Calculating bin assignments for {} samples...".format(n))
+        print(f"Calculating bin assignments for {n} samples...")
         whitened_samples = (samples - self.training_mean) / self.training_std
         for i in range(k):
             print(".", end="", flush=True)

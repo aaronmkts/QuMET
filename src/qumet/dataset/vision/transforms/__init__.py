@@ -1,57 +1,108 @@
-from .mnist import get_mnist_transform
-from .fashion_mnist import get_fashion_mnist_transform
-from .cifar import get_cifar10_transform
-from .utils import filter_by_labels, scale_data, PCA, n_samples
+"""Transform functions for vision datasets.
+
+This module provides transformation pipelines for vision datasets including
+data augmentation, normalization, PCA, and other preprocessing operations.
+"""
+
 import numpy as np
 import torch
 
+from .cifar import get_cifar10_transform
+from .fashion_mnist import get_fashion_mnist_transform
+from .mnist import get_mnist_transform
+from .utils import PCA, filter_by_labels, n_samples, scale_data
+
+
 class DataTransformationMixin:
+    """Mixin class providing common data transformation methods.
+
+    Provides utilities for filtering labels, sampling, and applying PCA
+    transformations to dataset instances.
+    """
 
     def filter_labels(self, labels: list):
-        """
-        Filters the dataset to only include specified labels.
+        """Filter the dataset to only include specified labels.
+
+        Args:
+            labels: List of label values to keep.
+
+        Returns:
+            Filtered dataset.
         """
         return filter_by_labels(self, labels)
-    
+
     def n_samples_(self, samples: int):
- 
+        """Limit the dataset to a specified number of samples.
+
+        Args:
+            samples: Number of samples to keep.
+
+        Returns:
+            Dataset with limited samples.
+        """
+
         return n_samples(self, samples)
-    
 
     def fit_pca(self, n_components):
+        """Fit PCA transformation to the dataset.
+
+        Args:
+            n_components: Number of principal components to keep.
+        """
 
         self.pca_model = PCA(n_components)
 
-        # Convert dataset to numpy array and flatten
         X_flat_data = self.data.numpy().reshape(self.data.shape[0], -1)
-        # Scale data if necessary
         X_data = self.scale_data(X_flat_data, scale=[0, 1])
-        # Fit PCA
         self.pca_model.fit(torch.tensor(X_data, dtype=torch.float32))
 
     def apply_pca(self, img):
+        """Apply fitted PCA transformation to an image.
+
+        Args:
+            img: Input image tensor.
+
+        Returns:
+            torch.Tensor: PCA-transformed image.
+        """
 
         transformed_img = self.pca_model.transform(img)
-        
+
         return transformed_img
 
-  
     @staticmethod
     def scale_data(data, scale=None, dtype=np.float32):
+        """Scale data to a specified range.
+
+        Args:
+            data: Input data to scale.
+            scale: Target scale range [min, max]. Defaults to None.
+            dtype: Output data type. Defaults to np.float32.
+
+        Returns:
+            Scaled data array.
+        """
         return scale_data(data, scale=scale, dtype=np.float32)
 
-    
-def get_vision_dataset_transform(name: str, train: bool, model_name: str, transform: None):
-    """
+
+def get_vision_dataset_transform(
+    name: str, train: bool, model_name: str, transform: None
+):
+    """Get transformation pipeline for a vision dataset.
+
     Args:
-        name (str): name of the dataset
-        train (bool): whether the dataset is used for training
-        model_name (Optional[str, None]): name of the model. Some pretrained models have model-dependent transforms.
+        name: Name of the vision dataset.
+        train: Whether this is for training (affects augmentation).
+        model_name: Optional model name for model-dependent transforms.
+        transform: Pre-configured transform (if callable) or transform type string.
+
     Returns:
-        transform (callable): transform function
+        Callable transform function or transform instance.
+
+    Raises:
+        ValueError: If dataset name is not recognized.
     """
     if callable(transform):
-        # If transform is already a callable (e.g., PCA_Transform instance), return it directly
         return transform
     else:
         match name.lower():

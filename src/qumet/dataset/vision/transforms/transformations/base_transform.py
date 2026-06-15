@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class TransformBase(ABC):
     @abstractmethod
     def fit(self, data):

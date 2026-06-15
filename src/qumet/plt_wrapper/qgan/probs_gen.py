@@ -1,11 +1,9 @@
 import torch
 import torch.nn as nn
 from torchmetrics import KLDivergence
-import matplotlib.pyplot as plt
-from matplotlib import cm
-import numpy as np
+
 from ..base import WrapperBase
-from scipy.stats import entropy
+
 
 class QGANProbsGenModelWrapper(WrapperBase):
     def __init__(
@@ -33,22 +31,23 @@ class QGANProbsGenModelWrapper(WrapperBase):
         self.n_qubits = self.model.generator.n_qubits
         self.entropy_val = KLDivergence()
         self.criterion = nn.BCELoss()
-    
+
     def training_step(self, batch, batch_idx):
 
         optG, optD = self.optimizers()
 
         # Set sata and real/fake labels
-        real_data = batch.reshape(-1,)
-        
+        real_data = batch.reshape(
+            -1,
+        )
+
         real_labels = torch.full((batch.size(0),), 1.0, dtype=torch.float).type_as(
             real_data
         )
         fake_labels = torch.full((batch.size(0),), 0.0, dtype=torch.float).type_as(
             real_data
         )
-       
-        
+
         self.toggle_optimizer(optD)
         optD.zero_grad()
 
@@ -56,12 +55,16 @@ class QGANProbsGenModelWrapper(WrapperBase):
         for _ in range(discriminator_training_steps):
             fake_data = self.model.generator().type_as(real_data)
             outD_real = self.model.discriminator(real_data)
-            outD_fake = self.model.discriminator(fake_data.detach()) 
-   
-            errD_real = self.criterion(outD_real, real_labels) # Discriminator real loss
-            errD_fake = self.criterion(outD_fake, fake_labels) # Discriminator fake loss
-            errD = (errD_real + errD_fake) 
-            
+            outD_fake = self.model.discriminator(fake_data.detach())
+
+            errD_real = self.criterion(
+                outD_real, real_labels
+            )  # Discriminator real loss
+            errD_fake = self.criterion(
+                outD_fake, fake_labels
+            )  # Discriminator fake loss
+            errD = errD_real + errD_fake
+
             self.manual_backward(errD)
             optD.step()
             self.log("Discriminator_loss", errD, prog_bar=True)
@@ -71,10 +74,10 @@ class QGANProbsGenModelWrapper(WrapperBase):
         self.toggle_optimizer(optG)
         # Training the generator
         fake_data = self.model.generator().type_as(real_data)
-        
+
         optG.zero_grad()
-        outD_fake = self.model.discriminator(fake_data)  #do i detach here?
-        errG = self.criterion(outD_fake, real_labels) 
+        outD_fake = self.model.discriminator(fake_data)  # do i detach here?
+        errG = self.criterion(outD_fake, real_labels)
 
         self.manual_backward(errG)
         optG.step()
@@ -82,10 +85,10 @@ class QGANProbsGenModelWrapper(WrapperBase):
         self.untoggle_optimizer(optG)
 
         epsilon = 1e-6
-        kl_div = self.entropy_val(fake_data.unsqueeze(0) +epsilon, real_data.unsqueeze(0) +epsilon).detach()
-        self.log('kl_div', kl_div, prog_bar=True)   
-
-    
+        kl_div = self.entropy_val(
+            fake_data.unsqueeze(0) + epsilon, real_data.unsqueeze(0) + epsilon
+        ).detach()
+        self.log("kl_div", kl_div, prog_bar=True)
 
     def configure_optimizers(self):
         # Use self.trainer.model.parameters() instead of self.parameters() to support FullyShared (Model paralleled) training
@@ -93,8 +96,7 @@ class QGANProbsGenModelWrapper(WrapperBase):
             case "adam":
                 b1 = 0.7
                 b2 = 0.999
-            
-                
+
                 optG = torch.optim.Adam(
                     self.model.generator.parameters(),
                     lr=self.learning_rate,
