@@ -6,6 +6,7 @@ def compute_gradient_penalty(critic, real_samples, fake_samples): #, device):
     batch_size, C, W, H = real_samples.shape
     epsilon = torch.rand(batch_size, 1, 1, 1).repeat(1, C, W, H).type_as(real_samples)
     interpolated_images = (epsilon * real_samples + ((1 - epsilon) * fake_samples))
+    interpolated_images.requires_grad_(True)
     interpolated_scores = critic(interpolated_images)
 
     # Get gradient w.r.t. interpolates

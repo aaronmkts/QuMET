@@ -800,7 +800,7 @@ def _positive_int(s: str) -> int | None:
     try:
         v = int(s)
     except ValueError:
-        raise argparse.ArgumentError(f"expected integer, got {s!r}")
+        raise argparse.ArgumentError(None, f"expected integer, got {s!r}")
 
     if v <= 0:
         logging.warning(
@@ -814,7 +814,7 @@ def _int(s: str) -> int | None:
     try:
         v = int(s)
     except ValueError:
-        raise argparse.ArgumentError(f"expected integer, got {s!r}")
+        raise argparse.ArgumentError(None, f"expected integer, got {s!r}")
 
     return v
 
@@ -845,7 +845,7 @@ class ShowInfoAction(argparse.Action):
         choice = values if values is not None else self.default
 
         if choice in ["model", "all"]:
-            self._generate_table(list(models.model_map.keys()), "Supported Models")
+            self._generate_table(list(models.model_map.keys()) if hasattr(models, "model_map") else ["qgan", "qcbm", "vae"], "Supported Models")
         if choice in ["dataset", "all"]:
             self._generate_table(AVAILABLE_DATASETS, "Supported Datasets", cols=2)
 
