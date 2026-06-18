@@ -1,8 +1,11 @@
 name: qumet
 
 channels:
-  - symbiflow
+  - conda-forge
+  - defaults
 
 dependencies:
   - python=3.11.4
   - pip
+  - pip:
+    - -e .  # Install QuMET in editable mode

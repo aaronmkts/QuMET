@@ -1,0 +1,95 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qumet"
+version = "0.1.0"
+description = "QuMET: Quantum Metric Learning and Generative Modelling Toolkit"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11,<3.12"
+authors = [
+    {name = "Aaron M. Thomas", email = "aaronmkts@proton.me"},
+]
+keywords = ["quantum", "machine-learning", "generative-modelling", "pennylane", "qgan"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+dependencies = [
+    "torch>=2.0",
+    "torchvision>=0.15",
+    "lightning>=2.0",
+    "pytorch-lightning>=2.0",
+    "accelerate>=0.20",
+    "toml>=0.10",
+    "GitPython>=3.1",
+    "colorlog>=6.0",
+    "tensorboard>=2.13",
+    "optuna>=3.0",
+    "scikit-learn>=1.3",
+    "pyyaml>=6.0",
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "wandb>=0.15",
+    "matplotlib>=3.7",
+    "PennyLane>=0.35",
+    "PennyLane-Lightning>=0.35",
+    "Pillow>=10.0",
+    "torchmetrics>=1.0",
+    "tqdm>=4.65",
+    "typing_extensions>=4.7",
+    "timm>=0.9",
+    "qw_map>=0.1",
+    "jax>=0.4",
+    "scikit-image>=0.21",
+    "tabulate>=0.9",
+    "ipython>=8.0",
+    "ipdb>=0.13",
+    "line_profiler>=4.0",
+    "stable-baselines3>=2.0",
+    "gymnasium>=0.29",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=23.0",
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "pytest-xdist>=3.0",
+    "pytest-sugar>=1.0",
+    "pytest-html>=4.0",
+    "pytest-profiling>=1.0",
+]
+rl = [
+    "stable-baselines3>=2.0",
+    "gymnasium>=0.29",
+]
+
+[project.urls]
+Homepage = "https://github.com/aaronmkts/QuMET"
+Repository = "https://github.com/aaronmkts/QuMET.git"
+Issues = "https://github.com/aaronmkts/QuMET/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
