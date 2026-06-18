@@ -38,7 +38,6 @@ import ipdb
 import cProfile
 import warnings
 
-# import pytorch_lightning as pl
 import lightning as pl
 from lightning.pytorch.loggers.wandb import WandbLogger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
@@ -99,7 +98,7 @@ LOGO = f"""
             For comprehensive information on usage,
                     please refer to the docs.
 """
-TASKS = ["discrete_generation", "continuous_generaton", "image_generation"]
+TASKS = ["discrete_generation", "continuous_generation", "image_generation"]
 TRANSFORM = ['minmax', 'pit', 'pca']
 ACTIONS = ["train"]
 INFO_TYPE = ["all", "model", "dataset"]
@@ -691,7 +690,7 @@ class QuMETCLI:
         
         #dataset_info = get_dataset_info(self.args.dataset)
         model_info = models.get_model_info(self.args.model)
-        discretise = True if 'discrete' or 'probs' in self.args.task else False
+        discretise = 'discrete' in self.args.task or 'probs' in self.args.task
         self.logger.info(f"Initialising dataset {self.args.dataset!r}...")
         data_module = QuMETDataModule(
             name=self.args.dataset,

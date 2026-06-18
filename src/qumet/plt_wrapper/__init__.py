@@ -21,9 +21,9 @@ from .vaeqgan_wrapper import VAEGANWrapper
 def get_model_wrapper(model_info, task: str, add_vae: bool = False):
 
     if add_vae:
-        if model_info.model_type.value == 'qgan' or "gan" and task == "image_generation":
+        if model_info.model_type.value in ('qgan', 'gan') and task == "image_generation":
             return VAEGANWrapper
-        elif model_info.model_type.value == 'qgan' or "gan" and task != "image_generation":
+        elif model_info.model_type.value in ('qgan', 'gan') and task != "image_generation":
             raise ValueError(f"VAE-GAN wrapper is not supported for task {task} in model {model_info.name}")
         else:
             raise ValueError(f"VAE-GAN wrapper is not supported for model type {model_info.model_type.value}")
@@ -45,7 +45,7 @@ def get_model_wrapper(model_info, task: str, add_vae: bool = False):
                     return QGANProbsGenModelWrapper
                 case "discrete_generation":
                     return QGANDiscreteGenModelWrapper
-                case "continous_generation":
+                case "continuous_generation":
                     return QGANGenerationModelWrapper
                 case "image_generation":
                     if model_info.name == 'patchgan':

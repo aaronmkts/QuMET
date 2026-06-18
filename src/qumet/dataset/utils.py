@@ -52,7 +52,7 @@ class QuMETDatasetInfo:
 
     # tasks
     probs_generation: bool = False
-    bitsring_generation: bool = False
+    bitstring_generation: bool = False
     image_generation: bool = False
     continuous_generation: bool = False
 
@@ -76,7 +76,7 @@ class QuMETDatasetInfo:
             "dataset_source",
             "available_splits",
             "probs_generation",
-            "bitsring_generation",
+            "bitstring_generation",
             'continuous_generation',
             "image_generation",
             "num_classes",
@@ -111,7 +111,7 @@ def add_dataset_info(
     name: str,
     dataset_source: DatasetSource,
     available_splits: tuple[DatasetSplit],
-    bitsring_generation: bool = False,
+    bitstring_generation: bool = False,
     continuous_generation: bool = False,
     probs_generation: bool =False,
     image_generation: bool = False,
@@ -141,7 +141,7 @@ def add_dataset_info(
             dataset_source=dataset_source,
             available_splits=available_splits,
             probs_generation=probs_generation,
-            bitsring_generation=bitsring_generation,
+            bitstring_generation=bitstring_generation,
             continuous_generation=continuous_generation,
             image_generation=image_generation,
             num_classes=num_classes,
