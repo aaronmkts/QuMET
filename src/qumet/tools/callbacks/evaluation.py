@@ -14,58 +14,6 @@ import joblib
 import numpy as np 
 from scipy.linalg import sqrtm
 from skimage.metrics import structural_similarity, peak_signal_noise_ratio 
-# General GAN Callbacks
-'''
-class FIDEvaluationCallback(Callback):
-    def __init__(self, every_n_epochs=1, feature = 2048, reset_real_features=False, 
-                 normalize=True,input_img_size=(3, 299, 299)):
-        """
-        Args:
-            every_n_epochs (int): How often to compute the FID (in epochs).
-            normalize (bool): Whether to normalize the input images.
-        """
-        self.every_n_epoch = every_n_epochs
-        self.feature = feature
-        self.reset_real_features = reset_real_features
-        self.normalize = normalize
-        self.input_img_size = input_img_size
-        self.fid = None
-
-    def setup_fid(self, pl_module):
-        """Initialize the FID metric on the current device."""
-        self.fid = FrechetInceptionDistance(feature=self.feature, normalize=self.normalize,
-                                            reset_real_features=self.reset_real_features, 
-                                            input_img_size = self.input_img_size).to(pl_module.device)
-
-    def convert_to_3channel(self, images):
-        """Convert grayscale images to 3-channel images."""
-        return images.repeat(1, 3, 1, 1)
-
-    def on_validation_epoch_start(self, trainer, pl_module):
-        """Set up the FID metric at the start of the validation epoch."""
-        if trainer.current_epoch % self.every_n_epoch == 0:
-            self.setup_fid(pl_module)
-
-    def on_validation_batch_end(self, trainer, pl_module, outputs: ValidationResult, 
-                                batch, batch_idx, dataloader_idx=0):
-        """Update FID with real and fake images during validation."""
-        if trainer.current_epoch % self.every_n_epoch == 0 and outputs:
-            real_imgs, fake_imgs = outputs.real_image, outputs.fake_image
-            
-            if real_imgs is not None and fake_imgs is not None:
-                real_imgs_3channel = self.convert_to_3channel(real_imgs)
-                fake_imgs_3channel = self.convert_to_3channel(fake_imgs)
-                self.fid.update(real_imgs_3channel, real=True)
-                self.fid.update(fake_imgs_3channel, real=False)
-
-    def on_validation_epoch_end(self, trainer, pl_module):
-        """Log the FID score at the end of the validation epoch."""
-        if trainer.current_epoch % self.every_n_epoch == 0:
-            if self.fid is not None:
-                fid_score = self.fid.compute()
-                pl_module.log("metrics/fid", fid_score, on_epoch=True)
-                self.fid.reset()  # Reset the metric for the next epoch
-''' 
 
 class PSNRCallback(Callback):
     def __init__(self, every_n_epochs=1):
@@ -105,8 +53,8 @@ class PSNRCallback(Callback):
                 real_images = torch.cat(self.real_images_accum, dim=0)
                 fake_images = torch.cat(self.fake_images_accum, dim=0)
                 
-                real = fake_images.detach().cpu().numpy().reshape(-1, 28, 28)
-                fake = real_images.detach().cpu().numpy().reshape(-1, 28, 28)
+                real = real_images.detach().cpu().numpy().reshape(-1, 28, 28)
+                fake = fake_images.detach().cpu().numpy().reshape(-1, 28, 28)
 
                 psnr_list = []
                 
@@ -481,8 +429,8 @@ class GMMEvaluationCallback(Callback):
         return ssim_mean
     
     def calculate_psnr(self, real_imgs, fake_imgs):
-        real = fake_imgs.detach().cpu().numpy().reshape(-1, 28, 28)
-        fake = real_imgs.detach().cpu().numpy().reshape(-1, 28, 28)
+        real = real_imgs.detach().cpu().numpy().reshape(-1, 28, 28)
+        fake = fake_imgs.detach().cpu().numpy().reshape(-1, 28, 28)
 
         psnr_list = []
         for i in range(len(real)):

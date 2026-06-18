@@ -14,7 +14,7 @@ import torch
     name="2d_gaussian",
     dataset_source="manual",
     available_splits=("train", "validation"),
-    bitsring_generation=True,
+    bitstring_generation=True,
     probs_generation=True,
     continuous_generation=True
 )

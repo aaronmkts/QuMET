@@ -15,7 +15,7 @@ pi = math.pi
     name="2d_ring_gaussian",
     dataset_source="manual",
     available_splits=("train", "validation"),
-    bitsring_generation=True,
+    bitstring_generation=True,
     continuous_generation=True
 )
 class TwoDRingGaussianDataset(Dataset):

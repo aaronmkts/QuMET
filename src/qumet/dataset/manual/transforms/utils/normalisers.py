@@ -2,7 +2,6 @@ from functools import partial
 import jax
 import jax.numpy as jnp
 import numpy as np
-import pandas as pd
 from .integral_transform import emp_integral_trans
 from typing import List
 
@@ -38,30 +37,19 @@ class PITNormalizer():
         self.epsilon = epsilon
 
     def fit_transform(self, data: np.ndarray) -> np.ndarray:
-        df = pd.DataFrame(data)
-        epit = df.copy(deep=True).transpose()
-        reverse_epit_lookup = epit.copy(deep=True)
+        epit = np.array(data, copy=True).T
+        reverse_epit_lookup = np.array(epit, copy=True)
 
-        epit.values[::] = [emp_integral_trans(row) for row in epit.values]
-        epit = epit.transpose()
-        reverse_epit_lookup.values[::] = [np.sort(row) for row in reverse_epit_lookup.values]
+        epit = np.array([emp_integral_trans(row) for row in epit]).T
+        reverse_epit_lookup = np.array([np.sort(row) for row in reverse_epit_lookup])
 
-        df = epit.copy()
-        self.reverse_lookup = reverse_epit_lookup.values
-        self.reverse_lookup = jnp.array(self.reverse_lookup)
-        return df.values / (1 + self.epsilon)
+        self.reverse_lookup = jnp.array(reverse_epit_lookup)
+        return epit / (1 + self.epsilon)
 
     def transform(self, data: np.ndarray) -> np.ndarray:
-        df = pd.DataFrame(data)
-        epit = df.copy(deep=True).transpose()
-        reverse_epit_lookup = epit.copy(deep=True)
-
-        epit.values[::] = [emp_integral_trans(row) for row in epit.values]
-        epit = epit.transpose()
-        reverse_epit_lookup.values[::] = [np.sort(row) for row in reverse_epit_lookup.values]
-
-        df = epit.copy()
-        return df.values / (1 + self.epsilon)
+        epit = np.array(data, copy=True).T
+        epit = np.array([emp_integral_trans(row) for row in epit]).T
+        return epit / (1 + self.epsilon)
 
     def _reverse_emp_integral_trans_single(self, values: jnp.ndarray) -> List[float]:
     # assumes non ragged array

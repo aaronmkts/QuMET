@@ -58,8 +58,8 @@ def calculate_fid(act1, act2):
 
 # PSNR
 def calculate_psnr(real_imgs, fake_imgs):
-    real = fake_imgs.detach().cpu().numpy().reshape(-1, 28, 28)
-    fake = real_imgs.detach().cpu().numpy().reshape(-1, 28, 28)
+    real = real_imgs.detach().cpu().numpy().reshape(-1, 28, 28)
+    fake = fake_imgs.detach().cpu().numpy().reshape(-1, 28, 28)
 
     psnr_list = []
     for i in range(len(real)):
