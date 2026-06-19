@@ -51,7 +51,6 @@ class QuMETDatasetInfo:
     preprocess_one_split_for_all: bool = True
 
     # tasks
-    probs_generation: bool = False
     bitstring_generation: bool = False
     image_generation: bool = False
     continuous_generation: bool = False
@@ -75,7 +74,6 @@ class QuMETDatasetInfo:
             "name",
             "dataset_source",
             "available_splits",
-            "probs_generation",
             "bitstring_generation",
             'continuous_generation',
             "image_generation",
@@ -113,7 +111,6 @@ def add_dataset_info(
     available_splits: tuple[DatasetSplit],
     bitstring_generation: bool = False,
     continuous_generation: bool = False,
-    probs_generation: bool =False,
     image_generation: bool = False,
     num_classes: int = None,
     image_size: tuple[int] = None,
@@ -140,7 +137,6 @@ def add_dataset_info(
             name=name,
             dataset_source=dataset_source,
             available_splits=available_splits,
-            probs_generation=probs_generation,
             bitstring_generation=bitstring_generation,
             continuous_generation=continuous_generation,
             image_generation=image_generation,

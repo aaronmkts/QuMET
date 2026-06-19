@@ -161,20 +161,6 @@ class TestQuMETDataModuleInit:
         assert isinstance(dm.dataset_info, QuMETDatasetInfo)
         assert dm.dataset_info.name == "mnist"
 
-    def test_batch_size_set_to_1_for_probs_generation(self):
-        """batch_size is forced to 1 when dataset_info.probs_generation is True."""
-        dm = QuMETDataModule(
-            name="bars_and_stripes",
-            batch_size=64,
-            transform=None,
-            discretise=False,
-            n_samples=100,
-            n_qubits=4,
-            num_workers=0,
-        )
-        # bars_and_stripes has probs_generation=True
-        assert dm.batch_size == 1
-
     def test_initial_datasets_are_none(self):
         """Before prepare_data/setup, all dataset attributes are None."""
         dm = QuMETDataModule(

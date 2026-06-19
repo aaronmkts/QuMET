@@ -38,7 +38,7 @@ def get_qcbm_model(
     model_info: QumetModelInfo = QCBM_MODELS[name]["info"]
 
     match task:
-        case "probs_generation":
+        case "discrete_generation":
             assert (
                 model_info.bitstring_sampling
             ), f"Task {task} is not supported for {name}"

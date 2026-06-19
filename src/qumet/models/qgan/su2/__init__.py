@@ -1,1 +1,0 @@
-from .modelling_su2 import get_su2

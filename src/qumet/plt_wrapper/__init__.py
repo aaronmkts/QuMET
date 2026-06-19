@@ -1,6 +1,5 @@
 from .qgan import (
     QGANDiscreteGenModelWrapper,
-    QGANProbsGenModelWrapper,
     QGANGenerationModelWrapper,
     MosaiQGANWrapper,
     PatchGANWrapper,
@@ -41,8 +40,6 @@ def get_model_wrapper(model_info, task: str, add_vae: bool = False):
                 
         if model_info.model_type.value == 'qgan':
             match task:
-                case "probs_generation":
-                    return QGANProbsGenModelWrapper
                 case "discrete_generation":
                     return QGANDiscreteGenModelWrapper
                 case "continuous_generation":
@@ -56,8 +53,6 @@ def get_model_wrapper(model_info, task: str, add_vae: bool = False):
                         return APQGANWrapper
                     elif model_info.name == 'pqwgan_qc':
                         return PQWGANWrapper
-                    elif model_info.name == 'qgan_probs':
-                        return ProbsQGANWrapper
                     elif model_info.name == 'qinr':
                         return QINRWrapper
                     else:
@@ -67,7 +62,7 @@ def get_model_wrapper(model_info, task: str, add_vae: bool = False):
 
         elif model_info.model_type.value == 'qcbm':
             match task:
-                case 'probs_generation':
+                case 'discrete_generation':
                     return QCBMProbsGenModelWrapper
                 case _:
                     raise ValueError(f"Task {task} is not supported for {model_info.name}")

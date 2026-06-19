@@ -15,7 +15,6 @@ import torch
     dataset_source="manual",
     available_splits=("train", "validation"),
     bitstring_generation=True,
-    probs_generation=True,
     continuous_generation=True
 )
 class TwoDGaussianDataset(Dataset):
