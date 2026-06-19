@@ -44,12 +44,6 @@ def get_qcbm_model(
             ), f"Task {task} is not supported for {name}"
             model = QCBM_MODELS[name]["get_model_fn_generation"](info=dataset_info)
 
-        case "continuous_generation":
-            assert (
-                model_info.observable_sampling
-            ), f"Task {task} is not supported for {name}"
-            model = QCBM_MODELS[name]["get_model_fn_generation"](info=dataset_info)
-
         case _:
             raise ValueError(f"Task {task} is not supported for {name}")
 

@@ -15,6 +15,7 @@ np.random.seed(SEED)
     name="2d_gaussian_b",
     dataset_source="manual",
     available_splits=("train", "validation"),
+    bitstring_generation=True,
 )
 class TwoDGaussianDatasetB(Dataset):
     def __init__(self, split="train", n_qubits=16) -> None:

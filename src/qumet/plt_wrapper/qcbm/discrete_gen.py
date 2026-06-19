@@ -23,7 +23,7 @@ class MMD:
         return self.k_expval(pxy, pxy)
 
 
-class QCBMProbsGenModelWrapper(WrapperBase):
+class QCBMDiscreteGenModelWrapper(WrapperBase):
     def __init__(
             self,
             model,

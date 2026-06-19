@@ -169,6 +169,38 @@ CLI_DEFAULTS = {
 }
 
 
+
+
+def _validate_model_dataset_task(model_info, dataset_info, model_name: str, dataset_name: str, task: str) -> None:
+    """Validate that the selected model and dataset both support the requested task."""
+    dataset_support_attr_by_task = {
+        "discrete_generation": "bitstring_generation",
+        "continuous_generation": "continuous_generation",
+        "image_generation": "image_generation",
+    }
+    model_support_attr_by_task = {
+        "discrete_generation": "bitstring_sampling",
+        "continuous_generation": "observable_sampling",
+        "image_generation": "observable_sampling",
+    }
+
+    if task not in dataset_support_attr_by_task:
+        raise ValueError(f"Task {task} is not supported")
+
+    dataset_attr = dataset_support_attr_by_task[task]
+    if not getattr(dataset_info, dataset_attr, False):
+        raise ValueError(
+            f"Dataset {dataset_name!r} does not support task {task!r}. "
+            f"Expected dataset_info.{dataset_attr}=True."
+        )
+
+    model_attr = model_support_attr_by_task[task]
+    if not getattr(model_info, model_attr, False):
+        raise ValueError(
+            f"Model {model_name!r} does not support task {task!r}. "
+            f"Expected model_info.{model_attr}=True."
+        )
+
 # Main ---------------------------------------------------------------------------------
 class QuMETCLI:
     def __init__(self, argv: Sequence[str] | None = None):
@@ -688,8 +720,15 @@ class QuMETCLI:
         # of a specified model.
         # NOTE: See main/qumet/models/__init__.py for more information
         
-        #dataset_info = get_dataset_info(self.args.dataset)
+        dataset_info = get_dataset_info(self.args.dataset)
         model_info = models.get_model_info(self.args.model)
+        _validate_model_dataset_task(
+            model_info=model_info,
+            dataset_info=dataset_info,
+            model_name=self.args.model,
+            dataset_name=self.args.dataset,
+            task=self.args.task,
+        )
         discretise = 'discrete' in self.args.task
         self.logger.info(f"Initialising dataset {self.args.dataset!r}...")
         data_module = QuMETDataModule(

@@ -1,1 +1,1 @@
-from .probs_gen import QCBMProbsGenModelWrapper
+from .discrete_gen import QCBMDiscreteGenModelWrapper

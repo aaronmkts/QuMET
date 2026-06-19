@@ -55,7 +55,7 @@ def main():
     model_name = "qcbm"
     model_info = get_model_info(model_name)
 
-    task = "probs_generation" #image_generation discrete_generation
+    task = "discrete_generation" #image_generation discrete_generation
     dataset_name = "bars_and_stripes" #bars_and_stripes
 
     # Training params
