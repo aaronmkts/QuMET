@@ -5,6 +5,7 @@ import pytest
 import torch
 
 from qumet import models
+from qumet.dataset import get_dataset_info
 from qumet.models.qgan import QGAN_MODELS, get_qgan_model_info, is_qgan_model
 from qumet.plt_wrapper import get_model_wrapper
 from qumet.plt_wrapper.qgan import (
@@ -79,11 +80,11 @@ def test_get_model_wrapper_add_vae_rejects_non_gan_model_type():
 
 
 def test_get_model_wrapper_maps_qcbm_discrete_wrapper():
-    from qumet.plt_wrapper.qcbm import QCBMProbsGenModelWrapper
+    from qumet.plt_wrapper.qcbm import QCBMDiscreteGenModelWrapper
 
     qcbm_info = models.get_model_info("qcbm")
 
-    assert get_model_wrapper(qcbm_info, "discrete_generation") is QCBMProbsGenModelWrapper
+    assert get_model_wrapper(qcbm_info, "discrete_generation") is QCBMDiscreteGenModelWrapper
 
 
 def test_get_model_wrapper_add_vae_accepts_image_qgan_model_type():
@@ -102,7 +103,7 @@ def test_cli_discretise_is_false_for_image_generation(monkeypatch):
             captured.update(kwargs)
 
     monkeypatch.setattr(cli_module, "QuMETDataModule", DummyDataModule)
-    monkeypatch.setattr(cli_module.models, "get_model_info", lambda name: SimpleNamespace(name=name))
+    monkeypatch.setattr(cli_module.models, "get_model_info", lambda name: SimpleNamespace(name=name, observable_sampling=True))
     monkeypatch.setattr(cli_module.models, "get_model", lambda **kwargs: object())
 
     cli = object.__new__(cli_module.QuMETCLI)
@@ -133,7 +134,8 @@ def test_cli_discretise_is_true_for_discrete_tasks(monkeypatch):
             captured.append(kwargs["discretise"])
 
     monkeypatch.setattr(cli_module, "QuMETDataModule", DummyDataModule)
-    monkeypatch.setattr(cli_module.models, "get_model_info", lambda name: SimpleNamespace(name=name))
+    monkeypatch.setattr(cli_module, "get_dataset_info", lambda name: SimpleNamespace(bitstring_generation=True))
+    monkeypatch.setattr(cli_module.models, "get_model_info", lambda name: SimpleNamespace(name=name, bitstring_sampling=True))
     monkeypatch.setattr(cli_module.models, "get_model", lambda **kwargs: object())
 
     cli = object.__new__(cli_module.QuMETCLI)
@@ -245,3 +247,65 @@ def test_tsne_callback_collect_samples_detaches_tensors():
     assert len(storage) == 1
     assert storage[0].device.type == "cpu"
     assert storage[0].requires_grad is False
+
+
+def test_model_dataset_task_validation_rejects_qcbm_mnist():
+    from qumet import cli as cli_module
+
+    with pytest.raises(ValueError, match="Model 'qcbm' does not support task 'image_generation'"):
+        cli_module._validate_model_dataset_task(
+            model_info=models.get_model_info("qcbm"),
+            dataset_info=get_dataset_info("mnist"),
+            model_name="qcbm",
+            dataset_name="mnist",
+            task="image_generation",
+        )
+
+
+def test_model_dataset_task_validation_rejects_qcbm_non_bitstring_gaussian():
+    from qumet import cli as cli_module
+
+    with pytest.raises(ValueError, match="Dataset '2d_gaussian' does not support task 'discrete_generation'"):
+        cli_module._validate_model_dataset_task(
+            model_info=models.get_model_info("qcbm"),
+            dataset_info=get_dataset_info("2d_gaussian"),
+            model_name="qcbm",
+            dataset_name="2d_gaussian",
+            task="discrete_generation",
+        )
+
+
+def test_qcbm_supports_bitstring_gaussian_dataset_only():
+    from qumet import cli as cli_module
+
+    cli_module._validate_model_dataset_task(
+        model_info=models.get_model_info("qcbm"),
+        dataset_info=get_dataset_info("2d_gaussian_b"),
+        model_name="qcbm",
+        dataset_name="2d_gaussian_b",
+        task="discrete_generation",
+    )
+
+
+def test_qgan_supports_continuous_gaussian_dataset():
+    from qumet import cli as cli_module
+
+    cli_module._validate_model_dataset_task(
+        model_info=models.get_model_info("patchgan"),
+        dataset_info=get_dataset_info("2d_gaussian"),
+        model_name="patchgan",
+        dataset_name="2d_gaussian",
+        task="continuous_generation",
+    )
+
+
+def test_gaussian_dataset_task_flags_match_model_dataset_mapping():
+    for name in ("2d_gaussian_b", "2d_grid_gaussian_b", "2d_ring_gaussian_b"):
+        info = get_dataset_info(name)
+        assert info.bitstring_generation is True
+        assert info.continuous_generation is False
+
+    for name in ("2d_gaussian", "2d_grid_gaussian", "2d_ring_gaussian"):
+        info = get_dataset_info(name)
+        assert info.bitstring_generation is False
+        assert info.continuous_generation is True

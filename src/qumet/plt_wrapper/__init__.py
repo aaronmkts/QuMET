@@ -11,7 +11,7 @@ from .qgan import (
     )
 
 from .qcbm import(
-QCBMProbsGenModelWrapper
+QCBMDiscreteGenModelWrapper
 )
 from .vae import VAEWrapper
 from .vaeqgan_wrapper import VAEGANWrapper
@@ -63,7 +63,7 @@ def get_model_wrapper(model_info, task: str, add_vae: bool = False):
         elif model_info.model_type.value == 'qcbm':
             match task:
                 case 'discrete_generation':
-                    return QCBMProbsGenModelWrapper
+                    return QCBMDiscreteGenModelWrapper
                 case _:
                     raise ValueError(f"Task {task} is not supported for {model_info.name}")
 
