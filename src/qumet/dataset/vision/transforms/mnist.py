@@ -50,9 +50,6 @@ def get_mnist_default_transform(train: bool) -> tv_transforms.Compose:
 def get_mnist_patchgan_transform(train: bool) -> tv_transforms.Compose:
     return _get_mnist_patchgan_transform()
 
-def get_mnist_probsqgan_transform(train: bool):
-    return _get_mnist_probsqgan_transform()
-
 def get_mnist_mosaiq_transform(train: bool):
     return _get_mnist_mosaiq_transform()
 
@@ -63,8 +60,6 @@ def get_mnist_transform(train: bool, model: str = None):
             return get_mnist_patchgan_transform(train)
         case "mosaiq":
             return get_mnist_mosaiq_transform(train)
-        case "qgan_probs":
-            return get_mnist_probsqgan_transform(train)
         case _:
             return get_mnist_default_transform(train)
 

@@ -10,8 +10,6 @@ from qumet.plt_wrapper import get_model_wrapper
 from qumet.plt_wrapper.qgan import (
     GANWrapper,
     PatchGANWrapper,
-    QGANDiscreteGenModelWrapper,
-    QGANProbsGenModelWrapper,
 )
 from qumet.plt_wrapper.vaeqgan_wrapper import VAEGANWrapper
 from qumet.tools.callbacks import evaluation
@@ -80,6 +78,14 @@ def test_get_model_wrapper_add_vae_rejects_non_gan_model_type():
         get_model_wrapper(qcbm_info, "image_generation", add_vae=True)
 
 
+def test_get_model_wrapper_maps_qcbm_discrete_wrapper():
+    from qumet.plt_wrapper.qcbm import QCBMProbsGenModelWrapper
+
+    qcbm_info = models.get_model_info("qcbm")
+
+    assert get_model_wrapper(qcbm_info, "discrete_generation") is QCBMProbsGenModelWrapper
+
+
 def test_get_model_wrapper_add_vae_accepts_image_qgan_model_type():
     patchgan_info = models.get_model_info("patchgan")
     assert get_model_wrapper(patchgan_info, "image_generation", add_vae=True) is VAEGANWrapper
@@ -117,7 +123,7 @@ def test_cli_discretise_is_false_for_image_generation(monkeypatch):
     assert captured["discretise"] is False
 
 
-def test_cli_discretise_is_true_for_discrete_and_probs_tasks(monkeypatch):
+def test_cli_discretise_is_true_for_discrete_tasks(monkeypatch):
     from qumet import cli as cli_module
 
     captured = []
@@ -132,9 +138,9 @@ def test_cli_discretise_is_true_for_discrete_and_probs_tasks(monkeypatch):
 
     cli = object.__new__(cli_module.QuMETCLI)
     cli.logger = SimpleNamespace(info=lambda *args, **kwargs: None)
-    for task in ("discrete_generation", "probs_generation"):
+    for task in ("discrete_generation",):
         cli.args = SimpleNamespace(
-            model="efficientsu2",
+            model="patchgan",
             dataset="gaussian",
             batch_size=4,
             transform=None,
@@ -145,7 +151,7 @@ def test_cli_discretise_is_true_for_discrete_and_probs_tasks(monkeypatch):
         )
         cli._setup_model_and_dataset()
 
-    assert captured == [True, True]
+    assert captured == [True]
 
 
 def test_psnr_callback_passes_real_images_as_reference(monkeypatch):
@@ -191,7 +197,6 @@ def test_gmm_psnr_passes_real_images_as_reference(monkeypatch):
 @pytest.mark.parametrize(
     ("name", "expected_type", "sampling_attr"),
     [
-        ("efficientsu2", "qgan", "bitstring_sampling"),
         ("patchgan", "qgan", "observable_sampling"),
         ("qinr", "qgan", "observable_sampling"),
     ],
@@ -203,14 +208,6 @@ def test_qgan_model_registry_exposes_expected_generation_variants(name, expected
     assert info.model_type.value == expected_type
     assert getattr(info, sampling_attr) is True
     assert callable(QGAN_MODELS[name]["get_model_fn_generation"])
-
-
-def test_get_model_wrapper_maps_qgan_discrete_and_probs_wrappers():
-    discrete_info = models.get_model_info("efficientsu2")
-    probs_info = models.get_model_info("su2")
-
-    assert get_model_wrapper(discrete_info, "discrete_generation") is QGANDiscreteGenModelWrapper
-    assert get_model_wrapper(probs_info, "probs_generation") is QGANProbsGenModelWrapper
 
 
 def test_get_model_wrapper_maps_image_gan_wrappers():

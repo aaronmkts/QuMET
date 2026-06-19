@@ -116,7 +116,7 @@ class QuMETDataModule(pl.LightningDataModule):
         self.dataset_info = get_dataset_info(name)
         self.transform_instance = None
 
-        self.batch_size = 1 if self.dataset_info.probs_generation else batch_size
+        self.batch_size = batch_size
  
     def prepare_data(self) -> None:
         

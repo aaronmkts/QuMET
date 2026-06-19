@@ -1,24 +1,13 @@
 from ..utils import QumetModelInfo
 
-from .efficient_su2 import get_qgcd_bitstring
 from .patchgan import get_patchgan
-from .qgan_probs import get_qgan_probs
 from .mosaiq import get_mosaiq
 from .vaeqwgan import get_vaeqwgan
 from .pwqgan import get_pqwgan_qc
-from .su2 import get_su2
 from .qinr import get_qinr_qc
 from .classical_gan import get_gan
 # fmt: off
 QGAN_MODELS = {
-    "efficientsu2":{
-        "get_model_fn_generation": get_qgcd_bitstring,
-        "info": QumetModelInfo("efficientsu2", model_type="qgan", task_type ="generation", bitstring_sampling = True),
-    },
-    "qgan_probs":{
-        "get_model_fn_generation": get_qgan_probs,
-        "info": QumetModelInfo("qgan_probs", model_type="qgan", task_type ="generation", observable_sampling = True),
-    },
     "patchgan":{
         "get_model_fn_generation": get_patchgan,
         "info": QumetModelInfo("patchgan", model_type="qgan", task_type ="generation",  observable_sampling = True),
@@ -34,10 +23,6 @@ QGAN_MODELS = {
     "pqwgan_qc":{
         "get_model_fn_generation": get_pqwgan_qc,
         "info": QumetModelInfo("pqwgan_qc", model_type="qgan", task_type ="generation",  observable_sampling = True),
-    },
-    "su2":{
-        "get_model_fn_generation": get_su2,
-        "info": QumetModelInfo("su2", model_type="qgan", task_type ="generation",  bitstring_sampling= True), 
     },
     "qinr":{
         "get_model_fn_generation": get_qinr_qc,
@@ -78,12 +63,6 @@ def get_qgan_model(
     model_info: QumetModelInfo = QGAN_MODELS[name]["info"]
     
     match task:
-        case "probs_generation":
-            assert (
-                model_info.bitstring_sampling
-            ), f"Task {task} is not supported for {name}"
-            model = QGAN_MODELS[name]["get_model_fn_generation"](info=dataset_info)
-
         case "continuous_generation":
             assert (
                 model_info.observable_sampling

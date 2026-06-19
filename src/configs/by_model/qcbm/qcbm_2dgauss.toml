@@ -10,7 +10,7 @@ max_epochs = 150
 batch_size = 1
 seed  = 885
 # torch lightning
-task = "probs_generation"
+task = "discrete_generation"
 num_workers = 0
 num_devices = 1
 accelerator = "cpu"
