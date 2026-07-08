@@ -32,13 +32,13 @@ That config sets:
 CLI arguments take precedence over config values, so you can keep the same file and adjust a few settings:
 
 ```bash
-python src/qmt train --config src/configs/by_model/qcbm/qcbm.toml --max_epochs 5 --seed 123 --accelerator cpu
+python src/qmt train --config src/configs/by_model/qcbm/qcbm.toml --max-epochs 5 --seed 123 --accelerator cpu
 ```
 
 You can also run without a config file when you want a direct command:
 
 ```bash
-python src/qmt train qcbm bars_and_stripes --task discrete_generation --n_qubits 9 --batch-size 10 --learning_rate 0.1 --max_epochs 5 --accelerator cpu
+python src/qmt train qcbm bars_and_stripes --task discrete_generation --n_qubits 9 --batch-size 10 --learning-rate 0.1 --max-epochs 5 --accelerator cpu
 ```
 
 ## 4. Explore another current model family

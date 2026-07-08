@@ -41,7 +41,7 @@ python src/qmt train --config src/configs/by_model/qcbm/qcbm.toml
 You can also override configuration values from the CLI. For example:
 
 ```bash
-python src/qmt train qcbm bars_and_stripes --task discrete_generation --n_qubits 9 --batch-size 10 --max_epochs 5 --accelerator cpu
+python src/qmt train qcbm bars_and_stripes --task discrete_generation --n_qubits 9 --batch-size 10 --max-epochs 5 --accelerator cpu
 ```
 
 See [docs/quickstart.md](docs/quickstart.md) for a slightly fuller walkthrough.

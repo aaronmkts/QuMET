@@ -1,12 +1,16 @@
 """Docs-content checks for JOSS-facing public documentation."""
 
+import argparse
 import re
 import tomllib
 from pathlib import Path
 
-from qumet.cli import _validate_model_dataset_task
-from qumet.dataset import get_dataset_info
+from qumet.cli import TASKS, QuMETCLI, _validate_model_dataset_task
+from qumet.dataset import AVAILABLE_DATASETS, get_dataset_info
 from qumet.models import get_model_info
+from qumet.models.qcbm import QCBM_MODELS
+from qumet.models.qgan import QGAN_MODELS
+from qumet.models.vae import VAE_MODELS
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -103,6 +107,70 @@ def _iter_documented_cli_triples(content: str) -> list[tuple[str, str, str]]:
     )
 
 
+def _iter_fenced_code_blocks(content: str) -> list[str]:
+    return re.findall(r"```(?:\w+)?\n(.*?)```", content, flags=re.DOTALL)
+
+
+def _get_cli_parser() -> argparse.ArgumentParser:
+    return QuMETCLI.__new__(QuMETCLI)._setup_parser()
+
+
+def _get_valid_cli_flags() -> set[str]:
+    parser = _get_cli_parser()
+    return {
+        option
+        for action in parser._actions
+        for option in action.option_strings
+        if option.startswith("--")
+    }
+
+
+def _iter_command_flags(content: str) -> list[str]:
+    flags: list[str] = []
+    for block in _iter_fenced_code_blocks(content):
+        for line in block.splitlines():
+            stripped = line.strip()
+            if not stripped.startswith("python src/qmt "):
+                continue
+            flags.extend(re.findall(r"--[A-Za-z0-9][A-Za-z0-9_-]*", stripped))
+    return flags
+
+
+def _extract_markdown_section(content: str, heading: str) -> str:
+    pattern = rf"^##\s+{re.escape(heading)}\s*$"
+    match = re.search(pattern, content, flags=re.MULTILINE)
+    assert match, f"Missing section heading: {heading}"
+
+    following = content[match.end():]
+    next_heading = re.search(r"^##\s+", following, flags=re.MULTILINE)
+    end = next_heading.start() if next_heading else len(following)
+    return following[:end]
+
+
+def _parse_markdown_list_tokens(section: str) -> list[str]:
+    tokens: list[str] = []
+    for line in section.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            tokens.extend(re.findall(r"`([^`]+)`", stripped))
+    return list(dict.fromkeys(tokens))
+
+
+def _documented_model_names(content: str) -> list[str]:
+    section = _extract_markdown_section(content, "Supported Models")
+    return _parse_markdown_list_tokens(section)
+
+
+def _documented_dataset_names(content: str) -> list[str]:
+    section = _extract_markdown_section(content, "Supported Datasets")
+    return _parse_markdown_list_tokens(section)
+
+
+def _documented_task_names(content: str) -> list[str]:
+    section = _extract_markdown_section(content, "Supported Tasks")
+    return _parse_markdown_list_tokens(section)
+
+
 def test_readme_covers_joss_public_surface():
     readme = _read(README_PATH)
 
@@ -153,3 +221,60 @@ def test_public_docs_reference_existing_compatible_examples():
     for path, triples in documented_cli_triples.items():
         for model, dataset, task in triples:
             _assert_compatible(model, dataset, task)
+
+
+def test_public_docs_use_valid_cli_option_names():
+    valid_flags = _get_valid_cli_flags()
+    invalid_flags = {}
+
+    for path in PUBLIC_DOCS:
+        content = _read(path)
+        bad_flags = sorted(
+            {
+                flag
+                for flag in _iter_command_flags(content)
+                if "_" in flag and flag not in valid_flags and flag.replace("_", "-") in valid_flags
+            }
+        )
+        if bad_flags:
+            invalid_flags[str(path.relative_to(REPO_ROOT))] = bad_flags
+
+    assert not invalid_flags, (
+        "Public docs use invalid CLI option spellings; use the CLI-defined hyphenated "
+        f"flags instead: {invalid_flags}"
+    )
+
+
+def test_supported_name_lists_match_current_registries():
+    expected_models = sorted(
+        [*QCBM_MODELS.keys(), *QGAN_MODELS.keys(), *VAE_MODELS.keys()]
+    )
+    expected_datasets = sorted(AVAILABLE_DATASETS)
+    expected_tasks = sorted(TASKS)
+
+    docs_to_check = [
+        README_PATH,
+        DOCS_DIR / "models-and-datasets.md",
+    ]
+
+    mismatches = {}
+    for path in docs_to_check:
+        content = _read(path)
+        actual = {
+            "models": sorted(_documented_model_names(content)),
+            "datasets": sorted(_documented_dataset_names(content)),
+            "tasks": sorted(_documented_task_names(content)),
+        }
+        expected = {
+            "models": expected_models,
+            "datasets": expected_datasets,
+            "tasks": expected_tasks,
+        }
+        for label, expected_values in expected.items():
+            if actual[label] != expected_values:
+                mismatches.setdefault(str(path.relative_to(REPO_ROOT)), {})[label] = {
+                    "expected": expected_values,
+                    "actual": actual[label],
+                }
+
+    assert not mismatches, f"Documented supported names drifted from code: {mismatches}"
