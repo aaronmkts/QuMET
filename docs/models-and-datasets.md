@@ -54,9 +54,7 @@ The CLI currently advertises three task names:
 
 Examples already present in `src/configs/` give the most reliable starting points:
 
-- `qcbm` with `2d_gaussian` for `discrete_generation`
 - `qcbm` with `bars_and_stripes` for `discrete_generation`
 - `pqwgan_qc` with `mnist` for `image_generation`
 
 Some older config files still mention names that are not part of the current model registry. For JOSS-facing workflows, prefer the model and dataset names listed on this page and validated by the code under `src/qumet/models/` and `src/qumet/dataset/`.
-

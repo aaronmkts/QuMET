@@ -32,16 +32,16 @@ You can also install the Conda environment described in [docs/basics/Getting-Sta
 
 ## Quickstart
 
-The repository includes runnable TOML examples under `src/configs/`. A minimal discrete-generation run uses the current `qcbm` model and `2d_gaussian` dataset:
+The repository includes runnable TOML examples under `src/configs/`. A minimal discrete-generation run uses the current `qcbm` model and `bars_and_stripes` dataset:
 
 ```bash
-python src/qmt train --config src/configs/by_model/qcbm/qcbm_2dgauss.toml
+python src/qmt train --config src/configs/by_model/qcbm/qcbm.toml
 ```
 
 You can also override configuration values from the CLI. For example:
 
 ```bash
-python src/qmt train qcbm 2d_gaussian --task discrete_generation --n_qubits 8 --batch-size 1 --max_epochs 5 --accelerator cpu
+python src/qmt train qcbm bars_and_stripes --task discrete_generation --n_qubits 9 --batch-size 10 --max_epochs 5 --accelerator cpu
 ```
 
 See [docs/quickstart.md](docs/quickstart.md) for a slightly fuller walkthrough.
@@ -91,16 +91,22 @@ See [docs/configuration.md](docs/configuration.md) for the TOML structure, merge
 
 ## Testing
 
-Run the test suite with `pytest`:
+For contributor or reviewer test runs, install the development extra first:
 
 ```bash
-python -m pytest
+pip install -e '.[dev]'
+```
+
+Run the test suite from the repository root:
+
+```bash
+PYTHONPATH=src python -m pytest
 ```
 
 For the docs-focused checks added for JOSS readiness:
 
 ```bash
-python -m pytest tests/test_docs_content.py -v
+PYTHONPATH=src python -m pytest tests/test_docs_content.py -v
 ```
 
 See [docs/testing.md](docs/testing.md) for focused test commands and verification notes.
@@ -119,4 +125,3 @@ See [docs/testing.md](docs/testing.md) for focused test commands and verificatio
 - `src/configs/`: example TOML configurations grouped by model, environment, and paper workflow
 - `tests/`: pytest suite
 - `docs/`: user-facing documentation and notebooks
-

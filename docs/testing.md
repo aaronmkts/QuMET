@@ -2,12 +2,20 @@
 
 QuMET uses `pytest` for automated verification.
 
+## Install test dependencies
+
+Install the contributor/test dependencies from a fresh checkout with:
+
+```bash
+pip install -e '.[dev]'
+```
+
 ## Full Test Suite
 
 Run the full suite from the repository root:
 
 ```bash
-python -m pytest
+PYTHONPATH=src python -m pytest
 ```
 
 ## Focused Docs Check
@@ -15,7 +23,7 @@ python -m pytest
 The JOSS-facing docs contract is checked by:
 
 ```bash
-python -m pytest tests/test_docs_content.py -v
+PYTHONPATH=src python -m pytest tests/test_docs_content.py -v
 ```
 
 That test verifies the README and linked docs for:
@@ -32,7 +40,7 @@ That test verifies the README and linked docs for:
 For quick iteration on nearby public surfaces:
 
 ```bash
-python -m pytest tests/test_docs_content.py tests/test_tools_config_load.py -v
+PYTHONPATH=src python -m pytest tests/test_docs_content.py tests/test_tools_config_load.py -v
 ```
 
 Because the docs pages reference current example configs, it is also reasonable to rerun `tests/test_docs_content.py` whenever `README.md`, `docs/*.md`, or the example config layout changes.

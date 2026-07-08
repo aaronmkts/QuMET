@@ -15,7 +15,7 @@ pip install -e .
 ## Run a current example
 
 ```bash
-python src/qmt train --config src/configs/by_model/qcbm/qcbm_2dgauss.toml
+python src/qmt train --config src/configs/by_model/qcbm/qcbm.toml
 ```
 
 ## Next references

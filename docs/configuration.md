@@ -16,18 +16,17 @@ Most example files define a flat set of top-level keys, for example:
 
 ```toml
 model = "qcbm"
-dataset = "2d_gaussian"
+dataset = "bars_and_stripes"
 task = "discrete_generation"
-transform = "minmax"
-n_qubits = 8
-batch_size = 1
+n_qubits = 9
+batch_size = 10
 learning_rate = 1e-1
-max_epochs = 150
-seed = 885
+max_epochs = 100
+seed = 0
 num_workers = 0
 num_devices = 1
 accelerator = "cpu"
-project = "qcbm/2d_gaussian"
+project = "bars_and_stripes"
 ```
 
 Common keys include:
@@ -68,7 +67,6 @@ Current example configs live in:
 Useful starting points:
 
 - `src/configs/by_model/qcbm/qcbm.toml`
-- `src/configs/by_model/qcbm/qcbm_2dgauss.toml`
 - `src/configs/by_model/qgan/pqwgan_qc.toml`
 
 ## Recommended Workflow
@@ -77,4 +75,3 @@ Useful starting points:
 2. Change `model`, `dataset`, and `task` only to values supported by the current registry.
 3. Run with `python src/qmt train --config path/to/config.toml`.
 4. Apply small one-off CLI overrides instead of duplicating many near-identical TOML files.
-

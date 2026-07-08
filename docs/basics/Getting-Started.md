@@ -21,5 +21,5 @@ pip install -e .
 ## Running the CLI
 
 ```bash
-python src/qmt train --config src/configs/by_model/qcbm/qcbm_2dgauss.toml
+python src/qmt train --config src/configs/by_model/qcbm/qcbm.toml
 ```
