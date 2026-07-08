@@ -12,7 +12,7 @@
    - `paper/paper.md`
    - `paper/paper.bib`
 4. Align package metadata that directly conflicts with the scaffold requirements, especially the Apache-2.0 license reference in `pyproject.toml`.
-5. Run the focused test first, then the broader test suite if feasible with `/home/aaron/miniconda3/envs/qumet/bin/python`.
+5. Run the focused test first, then the broader test suite with the branch-accurate `PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest` invocation.
 6. Commit the resulting changes on `joss/scaffold` without touching unrelated work.
 
 ## TDD Evidence
@@ -22,14 +22,14 @@
 Command:
 
 ```bash
-/home/aaron/miniconda3/envs/qumet/bin/python -m pytest tests/test_project_scaffold_metadata.py -v
+PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest tests/test_project_scaffold_metadata.py -v
 ```
 
 Relevant output:
 
 ```text
-tests/test_project_scaffold_metadata.py::test_project_scaffold_files_exist_with_required_shape FAILED
-E   AssertionError: Missing required scaffold file: CONTRIBUTING.md
+tests/test_project_scaffold_metadata.py::test_contributing_has_required_sections_and_branch_accurate_test_commands FAILED
+E   assert 'PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest' in contributing
 ```
 
 ### GREEN
@@ -37,14 +37,13 @@ E   AssertionError: Missing required scaffold file: CONTRIBUTING.md
 Focused command:
 
 ```bash
-/home/aaron/miniconda3/envs/qumet/bin/python -m pytest tests/test_project_scaffold_metadata.py -v
+PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest tests/test_project_scaffold_metadata.py -v
 ```
 
 Relevant output:
 
 ```text
-tests/test_project_scaffold_metadata.py::test_project_scaffold_files_exist_with_required_shape PASSED
-============================== 1 passed in 0.03s ===============================
+============================== 6 passed in 0.04s ===============================
 ```
 
 Repo-wide verification:
@@ -56,40 +55,25 @@ PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest
 Relevant output:
 
 ```text
-======================= 155 passed, 2 warnings in 9.91s ========================
+======================= 160 passed, 2 warnings in 9.66s ========================
 ```
-
-Additional note:
-
-```bash
-/home/aaron/miniconda3/envs/qumet/bin/python -m pytest
-```
-
-This initial full-suite attempt failed during collection with `ModuleNotFoundError: No module named 'qumet'`, so the successful repo-wide verification used `PYTHONPATH=src`, which matches the package layout under `src/qumet`.
 
 ## Files Changed
 
 - `CONTRIBUTING.md`
-- `CITATION.cff`
-- `CHANGELOG.md`
-- `SUPPORT.md`
-- `paper/paper.md`
-- `paper/paper.bib`
 - `tests/test_project_scaffold_metadata.py`
-- `pyproject.toml`
 - `JOSS_WORKSTREAM_REPORT.md`
 
 ## Commits Created
 
-- `docs: add JOSS submission scaffold`
+- `docs: fix JOSS scaffold review findings`
 
 ## Verification Commands
 
-- `/home/aaron/miniconda3/envs/qumet/bin/python -m pytest tests/test_project_scaffold_metadata.py -v`
-- `/home/aaron/miniconda3/envs/qumet/bin/python -m pytest`
+- `PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest tests/test_project_scaffold_metadata.py -v`
 - `PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest`
 
 ## Concerns
 
-- The repository's default `pytest` invocation does not currently place `src/` on `PYTHONPATH`, so repo-wide verification required `PYTHONPATH=src`.
+- The repository's default `pytest` invocation does not currently place `src/` on `PYTHONPATH`, so contributor guidance and verification commands now use the branch-accurate `PYTHONPATH=src` form.
 - `CITATION.cff` and `paper/paper.bib` are conservative starting points and may need maintainer refinement for author list, preferred citation, and manuscript wording before submission.

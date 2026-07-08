@@ -28,14 +28,16 @@ Thanks for contributing to QuMET. This repository is aimed at reproducible devel
 Run the full test suite before opening a pull request:
 
 ```bash
-python -m pytest
+PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest
 ```
 
 For narrower iterations, run only the tests related to your change:
 
 ```bash
-python -m pytest tests/test_project_scaffold_metadata.py -v
+PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest tests/test_project_scaffold_metadata.py -v
 ```
+
+The commands above are the branch-accurate default for this scaffold because the source tree lives under `src/`. If you prefer `python -m pytest`, first verify that your current environment can already import `qumet` without setting `PYTHONPATH`.
 
 ## Reporting Issues
 
