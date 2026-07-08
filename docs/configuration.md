@@ -8,7 +8,7 @@ The effective configuration order is:
 
 1. CLI defaults in `qumet.cli.CLI_DEFAULTS`
 2. top-level values loaded from a TOML config file
-3. manual CLI overrides such as `--max_epochs 5`
+3. manual CLI overrides such as `--max-epochs 5`
 
 ## Core Top-Level Keys
 

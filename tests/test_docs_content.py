@@ -23,6 +23,7 @@ PUBLIC_DOCS = [
     DOCS_DIR / "models-and-datasets.md",
     DOCS_DIR / "testing.md",
 ]
+PUBLIC_MARKDOWN_DOCS = [README_PATH, *sorted(DOCS_DIR.rglob("*.md"))]
 README_REQUIRED_SECTIONS = [
     "# QuMET",
     "## Statement of Need",
@@ -107,10 +108,6 @@ def _iter_documented_cli_triples(content: str) -> list[tuple[str, str, str]]:
     )
 
 
-def _iter_fenced_code_blocks(content: str) -> list[str]:
-    return re.findall(r"```(?:\w+)?\n(.*?)```", content, flags=re.DOTALL)
-
-
 def _get_cli_parser() -> argparse.ArgumentParser:
     return QuMETCLI.__new__(QuMETCLI)._setup_parser()
 
@@ -125,15 +122,8 @@ def _get_valid_cli_flags() -> set[str]:
     }
 
 
-def _iter_command_flags(content: str) -> list[str]:
-    flags: list[str] = []
-    for block in _iter_fenced_code_blocks(content):
-        for line in block.splitlines():
-            stripped = line.strip()
-            if not stripped.startswith("python src/qmt "):
-                continue
-            flags.extend(re.findall(r"--[A-Za-z0-9][A-Za-z0-9_-]*", stripped))
-    return flags
+def _iter_raw_cli_flags(content: str) -> list[str]:
+    return re.findall(r"--[A-Za-z0-9][A-Za-z0-9_-]*", content)
 
 
 def _extract_markdown_section(content: str, heading: str) -> str:
@@ -227,12 +217,12 @@ def test_public_docs_use_valid_cli_option_names():
     valid_flags = _get_valid_cli_flags()
     invalid_flags = {}
 
-    for path in PUBLIC_DOCS:
+    for path in PUBLIC_MARKDOWN_DOCS:
         content = _read(path)
         bad_flags = sorted(
             {
                 flag
-                for flag in _iter_command_flags(content)
+                for flag in _iter_raw_cli_flags(content)
                 if "_" in flag and flag not in valid_flags and flag.replace("_", "-") in valid_flags
             }
         )
@@ -240,8 +230,8 @@ def test_public_docs_use_valid_cli_option_names():
             invalid_flags[str(path.relative_to(REPO_ROOT))] = bad_flags
 
     assert not invalid_flags, (
-        "Public docs use invalid CLI option spellings; use the CLI-defined hyphenated "
-        f"flags instead: {invalid_flags}"
+        "Public Markdown docs use invalid CLI option spellings; use the CLI-defined "
+        f"hyphenated flags instead: {invalid_flags}"
     )
 
 

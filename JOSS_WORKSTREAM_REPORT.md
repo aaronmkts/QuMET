@@ -72,10 +72,11 @@ Note: this branch still expects `PYTHONPATH=src` when running tests from the sou
 
 ## Files Changed
 
-- `README.md`
-- `docs/quickstart.md`
+- `docs/configuration.md`
 - `tests/test_docs_content.py`
 - `JOSS_WORKSTREAM_REPORT.md`
+- `README.md`
+- `docs/quickstart.md`
 
 ## Commits Created
 
