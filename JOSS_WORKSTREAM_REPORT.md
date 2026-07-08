@@ -135,3 +135,27 @@ tests/test_install_smoke.py ..                                           [ 43%]
 ### Concerns
 
 - Full test suite emits 2 pre-existing `torch.cuda` NVML warnings in this environment, but all tests pass.
+
+## Review Fix Evidence - Install/Test Cleanup
+
+### Reviewer RED
+
+The original smoke test passed, but it only asserted repository layout by checking that `qumet.__file__` lived under `src`. That proved the checkout structure, not package behavior.
+
+### Change Summary
+
+- Replaced the layout assertion in `tests/test_install_smoke.py` with a behavior-oriented smoke test that imports `qumet`, checks `qumet.__version__`, and exercises `models.get_model_info("qcbm")` against public fields.
+- Kept version metadata coverage, but removed the low-value project-name assertion.
+
+### Verification
+
+- Focused pre-change smoke test: `2 passed`
+- Focused post-change smoke test: `2 passed`
+- Full suite: `156 passed, 2 warnings`
+
+### Commands
+
+```bash
+/home/aaron/miniconda3/envs/qumet/bin/python -m pytest tests/test_install_smoke.py
+/home/aaron/miniconda3/envs/qumet/bin/python -m pytest
+```
