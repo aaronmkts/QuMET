@@ -14,7 +14,7 @@ Thanks for contributing to QuMET. This repository is aimed at reproducible devel
 2. Install the package in editable mode with developer extras:
 
    ```bash
-   python -m pip install -e ".[dev,analysis]"
+   python -m pip install -e '.[dev]'
    ```
 
 3. Verify that the CLI imports:
@@ -28,16 +28,20 @@ Thanks for contributing to QuMET. This repository is aimed at reproducible devel
 Run the full test suite before opening a pull request:
 
 ```bash
-PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest
+python -m pytest
+```
+
+If you are working from a source checkout before installing the package, use:
+
+```bash
+PYTHONPATH=src python -m pytest
 ```
 
 For narrower iterations, run only the tests related to your change:
 
 ```bash
-PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest tests/test_project_scaffold_metadata.py -v
+python -m pytest tests/test_project_scaffold_metadata.py -v
 ```
-
-The commands above are the branch-accurate default for this scaffold because the source tree lives under `src/`. If you prefer `python -m pytest`, first verify that your current environment can already import `qumet` without setting `PYTHONPATH`.
 
 ## Reporting Issues
 

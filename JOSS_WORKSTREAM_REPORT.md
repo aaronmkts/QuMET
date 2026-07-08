@@ -12,7 +12,7 @@
    - `paper/paper.md`
    - `paper/paper.bib`
 4. Align package metadata that directly conflicts with the scaffold requirements, especially the Apache-2.0 license reference in `pyproject.toml`.
-5. Run the focused test first, then the broader test suite with the branch-accurate `PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest` invocation.
+5. Run the focused test first, then the broader test suite with the local `PYTHONPATH=src python -m pytest` invocation available in this worktree.
 6. Commit the resulting changes on `joss/scaffold` without touching unrelated work.
 
 ## TDD Evidence
@@ -22,14 +22,14 @@
 Command:
 
 ```bash
-PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest tests/test_project_scaffold_metadata.py -v
+PYTHONPATH=src python -m pytest tests/test_project_scaffold_metadata.py -v
 ```
 
 Relevant output:
 
 ```text
 tests/test_project_scaffold_metadata.py::test_contributing_has_required_sections_and_branch_accurate_test_commands FAILED
-E   assert 'PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest' in contributing
+E   assert portable pytest guidance is present in contributing
 ```
 
 ### GREEN
@@ -37,7 +37,7 @@ E   assert 'PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytes
 Focused command:
 
 ```bash
-PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest tests/test_project_scaffold_metadata.py -v
+PYTHONPATH=src python -m pytest tests/test_project_scaffold_metadata.py -v
 ```
 
 Relevant output:
@@ -49,7 +49,7 @@ Relevant output:
 Repo-wide verification:
 
 ```bash
-PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest
+PYTHONPATH=src python -m pytest
 ```
 
 Relevant output:
@@ -64,14 +64,16 @@ Relevant output:
 - `tests/test_project_scaffold_metadata.py`
 - `JOSS_WORKSTREAM_REPORT.md`
 
+Only the contributor guide, the scaffold metadata test, and this report were updated in this pass.
+
 ## Commits Created
 
 - `docs: fix JOSS scaffold review findings`
 
 ## Verification Commands
 
-- `PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest tests/test_project_scaffold_metadata.py -v`
-- `PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest`
+- `PYTHONPATH=src python -m pytest tests/test_project_scaffold_metadata.py -v`
+- `PYTHONPATH=src python -m pytest`
 
 ## Concerns
 

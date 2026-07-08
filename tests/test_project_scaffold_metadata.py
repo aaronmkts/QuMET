@@ -57,12 +57,11 @@ def test_contributing_has_required_sections_and_branch_accurate_test_commands():
         "Pull Requests",
         "Code Style",
     ]
-    assert 'python -m pip install -e ".[dev,analysis]"' in contributing
-    assert "PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest" in contributing
-    assert (
-        "PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest "
-        "tests/test_project_scaffold_metadata.py -v"
-    ) in contributing
+    assert "python -m pip install -e '.[dev]'" in contributing
+    assert "python -m pytest" in contributing
+    assert "PYTHONPATH=src python -m pytest" in contributing
+    assert "python -m pytest tests/test_project_scaffold_metadata.py -v" in contributing
+    assert "/home/aaron/" not in contributing
 
 
 def test_citation_cff_parses_and_contains_required_metadata():
