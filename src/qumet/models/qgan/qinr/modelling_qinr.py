@@ -1,3 +1,5 @@
+"""Quantum implicit neural representation GAN model."""
+
 import pennylane as qml
 import numpy as np
 import torch
@@ -30,6 +32,13 @@ config = {
 }
 # fmt:on
 class Discriminator(nn.Module):
+    """Classical image discriminator for QINR.
+
+    Args:
+        config: Nested QINR configuration containing image shape settings.
+        task: QuMET task name used by the caller.
+    """
+
     def __init__(self, config, task):
         super().__init__()
         name = "discriminator"
@@ -60,6 +69,14 @@ class Discriminator(nn.Module):
         return x
     
 class QuantumLayer(nn.Module):
+    """Quantum layer used inside the QINR hybrid generator.
+
+    Args:
+        in_features: Number of input features and circuit wires.
+        spectrum_layer: Number of strongly entangling layer blocks.
+        use_noise: Optional random rotation scale for stochastic generation.
+    """
+
     def __init__(self, in_features, spectrum_layer, use_noise):
         super().__init__()
 
@@ -104,6 +121,17 @@ class QuantumLayer(nn.Module):
 
 
 class HybridLayer(nn.Module):
+    """Linear projection followed by a quantum layer.
+
+    Args:
+        in_features: Input feature dimension.
+        out_features: Output feature dimension before the quantum layer.
+        spectrum_layer: Number of strongly entangling layer blocks.
+        use_noise: Optional random rotation scale for stochastic generation.
+        bias: Whether the linear projection uses a bias term.
+        idx: Layer index used for diagnostics.
+    """
+
     def __init__(self, in_features, out_features, spectrum_layer, use_noise, bias=True, idx=0):
         super().__init__()
         self.idx = idx
@@ -118,7 +146,14 @@ class HybridLayer(nn.Module):
     
 
 class Generator(nn.Module):
-    def __init__(self, config, taks):
+    """Hybrid generator for QINR image synthesis.
+
+    Args:
+        config: Nested QINR configuration containing generator settings.
+        task: QuMET task name used by the caller.
+    """
+
+    def __init__(self, config, task):
         name = "generator"
         image_shape = config[name]["image_shape"]
         in_features = config[name]["in_features"]
@@ -165,6 +200,13 @@ class Generator(nn.Module):
     
 
 class QINR(nn.Module):
+    """QINR GAN model with hybrid generator and classical discriminator.
+
+    Args:
+        config: Nested QINR configuration for discriminator and generator.
+        task: QuMET task name used by the caller.
+    """
+
     def __init__(self, config, task):
         super().__init__()
         # networks
@@ -189,6 +231,14 @@ def _qinr_qc(config, task: str) -> QINR:
 
 
 def get_qinr_qc(info: Dict) -> QINR:
+    """Build a QINR model from dataset metadata.
+
+    Args:
+        info: Dataset metadata passed by the QuMET model registry.
+
+    Returns:
+        Configured QINR instance.
+    """
 
     task = "info.generation"
     logger.info(f"The following {config} loaded for task into QINR QGAN")

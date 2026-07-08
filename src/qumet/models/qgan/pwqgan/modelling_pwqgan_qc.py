@@ -1,3 +1,5 @@
+"""Partially quantum Wasserstein GAN model for image-generation workflows."""
+
 import pennylane as qml
 import numpy as np
 import torch
@@ -35,6 +37,13 @@ config = {
 #DISCRIMINATOR
 
 class Discriminator(nn.Module):
+    """Classical image discriminator for PQWGAN-QC.
+
+    Args:
+        config: Nested PQWGAN-QC configuration containing image shape settings.
+        task: QuMET task name used by the caller.
+    """
+
     def __init__(self, config, task):
         super().__init__()
         name = "discriminator"
@@ -158,6 +167,13 @@ class PWQGenerator(nn.Module):
     
 
 class PQWGAN_QC(nn.Module):
+    """Hybrid PQWGAN-QC model with quantum generator and classical discriminator.
+
+    Args:
+        config: Nested PQWGAN-QC configuration for discriminator and generator.
+        task: QuMET task name used by the caller.
+    """
+
     def __init__(self, config, task):
         super().__init__()
         # networks
@@ -182,6 +198,14 @@ def _pqwgan_qc(config, task: str) -> PQWGAN_QC:
 
 
 def get_pqwgan_qc(info: Dict) -> PQWGAN_QC:
+    """Build a PQWGAN-QC model from dataset metadata.
+
+    Args:
+        info: Dataset metadata passed by the QuMET model registry.
+
+    Returns:
+        Configured PQWGAN-QC instance.
+    """
 
     task = "info.generation"
     logger.info(f"The following {config} loaded for task into PatchQuantumGenerator")

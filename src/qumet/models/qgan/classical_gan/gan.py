@@ -1,3 +1,5 @@
+"""Classical GAN baseline used for QGAN-family comparisons."""
+
 import pennylane as qml
 import numpy as np
 import torch
@@ -26,6 +28,13 @@ config = {
 #DISCRIMINATOR
 
 class Discriminator(nn.Module):
+    """Classical image discriminator for the GAN baseline.
+
+    Args:
+        config: Nested GAN configuration containing image shape settings.
+        task: QuMET task name used by the caller.
+    """
+
     def __init__(self, config, task):
         super().__init__()
         name = "discriminator"
@@ -56,6 +65,13 @@ class Discriminator(nn.Module):
         return x
 
 class Generator(nn.Module):
+    """Classical generator for the GAN baseline.
+
+    Args:
+        config: Nested GAN configuration containing latent and image settings.
+        task: QuMET task name used by the caller.
+    """
+
     def __init__(self, config, task):
         super(Generator, self).__init__()
         name = "generator"
@@ -91,6 +107,13 @@ class Generator(nn.Module):
         return x
 
 class GAN(nn.Module):
+    """Classical GAN baseline model.
+
+    Args:
+        config: Nested GAN configuration for discriminator and generator.
+        task: QuMET task name used by the caller.
+    """
+
     def __init__(self, config, task):
         super().__init__()
         # networks
@@ -115,6 +138,14 @@ def _gan(config, task: str) -> GAN:
 
 
 def get_gan(info: Dict) -> GAN:
+    """Build a classical GAN baseline from dataset metadata.
+
+    Args:
+        info: Dataset metadata passed by the QuMET model registry.
+
+    Returns:
+        Configured classical GAN instance.
+    """
 
     task = "info.generation"
     logger.info(f"The following {config} loaded for task into PatchQuantumGenerator")

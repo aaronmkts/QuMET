@@ -43,6 +43,13 @@ config = {
 #DISCRIMINATOR
 
 class Discriminator(nn.Module):
+    """Classical discriminator over MosaiQ PCA feature vectors.
+
+    Args:
+        config: Nested MosaiQ configuration containing discriminator settings.
+        task: QuMET task name used by the caller.
+    """
+
     def __init__(self, config, task):
         super().__init__()
         name = "discriminator"
@@ -62,6 +69,13 @@ class Discriminator(nn.Module):
     
 
 class MosaiQGenerator(nn.Module):
+    """Quantum generator ensemble used by MosaiQ.
+
+    Args:
+        config: Nested MosaiQ configuration containing generator settings.
+        task: QuMET task name used by the caller.
+    """
+
     def __init__(self, config, task):
         super().__init__()
         
@@ -129,6 +143,13 @@ class MosaiQGenerator(nn.Module):
         return images
 
 class MosaiQ(nn.Module):
+    """Hybrid quantum-classical MosaiQ GAN model.
+
+    Args:
+        config: Nested MosaiQ configuration for discriminator and generator.
+        task: QuMET task name used by the caller.
+    """
+
     def __init__(self, config, task):
         super().__init__()
         # networks
@@ -152,6 +173,14 @@ def _mosaiq(config, task: str) -> MosaiQ:
 
 
 def get_mosaiq(info: Dict) -> MosaiQ:
+    """Build a MosaiQ model from dataset metadata.
+
+    Args:
+        info: Dataset metadata passed by the QuMET model registry.
+
+    Returns:
+        Configured MosaiQ instance.
+    """
 
     task = "info.generation"
     logger.info(f"The following {config} loaded for task into MosaiQ")
