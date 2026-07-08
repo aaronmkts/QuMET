@@ -22,7 +22,14 @@ PUBLIC_DOCS = [
     DOCS_DIR / "models-and-datasets.md",
     DOCS_DIR / "testing.md",
 ]
-PUBLIC_MARKDOWN_DOCS = [README_PATH, *sorted(DOCS_DIR.rglob("*.md"))]
+PUBLIC_MARKDOWN_DOCS = [
+    README_PATH,
+    *[
+        path
+        for path in sorted(DOCS_DIR.rglob("*.md"))
+        if "workstream-reports" not in path.relative_to(DOCS_DIR).parts
+    ],
+]
 README_REQUIRED_SECTIONS = [
     "# QuMET",
     "## Statement of Need",
