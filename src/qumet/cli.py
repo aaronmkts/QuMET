@@ -48,6 +48,7 @@ import pennylane
 import torch.utils
 import torch.utils.checkpoint
 
+from . import __version__
 from . import models
 from .actions import train, validate
 from .dataset import QuMETDataModule, AVAILABLE_DATASETS, get_dataset_info
@@ -63,7 +64,7 @@ torch.set_float32_matmul_precision("medium")
 
 # This file's in root/main/codebase; there's three levels of parents to get to the root.
 ROOT = Path(__file__).parent.parent.parent.absolute()
-VERSION = "00.00.0"
+VERSION = __version__
 
 
 # Constants ----------------------------------------------------------------------------
@@ -903,3 +904,7 @@ class ShowInfoAction(argparse.Action):
         table = list(zip(*table))
         print(title)
         print(tabulate(table, tablefmt="pretty"))
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    QuMETCLI(argv).run()

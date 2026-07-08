@@ -7,7 +7,7 @@ name = "qumet"
 version = "0.1.0"
 description = "QuMET: Quantum Metric Learning and Generative Modelling Toolkit"
 readme = "README.md"
-license = {text = "MIT"}
+license = {text = "Apache-2.0"}
 requires-python = ">=3.11"
 authors = [
     {name = "Aaron M. Thomas", email = "aaronmkts@proton.me"},
@@ -16,7 +16,7 @@ keywords = ["quantum", "machine-learning", "generative-modelling", "pennylane", 
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3.11",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Physics",
@@ -71,6 +71,9 @@ Homepage = "https://github.com/aaronmkts/QuMET"
 Repository = "https://github.com/aaronmkts/QuMET.git"
 Issues = "https://github.com/aaronmkts/QuMET/issues"
 
+[project.scripts]
+qmt = "qumet.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
@@ -86,4 +89,5 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+pythonpath = ["src"]
 addopts = "-v --tb=short"
