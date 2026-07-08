@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-from qumet.cli import QuMETCLI
+from qumet.cli import main
 
 if __name__ == "__main__":
     # this if statement is necessary to spawn new processes for ddp
-    QuMETCLI().run()
+    main()

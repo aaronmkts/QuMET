@@ -1,8 +1,11 @@
-"""Tests for qumet.cli module."""
-import pytest
 import argparse
-import tempfile
 import os
+import tomllib
+from pathlib import Path
+
+import pytest
+
+from qumet import __version__
 from qumet.cli import (
     QuMETCLI,
     _valid_filepath,
@@ -155,7 +158,7 @@ class TestQuMETCLI:
             QuMETCLI(["train"])
 
     def test_version_constant(self):
-        assert VERSION == "00.00.0"
+        assert VERSION == __version__
 
     def test_parser_has_help(self):
         with pytest.raises(SystemExit):
@@ -163,3 +166,22 @@ class TestQuMETCLI:
         # --help causes SystemExit
         with pytest.raises(SystemExit):
             QuMETCLI(["train", "--help"])
+
+
+def test_show_version_prints_package_version(capsys):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-V", "--version", action=ShowVersionAction, help="show version and exit")
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["-V"])
+
+    assert __version__ in capsys.readouterr().out
+
+
+def test_pyproject_declares_qmt_console_script_and_apache_license():
+    pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
+    project = tomllib.loads(pyproject.read_text())["project"]
+
+    assert project["license"]["text"] == "Apache-2.0"
+    assert "License :: OSI Approved :: Apache Software License" in project["classifiers"]
+    assert project["scripts"]["qmt"] == "qumet.cli:main"
