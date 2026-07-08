@@ -90,3 +90,38 @@ Note: this branch still expects `PYTHONPATH=src` when running tests from the sou
 ## Concerns
 
 - The docs-content test now checks supported-name lists by parsing the Markdown sections rather than matching raw prose, which keeps the check pragmatic while still catching drift in the public JOSS surface.
+
+## Final Review Fix
+
+The last public-docs consistency issue was the underscore-style CLI override in the runnable quickstart examples. I removed `--n_qubits 9` from the README and `docs/quickstart.md`, leaving runnable commands that use only hyphenated CLI flags.
+
+Focused docs verification:
+
+```bash
+PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest tests/test_docs_content.py -v
+```
+
+Result:
+
+```text
+collected 5 items
+
+tests/test_docs_content.py::test_readme_covers_joss_public_surface PASSED
+tests/test_docs_content.py::test_detailed_docs_have_expected_structure PASSED
+tests/test_docs_content.py::test_public_docs_reference_existing_compatible_examples PASSED
+tests/test_docs_content.py::test_public_docs_use_valid_cli_option_names PASSED
+tests/test_docs_content.py::test_supported_name_lists_match_current_registries PASSED
+```
+
+Full suite verification:
+
+```bash
+PYTHONPATH=src /home/aaron/miniconda3/envs/qumet/bin/python -m pytest
+```
+
+Result:
+
+```text
+collected 159 items
+159 passed, 2 warnings
+```

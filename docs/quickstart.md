@@ -38,7 +38,7 @@ python src/qmt train --config src/configs/by_model/qcbm/qcbm.toml --max-epochs 5
 You can also run without a config file when you want a direct command:
 
 ```bash
-python src/qmt train qcbm bars_and_stripes --task discrete_generation --n_qubits 9 --batch-size 10 --learning-rate 0.1 --max-epochs 5 --accelerator cpu
+python src/qmt train qcbm bars_and_stripes --task discrete_generation --batch-size 10 --learning-rate 0.1 --max-epochs 5 --accelerator cpu
 ```
 
 ## 4. Explore another current model family

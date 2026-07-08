@@ -1,11 +1,10 @@
 """Docs-content checks for JOSS-facing public documentation."""
 
-import argparse
 import re
 import tomllib
 from pathlib import Path
 
-from qumet.cli import TASKS, QuMETCLI, _validate_model_dataset_task
+from qumet.cli import TASKS, _validate_model_dataset_task
 from qumet.dataset import AVAILABLE_DATASETS, get_dataset_info
 from qumet.models import get_model_info
 from qumet.models.qcbm import QCBM_MODELS
@@ -108,20 +107,6 @@ def _iter_documented_cli_triples(content: str) -> list[tuple[str, str, str]]:
     )
 
 
-def _get_cli_parser() -> argparse.ArgumentParser:
-    return QuMETCLI.__new__(QuMETCLI)._setup_parser()
-
-
-def _get_valid_cli_flags() -> set[str]:
-    parser = _get_cli_parser()
-    return {
-        option
-        for action in parser._actions
-        for option in action.option_strings
-        if option.startswith("--")
-    }
-
-
 def _iter_raw_cli_flags(content: str) -> list[str]:
     return re.findall(r"--[A-Za-z0-9][A-Za-z0-9_-]*", content)
 
@@ -214,7 +199,6 @@ def test_public_docs_reference_existing_compatible_examples():
 
 
 def test_public_docs_use_valid_cli_option_names():
-    valid_flags = _get_valid_cli_flags()
     invalid_flags = {}
 
     for path in PUBLIC_MARKDOWN_DOCS:
@@ -223,15 +207,15 @@ def test_public_docs_use_valid_cli_option_names():
             {
                 flag
                 for flag in _iter_raw_cli_flags(content)
-                if "_" in flag and flag not in valid_flags and flag.replace("_", "-") in valid_flags
+                if "_" in flag
             }
         )
         if bad_flags:
             invalid_flags[str(path.relative_to(REPO_ROOT))] = bad_flags
 
     assert not invalid_flags, (
-        "Public Markdown docs use invalid CLI option spellings; use the CLI-defined "
-        f"hyphenated flags instead: {invalid_flags}"
+        "Public Markdown docs must not use underscore-style CLI option spellings: "
+        f"{invalid_flags}"
     )
 
 
