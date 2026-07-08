@@ -123,7 +123,8 @@ tests/test_install_smoke.py ..                                           [ 43%]
 
 ### Commits Created
 
-- `23a37ea` `test: make source checkout pytest import qumet`
+- `test: make source checkout pytest import qumet`
+- `docs: finalize JOSS workstream 2 report`
 
 ### Verification Commands
 
