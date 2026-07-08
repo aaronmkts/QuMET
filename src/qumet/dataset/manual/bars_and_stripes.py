@@ -9,6 +9,7 @@ from qumet.dataset.utils import add_dataset_info
     name="bars_and_stripes",
     dataset_source="manual",
     available_splits=("train", "validation"),
+    bitstring_generation=True,
 )
 class BarsAndStripesDataset(Dataset):
     def __init__(self, split="train", normaliser = None, discretisation = None, n_qubits=9, n_samples = 1) -> None:

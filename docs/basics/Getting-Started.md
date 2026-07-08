@@ -1,18 +1,25 @@
-Before you start, please make sure you have `python` installed up to version `3.11.6`. This projects dependencies should also be installed using a virtual environment once the project repository has been cloned to the users system.
+# Getting Started
 
-- In your chosen IDE, clone the QuMET repository to your pc.
-  
-`git clone https://github.com/aaronmkts/QuMET.git`
+This page is a short pointer to the current QuMET user docs.
 
-- Create a virtual environment for example use a Conda environment (If you do not have `conda`, please check advice on the documentation in [Anaconda](https://docs.anaconda.com/free/anaconda/install/index.html)), alternatively use a `pip` environment, advice on installation can be found [here](https://docs.python-guide.org/dev/virtualenvs/). Once created and activated download the project requirements as follows
+## Recommended entry points
 
-```
+- Start with the repository [README](../../README.md) for the project overview, statement of need, install command, and a minimal quickstart.
+- Use [../quickstart.md](../quickstart.md) for the smallest runnable example.
+- Use [../configuration.md](../configuration.md) for TOML structure and example config locations.
+
+## Minimal install
+
+```bash
+git clone https://github.com/aaronmkts/QuMET.git
 cd QuMET
-pipenv source  (activates a pipenv virtual environment)
-pip install -r requirements.txt
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
 ```
-- Create your own branch to work on, QuMET uses the following [branch naming conventions](https://tilburgsciencehub.com/building-blocks/collaborate-and-share-your-work/use-github/naming-git-branches/):
-  
-`git checkout -b your_branch_name`
 
+## Running the CLI
 
+```bash
+python src/qmt train --config src/configs/by_model/qcbm/qcbm.toml
+```
