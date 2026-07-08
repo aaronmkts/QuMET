@@ -116,6 +116,7 @@ See [docs/testing.md](docs/testing.md) for focused test commands and verificatio
 - [Quickstart](docs/quickstart.md)
 - [Configuration](docs/configuration.md)
 - [Models and datasets](docs/models-and-datasets.md)
+- [QGAN and GAN models](docs/qgan-models.md)
 - [Testing](docs/testing.md)
 - [Research memory boundary](docs/research-memory-boundary.md)
 

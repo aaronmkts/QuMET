@@ -73,14 +73,15 @@ class Discriminator(nn.Module):
 
 
 class PatchQuantumGenerator(nn.Module):
-    """Quantum generator class for the patch method"""
+    """Quantum generator for the patch-based QGAN method.
+
+    Args:
+        config: Nested PatchGAN configuration for quantum sub-generators.
+        task: QuMET task name used by the caller.
+    """
 
     def __init__(self, config, task):
-        """
-        Args:
-            n_generators (int): Number of sub-generators to be used in the patch method.
-            q_delta (float, optional): Spread of the random distribution for parameter initialisation.
-        """
+        super().__init__()
         name = "generator"
         generator_config = config[name]
         self.n_generators = generator_config["n_generators"]
@@ -154,6 +155,13 @@ class PatchQuantumGenerator(nn.Module):
     
 
 class PatchGAN(nn.Module):
+    """Hybrid quantum-classical patch GAN model.
+
+    Args:
+        config: Nested PatchGAN configuration for the discriminator and generator.
+        task: QuMET task name used by the caller.
+    """
+
     def __init__(self, config, task):
         super().__init__()
         # networks
@@ -178,6 +186,14 @@ def _patchgan(config, task: str) -> PatchGAN:
 
 
 def get_patchgan(info: Dict) -> PatchGAN:
+    """Build a PatchGAN model from dataset metadata.
+
+    Args:
+        info: Dataset metadata passed by the QuMET model registry.
+
+    Returns:
+        Configured PatchGAN instance.
+    """
 
     task = "info.generation"
     logger.info(f"The following {config} loaded for task into PatchQuantumGenerator")

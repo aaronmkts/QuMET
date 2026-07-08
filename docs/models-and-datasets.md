@@ -21,6 +21,8 @@ At a high level:
 - `patchgan`, `mosaiq`, `vaeqwgan`, `pqwgan_qc`, `qinr`, and `gan` are handled through the QGAN or GAN model path.
 - `vae` is available for image-generation workflows.
 
+See [QGAN and GAN models](qgan-models.md) for the current production-facing QGAN support boundary. That page documents `patchgan`, `mosaiq`, `pqwgan_qc`, `qinr`, and `gan` in detail and records why `vaeqwgan` is deferred for a later pass.
+
 ## Supported Datasets
 
 Vision datasets:
