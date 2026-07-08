@@ -41,6 +41,11 @@
 - `python3 -c "import sys; sys.path.insert(0, 'src'); import qumet; print(qumet.__file__)"`
   - Could not complete in the current shell because runtime dependencies are not installed locally: `ModuleNotFoundError: No module named 'torch'`.
 
+## Review fix evidence
+
+- Updated `.github/workflows/ci.yml` so `on.pull_request` now includes `branches: [master, main]`, matching the existing `push` branch filter.
+- The YAML trigger block was re-read after the edit to confirm both `pull_request` and `push` are constrained to `master` and `main`.
+
 ## Commits created
 
 - Planned commit: `ci: add GitHub Actions workflow for JOSS checks`
